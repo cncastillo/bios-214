@@ -44,9 +44,15 @@ scaled_samples = gain .* samples
 
 # ╔═╡ 07db5efc-b799-11f1-9c1f-43b949e06c55
 md"""
-## Part 2: Write a function
+## Part 2: Approximate π
 
-Think of a way to approximate π. Describe your method to the agent and ask it to add a Julia function that implements it. Run the function and check its result.
+The Basel approximation is
+
+```math
+\pi \approx \sqrt{6\sum_{k=1}^{N}\frac{1}{k^2}}.
+```
+
+Describe how your function should compute this from `N`, then ask the agent to implement it.
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
