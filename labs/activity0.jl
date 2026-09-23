@@ -55,6 +55,9 @@ The total energy of `scaled_samples` is the sum of the squares of its entries. E
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+
+[compat]
+PlutoUI = "~0.7.83"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -63,7 +66,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.12.7"
 manifest_format = "2.0"
-project_hash = "4c0a816760ff43ca9ffe29e328a423fcbd2cbca4"
+project_hash = "40c9f1cac973d64f8ca3ef3a09f769ff947e80f3"
 
 [[deps.AbstractPlutoDingetjes]]
 git-tree-sha1 = "e71ee7b4aa06b045259a7d6101e1cb45ad140bce"
