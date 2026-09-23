@@ -23,16 +23,14 @@ using PlutoUI
 md"""
 # Activity 0: Working with a coding agent
 
-Use this notebook to practice describing a computation before asking an agent to write Julia code. You should predict the result, inspect the code the agent adds, and test your prediction in Pluto.
+See Pluto react, then describe a computation for an agent to code.
 """
 
 # ╔═╡ 07db4964-b799-11f1-be38-1d32437e5633
 md"""
-## Part 1: Predict and observe
+## Part 1: See Pluto react
 
-1. Predict what `scaled_samples` will contain when `gain` changes from `2` to `3`.
-2. Move the slider to `3` and compare the result with your prediction.
-3. Ask your agent to change the slider's upper limit from `10` to `12`. Explain what you expect to change in the notebook.
+Move the `gain` slider and watch `scaled_samples` update.
 """
 
 # ╔═╡ 07db4dce-b799-11f1-a280-5329bc4ef57e
@@ -46,16 +44,9 @@ scaled_samples = gain .* samples
 
 # ╔═╡ 07db5efc-b799-11f1-9c1f-43b949e06c55
 md"""
-## Part 2: Test the student-agent workflow
+## Part 2: Write a function
 
-As the TA, act as a student in the Codex or Claude Code chat for this repository:
-
-1. Ask the agent to add a Julia cell that computes the total energy of `scaled_samples`. Do not explain your method yet. The agent should ask you how you want to calculate it before editing the notebook.
-2. Reply with your own plan: which values to use, what to do to each value, and how to combine them. Then ask the agent to implement that plan in a code cell.
-3. Inspect the new code cell and `labs/activity0.jl`. The activity text should be unchanged, and your chat prompts should appear only in the file's `#>` history comments.
-4. Predict how the result changes when `gain` doubles. Move the slider to test your prediction, then explain the code and result in your own words.
-
-For this activity, total energy means the sum of the squares of the entries in `scaled_samples`.
+Think of a way to approximate π. Describe your method to the agent and ask it to add a Julia function that implements it. Run the function and check its result.
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
