@@ -46,9 +46,16 @@ scaled_samples = gain .* samples
 
 # ╔═╡ 07db5efc-b799-11f1-9c1f-43b949e06c55
 md"""
-## Part 2: Describe your solution
+## Part 2: Test the student-agent workflow
 
-The total energy of `scaled_samples` is the sum of the squares of its entries. Explain to your agent which values to use and how to compute that total, then ask it to add a Julia code cell. Before running the new cell, predict what happens to the energy when `gain` doubles. Test your prediction with the slider and explain the result in your own words.
+As the TA, act as a student in the Codex or Claude Code chat for this repository:
+
+1. Ask the agent to add a Julia cell that computes the total energy of `scaled_samples`. Do not explain your method yet. The agent should ask you how you want to calculate it before editing the notebook.
+2. Reply with your own plan: which values to use, what to do to each value, and how to combine them. Then ask the agent to implement that plan in a code cell.
+3. Inspect the new code cell and `labs/activity0.jl`. The activity text should be unchanged, and your chat prompts should appear only in the file's `#>` history comments.
+4. Predict how the result changes when `gain` doubles. Move the slider to test your prediction, then explain the code and result in your own words.
+
+For this activity, total energy means the sum of the squares of the entries in `scaled_samples`.
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
