@@ -1,8 +1,11 @@
 # BIOS 214
 
+> [!WARNING]
+> **Work in progress:** These course materials are under active development and may be incomplete or change.
+
 Course notebooks and agent instructions. `labs/activity0.jl` is an unsolved example for a TA to try in the student role.
 
-After accepting the repository invitation, clone it:
+Clone the repository:
 
 ```sh
 git clone https://github.com/cncastillo/bios-214.git
