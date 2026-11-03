@@ -228,14 +228,14 @@ Using only the first ``N`` terms gives an approximation to ``\pi``:
 
 # ╔═╡ 3b95f760-10ac-453f-b7b8-41deea76f3f0
 md"""
-## Part 3: Explore the Bloch sphere
+## Part 3: Work with an agent on MRI tasks
 
 The Bloch sphere shows the magnetization vector in three dimensions. In the following plot, each colored line from the center represents a simulated spin at position ``z`` along the slice; its endpoint gives ``(M_x, M_y, M_z)``. The color bar identifies ``z``, and the fading trail shows recent motion.
 
 With slice-selective excitation, spins at different ``z`` positions experience different resonance frequencies and follow different magnetization trajectories.
 
 !!! info "Instructions"
-    Ask your coding agent to:
+    Ask your coding agent to make these changes. It should clarify missing values before editing, then help you interpret the results.
 
     1. **Make the excited slice thinner.** Agree on a new thickness, then use the time slider to compare the result.
     2. **Change the flip angle.** Agree on a new angle, then compare how the spins respond.
