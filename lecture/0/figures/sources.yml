@@ -1,0 +1,17 @@
+syllabus-introduction:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  slides: [2, 3, 7]
+  files:
+    - course-banner.jpg
+    - carlos-castillo-passi.jpg
+    - daniel-ennis.jpg
+    - charles-mcgrath.jpg
+    - magnetic-resonance-imaging.png
+    - juliahealth.png
+course-website-qr:
+  file: course-website-qr.png
+  destination: https://cncastillo.github.io/teaching/bios-214/
+
+pluto-export-options:
+  source: Local Pluto 1.0.4 export menu for lab/0/activity0.jl, captured at 3x display scale
+  files: [pluto-export-jl.jpg, pluto-export-html.jpg, pluto-export-pdf.jpg]

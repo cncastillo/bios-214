@@ -1,0 +1,64 @@
+name: Render course materials
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: materials-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    env:
+      JULIA_NUM_THREADS: auto
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.10'
+      - uses: julia-actions/cache@v3
+      - uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: '1.9.38'
+      - name: Install the official Pluto exporter
+        run: julia --project=export -e 'using Pkg; Pkg.instantiate()'
+      - name: Render lab notebooks and Quarto lectures
+        run: julia --project=export export/build.jl
+      - name: Upload course materials preview
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: bios-214-materials
+          path: _site
+          if-no-files-found: error
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: _site
+
+  deploy:
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy course materials
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
