@@ -56,6 +56,7 @@ include-in-header:
       --r-heading2-size: 60px;
     }
     .reveal .slides section:not(#title-slide) > h1 { font-size: var(--r-heading1-size); }
+    .reveal .slides section.slide { padding-bottom: 40px; box-sizing: border-box; }
     .reveal .title {
       font-size: 84px;
     }

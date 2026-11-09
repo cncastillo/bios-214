@@ -49,6 +49,7 @@ include-in-header:
       --r-heading2-size: 60px;
     }
     .reveal .slides section:not(#title-slide) > h1 { font-size: var(--r-heading1-size); }
+    .reveal .slides section.slide { padding-bottom: 40px; box-sizing: border-box; }
     .reveal .title {
       font-size: 84px;
     }
@@ -88,6 +89,7 @@ include-in-header:
 
     .reveal h1 { margin-bottom: 0.35em; }
     .reveal p { margin: 0.35em 0; }
+    .reveal .slides section.slide li li { margin-top: 0.2em; }
     .reveal .columns { gap: 36px; }
     .reveal table { font-size: 30px; width: 100%; }
     .reveal table th, .reveal table td { padding: 0.35em 0.5em; }
@@ -100,10 +102,11 @@ include-in-header:
     .reveal .export-options { text-align: center; }
     .reveal .export-options p { margin: 0; }
     .reveal .export-options p + p { margin-top: 12px; }
+    .reveal .course-artwork img, .reveal .export-options img { display: block; margin: 0 auto; }
     .reveal .activity-preview {
       display: block;
       width: 100%;
-      height: 540px;
+      height: 500px;
       border: 1px solid #adb5bd;
       box-sizing: border-box;
       color-scheme: only light;
@@ -128,8 +131,6 @@ include-in-header:
   - **Days 1 and 3 (Nov 9 and 13):** Alway M218/218A
 :::
 
-<br>
-
 ::: {.fragment}
 - All material will be made available online
   - Recorded lectures
@@ -138,7 +139,7 @@ include-in-header:
 :::
 :::
 ::: {.column .course-artwork width="40%"}
-![](figures/course-banner.jpg){height=310px fig-alt="MRI simulation and scanner course illustration"}
+![](figures/course-banner.jpg){height=260px fig-alt="MRI simulation and scanner course illustration"}
 
 Course website
 
@@ -207,8 +208,6 @@ Portraits supplied in the source Google Slides deck.
   - Reactive
   - Can run as scripts
 :::
-
-<br>
 
 ::: {.fragment fragment-index=1}
 - **Open repository as a project**
