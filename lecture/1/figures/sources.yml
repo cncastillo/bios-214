@@ -1,0 +1,149 @@
+embedded-stanford-logo:
+  source: https://www-media.stanford.edu/assets/favicon/safari-pinned-tab.svg
+  description: Official vector mark embedded unchanged in the Quarto frontmatter
+activity0.png:
+  source: ../../../lab/0/activity0.jl
+  description: Screenshot of the locally rendered Activity 0
+stallman.jpg:
+  source: https://stallman.org/Portrait_-_Denmark_DTU_2007-3-31.jpg
+  credit: Portrait hosted by stallman.org, DTU, Denmark, 2007
+torvalds.jpg:
+  source: https://commons.wikimedia.org/wiki/File:LinuxCon_Europe_Linus_Torvalds_02.jpg
+  credit: Krd, CC BY-SA 4.0, unchanged
+perez.png:
+  source: https://cdss.berkeley.edu/news/project-jupyter-celebrates-20-years-fernando-perez-reflects-how-it-started-open-sciences
+  credit: Jonathan Taylor / UC Berkeley
+dependency.png:
+  source: https://xkcd.com/2347/
+  credit: Randall Munroe, CC BY-NC 2.5, unchanged
+software-abandoned.png:
+  source: https://docs.google.com/presentation/d/1l0AZv_Pu7BcvwJ_bbMPo8RKBG7jq5NH4tKFFlt5dtYI
+  credit: Carlos Castillo-Passi, 2025, slide 2
+shared-bug-fix.png:
+  source: https://docs.google.com/presentation/d/1lR4x_GCWuMEjZBpnalL9yKLViJyuT6F6ARl_IAbWnY0
+  credit: Carlos Castillo-Passi, 2026, slide 16
+rf-phase-before-after.png:
+  source: https://docs.google.com/presentation/d/1lR4x_GCWuMEjZBpnalL9yKLViJyuT6F6ARl_IAbWnY0
+  credit: Carlos Castillo-Passi, 2026, slide 15
+citation-impact.svg:
+  source: https://pixeltje.be/wp-content/uploads/Vandewalle12.pdf
+  description: Redrawn from Table 1; data in citation-impact.csv
+  limits: Historical observational sample of 645 TIP papers from 2004–2006; association, not causation
+codex-github-activity.png:
+  source: Carlos Castillo-Passi, personal activity report updated November 5, 2026
+  limits: Local Codex messages and GitHub profile contributions; not verified open-source-only activity or a causal productivity estimate
+agentic-simulation.png:
+  source: https://arxiv.org/abs/2603.00214
+  credit: Lie, Møyner, Svee, and Torben, 2026, Figure 1, CC BY 4.0
+  description: Figure extracted from PDF page 6; surrounding article text omitted
+koma-sequence.png:
+  source: Local KomaMRI 0.15.0 UI demo
+koma-phantom.png:
+  source: Local KomaMRI 0.15.0 UI demo
+koma-scanner.png:
+  source: Local KomaMRI 0.15.0 UI demo
+koma-signal.png:
+  source: Local KomaMRI 0.15.0 UI demo
+
+
+# Figures extracted from the completed Lecture 1 Google Slides deck.
+osi.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+stallman-printer.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+stallman-portrait.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+torvalds-portrait.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+linux-logo.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+xkcd-dependency.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+oss-principles.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+joss-logo.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+aaif-logo.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+aaif-projects.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+agent-loop.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+model-types.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+ai-population-mean.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+ai-talk-examples.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+random-number-bias.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+agent-tests.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+ai-learning-results.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+ai-explanation-results.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+ai-tutoring-loop.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+bloch-sphere.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+koma-ui-example.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+computer-use.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+ai-surpass-mean.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+agentic-design.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+sequence-design.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+cardiac-flow.gif:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+cardiac-simulation.gif:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+billion-spin-simulation.png:
+  source: https://docs.google.com/presentation/d/1CmxFTfhxNXH9JF6ht3hYEcbAJD-eaCRYvIQiXDOJZ4Y/edit
+  description: Original figure from the instructor-authored Lecture 1 deck
+koma-logo.svg:
+  source: https://github.com/JuliaHealth/KomaMRI.jl/blob/master/assets/logo.svg
+koma-readme-demo.gif:
+  source: https://github.com/JuliaHealth/KomaMRI.jl/blob/master/docs/src/assets/ui-simulation.gif
+koma-agentic-ui.gif:
+  source: Local KomaMRI 0.15 UI recording, November 8, 2026
+  description: 1600-pixel UI capture with captions; synthetic frontal-edge off-resonance field
+koma-inputs-outputs.svg:
+  description: Native SVG simulation-to-reconstruction diagram with embedded KomaMRI, Pulseq, and MRIReco assets; ISMRMRD identified by name
+pulseq-logo.png:
+  source: https://pulseq.github.io/logo.png
+microduck.gif:
+  source: https://developer.nvidia.com/blog/using-ai-agents-to-teach-robots-like-microduck-to-walk-in-simulation/
+  description: Original animation extracted from the added slide 37
+mrireco-logo.png:
+  source: https://raw.githubusercontent.com/MagneticResonanceImaging/MRIReco.jl/master/docs/src/assets/logo.png
