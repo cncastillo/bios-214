@@ -77,7 +77,7 @@ function write_material_index(kind, title, label, prefix, extension)
     </head>
     <body>
       <nav aria-label="Course materials">
-        <a href="https://cncastillo.github.io/teaching/bios-214/">Course website</a> ·
+        <a href="/teaching/bios-214/">Course website</a> ·
         <a href="../$other/">$other_title</a>
       </nav>
       <main>
