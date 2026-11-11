@@ -165,7 +165,7 @@ function show_excitation(id, seq, positions)
     data = excitation_data(seq, positions)
     wave = plot_seq(seq; height=520, width=590, slider=false, show_rf_frame=false)
     for trace in wave.data
-        get(trace, :name, "") == "|B1|_AM" && (trace.name = "B₁")
+        get(trace, :name, "") == "|B1|_AM" && (trace.name = "B<sub>1,x</sub>")
         get(trace, :visible, true) == "legendonly" && (trace.showlegend = false)
     end
     wave.layout.margin = attr(l=55, r=10, t=35, b=45)
