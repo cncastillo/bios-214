@@ -18,7 +18,7 @@ AI may generate complete code, debug implementations, produce visualizations, an
 ## Open the notebook
 
 - Reuse an existing Pluto session and authenticated browser tab only after checking that the notebook path belongs to this repository. For Activity 0, the notebook is `lab/0/activity0.jl`.
-- If a matching session is not running, start it from the repository root in a persistent interactive terminal with `julia +1.10 run_pluto.jl lab/0/activity0.jl`, substituting the requested notebook path. Keep the process running and its output available; do not redirect startup output to a log.
+- If a matching session is not running, refresh registries before loading Pluto so its resolver sees newly registered package versions. Start it from the repository root in a persistent interactive terminal with `julia +1.10 -e 'import Pkg; Pkg.Registry.update(); include("run_pluto.jl")' lab/0/activity0.jl`, substituting the requested notebook path. Keep the process running and its output available; do not redirect startup output to a log.
 - Open the exact URL printed by that process in the agent app's in-app browser (for example, Codex or Claude). Pluto chooses another available port if its preferred port is occupied. Preserve the printed host, port, path, and secret token; do not guess `localhost:1234`, copy a URL from another session, or invent a notebook ID. Verify the opened notebook's path before editing.
 - If the URL is lost, recover it from that terminal's output or reuse the matching authenticated tab. If neither is available, restart only the Pluto process you started, once, and use its new printed URL. Leave other Julia sessions alone. If the app has no in-app browser, provide the actual URL and explain that limitation.
 
