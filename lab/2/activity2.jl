@@ -320,30 +320,30 @@ function image_target(url)
     end
 end
 
+# ╔═╡ 86ad34dd-31c1-4e23-9888-3b843c2e6d84
+function rescale_to_01(values)
+    low, high = extrema(values)
+    high == low && return fill(iszero(high) ? 0.0 : 1.0,size(values))
+    return (values .- low) ./ (high-low)
+end
+
 # ╔═╡ 11f9137a-dd9b-11f1-9d2d-970d116ec7d5
 # 2.1 — Choose the target shape
 target_shape = smiley # or image_target("https://…")
 
 # ╔═╡ 11f91398-dd9b-11f1-9d2d-970d116ec7d5
 # 2.1 — Display the chosen target
-begin
-    function rescale_to_01(values)
-        low, high = extrema(values)
-        high == low && return fill(iszero(high) ? 0.0 : 1.0,size(values))
-        return (values .- low) ./ (high-low)
-    end
-    let
-        axis = collect((-63.5:63.5).*0.002)
-        target = rescale_to_01([target_shape(x,y) for x in axis,y in axis])
-        target .*= [hypot(x,y)<=0.080 for x in axis,y in axis]
-        θ = range(0,2π;length=201)
-        plot([heatmap(x=1000 .* axis,y=1000 .* axis,z=permutedims(target),
-                  colorscale=[[0,"black"],[1,"white"]],zmin=0,zmax=1),
-              scatter(x=80 .* cos.(θ),y=80 .* sin.(θ),mode="lines",
-                  line=attr(color="blue",dash="dash",width=2),showlegend=false)],
-            Layout(template="none",height=360,title="Chosen target",
-                xaxis_title="x [mm]",yaxis_title="y [mm]",yaxis_scaleanchor="x"))
-    end
+let
+    axis = collect((-63.5:63.5).*0.002)
+    target = rescale_to_01([target_shape(x,y) for x in axis,y in axis])
+    target .*= [hypot(x,y)<=0.080 for x in axis,y in axis]
+    θ = range(0,2π;length=201)
+    plot([heatmap(x=1000 .* axis,y=1000 .* axis,z=permutedims(target),
+              colorscale=[[0,"black"],[1,"white"]],zmin=0,zmax=1),
+          scatter(x=80 .* cos.(θ),y=80 .* sin.(θ),mode="lines",
+              line=attr(color="blue",dash="dash",width=2),showlegend=false)],
+        Layout(template="none",height=360,title="Chosen target",
+            xaxis_title="x [mm]",yaxis_title="y [mm]",yaxis_scaleanchor="x"))
 end
 
 # ╔═╡ bea98480-ddad-11f1-ba4a-3977e7965815
@@ -2849,6 +2849,7 @@ version = "1.7.12+0"
 # ╟─7d86356d-6136-46d9-b9d1-e5ffbcf589aa
 # ╟─40f43070-dd90-11f1-9d47-3d573b9bacbb
 # ╟─11f9132a-dd9b-11f1-9d2d-970d116ec7d5
+# ╟─86ad34dd-31c1-4e23-9888-3b843c2e6d84
 # ╠═11f9137a-dd9b-11f1-9d2d-970d116ec7d5
 # ╟─11f91398-dd9b-11f1-9d2d-970d116ec7d5
 # ╟─bea98480-ddad-11f1-ba4a-3977e7965815
