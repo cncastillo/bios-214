@@ -327,14 +327,14 @@ target_shape = smiley # or image_target("https://…")
 # ╔═╡ 11f91398-dd9b-11f1-9d2d-970d116ec7d5
 # 2.1 — Display the chosen target
 begin
-    function target_ampl(values)
+    function rescale_to_01(values)
         low, high = extrema(values)
         high == low && return fill(iszero(high) ? 0.0 : 1.0,size(values))
         return (values .- low) ./ (high-low)
     end
     let
         axis = collect((-63.5:63.5).*0.002)
-        target = target_ampl([target_shape(x,y) for x in axis,y in axis])
+        target = rescale_to_01([target_shape(x,y) for x in axis,y in axis])
         target .*= [hypot(x,y)<=0.080 for x in axis,y in axis]
         θ = range(0,2π;length=201)
         plot([heatmap(x=1000 .* axis,y=1000 .* axis,z=permutedims(target),
@@ -370,7 +370,7 @@ end;
 
 # ╔═╡ 0dde30d2-ddef-11f1-23af-f1778f7165cd
 # 2.2 — Define obj_design on the 64×64 grid, then uncomment b and design_params.
-# b = im .* target_ampl(target_shape.(obj_design.x,obj_design.y)) .* obj_design.ρ
+# b = im .* rescale_to_01(target_shape.(obj_design.x,obj_design.y)) .* obj_design.ρ
 # design_params = (;seq=initial_guess,obj=obj_design,cimax_sys,t_nodes,t_rf,b)
 
 # ╔═╡ 40f430a2-dd90-11f1-9d47-3d573b9bacbb
