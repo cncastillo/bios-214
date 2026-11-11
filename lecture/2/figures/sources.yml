@@ -1,0 +1,57 @@
+bloch-rotation-relaxation.png:
+  source: https://docs.google.com/presentation/d/1KCkaJ1_Johr88TKaMsrKc8-K1uPR3injqlcplbG8iIE/edit#slide=id.hd2a5a46377c2d57_0_0
+  credit: Castillo-Passi et al., Magnetic Resonance in Medicine (2023), Figure 2
+  article: https://doi.org/10.1002/mrm.29635
+  description: Original figure extracted from the instructor's Lecture 2 draft
+bloch-rotation.png:
+  source: https://docs.google.com/presentation/d/1KCkaJ1_Johr88TKaMsrKc8-K1uPR3injqlcplbG8iIE/edit#slide=id.hd2a5a46377c2d57_0_10
+  credit: Adapted from Castillo-Passi et al., Magnetic Resonance in Medicine (2023), Figure 2
+  article: https://doi.org/10.1002/mrm.29635
+  description: Instructor's diagram emphasizing the rotation step, extracted from the Lecture 2 draft
+rotating-platform.png:
+  source: https://docs.google.com/presentation/d/1KCkaJ1_Johr88TKaMsrKc8-K1uPR3injqlcplbG8iIE/edit#slide=id.hd2a5a46377c2d57_0_21
+  description: Original rotating-platform illustration from the instructor's draft
+effective-field.png:
+  source: https://docs.google.com/presentation/d/1KCkaJ1_Johr88TKaMsrKc8-K1uPR3injqlcplbG8iIE/edit#slide=id.hd2a5a46377c2d57_0_81
+  description: Original effective-field diagram from the instructor's draft
+spin-in-field.png:
+  source: https://docs.google.com/presentation/d/1KCkaJ1_Johr88TKaMsrKc8-K1uPR3injqlcplbG8iIE/edit#slide=id.hd2a5a46377c2d57_0_101
+  description: Spin and B0 illustration, cropped to keep the equation editable in Quarto
+spin-radio.png:
+  source: https://docs.google.com/presentation/d/1KCkaJ1_Johr88TKaMsrKc8-K1uPR3injqlcplbG8iIE/edit#slide=id.hd2a5a46377c2d57_0_101
+  description: Original spin with radio illustration
+rf-transmitter.png:
+  source: https://docs.google.com/presentation/d/1KCkaJ1_Johr88TKaMsrKc8-K1uPR3injqlcplbG8iIE/edit#slide=id.hd2a5a46377c2d57_0_101
+  description: Original RF transmitter illustration
+spin-frequency-radio.png:
+  source: https://docs.google.com/presentation/d/1KCkaJ1_Johr88TKaMsrKc8-K1uPR3injqlcplbG8iIE/edit#slide=id.hd2a5a46377c2d57_0_157
+  description: Original spin and frequency-tuning illustration extracted from the source presentation
+tiny-radio.png:
+  source: https://docs.google.com/presentation/d/1KCkaJ1_Johr88TKaMsrKc8-K1uPR3injqlcplbG8iIE/edit#slide=id.hd2a5a46377c2d57_0_157
+  description: Original close-up of the spin's radio extracted from the source presentation
+rf-excitation-one-spin.gif:
+  source: https://docs.google.com/presentation/d/1KCkaJ1_Johr88TKaMsrKc8-K1uPR3injqlcplbG8iIE/edit#slide=id.hd2a5a46377c2d57_0_157
+  description: Original 160-frame laboratory-frame RF excitation animation preserved from the source presentation
+frequency-position.png:
+  source: https://docs.google.com/presentation/d/1KCkaJ1_Johr88TKaMsrKc8-K1uPR3injqlcplbG8iIE/edit#slide=id.hd2a5a46377c2d57_0_95
+  description: Position-dependent resonance cartoon, cropped to the spin grid and gradient axis
+frequency-position-offset.png:
+  source: frequency-position.png and rf-transmitter.png
+  description: AI-edited variant with a green RF antenna and the green-radio row responding instead of the yellow-radio row
+forward-euler.png:
+  source: https://docs.google.com/presentation/d/1KCkaJ1_Johr88TKaMsrKc8-K1uPR3injqlcplbG8iIE/edit#slide=id.hd2a5a46377c2d57_0_44
+  description: Forward Euler panel cropped from the instructor's numerical-integration diagram
+magnus-convergence.json:
+  source: https://juliahealth.org/KomaMRI.jl/stable/explanation/gen-8-magnus-methods
+  description: Exact convergence-plot trace data extracted from the published documentation; the lecture displays its Float64 curves
+slice-planning.png:
+  source: https://mrimaster.com/planning/
+  description: Original slice-planning image extracted from the instructor's Lecture 2 source slide
+rf-excitation-2d.gif:
+  source: Instructor's Blochhole blog
+  original_filename: rf_2dexcitation.gif
+  description: Original 160-frame two-dimensional RF excitation animation supplied from Downloads
+navigator-example.png:
+  source: https://doi.org/10.13104/imri.2021.25.4.209
+  credit: Investigative Magnetic Resonance Imaging (2021), Figure 7
+  description: Pencil-beam navigator and respiratory signal, extracted from the instructor's source presentation
