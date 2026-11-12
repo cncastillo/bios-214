@@ -267,10 +267,10 @@ where the Bloch simulation ``\mathcal{A}(\boldsymbol{x})`` returns the complex t
 md"""
 !!! info "Instructions"
     1. Choose a shape that fits entirely inside the 160 mm diameter phantom, shown by the blue dashed circle. The target must be black (zero) outside the chosen shape. Define `target_shape(x,y)` between 0 and 1 (x and y coordinates in metres), or use `image_target("https://…")` with a direct PNG/JPEG image URL. `image_target` converts to grayscale [0,1], preserves aspect ratio, and resamples onto the design grid; transparent pixels and padding are zero.
-    2. Define `obj_design` on a **64×64 design grid** covering the same 256 mm FOV, using the circular phantom and tissue properties from Part 1.3. Then uncomment the assignments for `b` and `design_params` in that cell.
+    2. Define `obj_design` on a **64×64 design grid** covering the same 256 mm FOV, using the circular phantom and tissue properties from Part 1.3. Remove zero-density spins with `obj_design = obj_design[obj_design.ρ .> 0]` before computing `b` and `design_params`. Then uncomment those assignments in that cell.
     3. Implement `forward(x, design_params)`: copy the excitation, interpolate the complex RF values with `linear_interpolation(t_nodes,B1).(t_rf)`, and update only `RF[1,2].A` (RF amplitude waveform for the second sequence block). Convert μT to T and use `ϕ=0`. Simulate with `return_type="state"` and `verbose=false`, and return `mag.xy`. Without `verbose=false`, every call during optimization prints an Info block, and rendering those slows Pluto down a lot.
     4. Implement `loss(x, design_params)` using the objective above.
-    5. Define `gradient!` to calculate the gradient of `loss` using finite differences with `FiniteDiff.finite_difference_gradient!`. Optim will call this function during optimization in the next step.
+    5. Define `gradient!` to calculate the gradient of `loss` using forward finite differences with an explicit step: `FiniteDiff.finite_difference_gradient!(G, z -> loss(z, design_params), x, Val(:forward); relstep=1e-4)`. Optim will call this function during optimization in the next step.
     6. Pass `gradient!` to `Optim.optimize` with `Optim.LBFGS()` or `Optim.GradientDescent()` to optimize the RF waveform. Save the result as `optimization`, using 10 iterations. Set `store_trace=true` to save the loss history for the next plot.
     7. Plot the loss versus iteration.
     8. Create `optimized_excitation` from a copy of `initial_guess`, using `x = Optim.minimizer(optimization)`.
