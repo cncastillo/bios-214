@@ -1,11 +1,30 @@
 ### A Pluto.jl notebook ###
-# v1.0.4
+# v1.1.0
 
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ 25bd2f20-dbd6-11f1-a8a1-5b411ca021eb
-HTML("""
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    #! format: off
+    return quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+    #! format: on
+end
+
+# ╔═╡ 2cd75700-dd92-11f1-8cb3-895d35658f26
+begin
+    using PlutoUI
+    using TOML
+end
+
+# ╔═╡ a762c10a-ec64-470b-b21c-da08a6340466
+let
+    header = HTML("""
 <style>
     .bios214-header {
         display: flex;
@@ -52,6 +71,46 @@ HTML("""
     .admonition.info { --bios214-box-accent: color-mix(in srgb, #2475b7 80%, currentColor); }
     .admonition.correct { --bios214-box-accent: color-mix(in srgb, #2f8a4f 80%, currentColor); }
     .admonition.danger { --bios214-box-accent: color-mix(in srgb, #c55346 80%, currentColor); }
+    .bios214-history-clock {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+    .bios214-prompt-history {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.65rem;
+        max-height: 20rem;
+        overflow-y: auto;
+        font-size: 0.9em;
+        padding: 0.5rem;
+    }
+    .bios214-prompt-history article {
+        max-width: 90%;
+        box-sizing: border-box;
+        padding: 0.7rem 1rem 0.5rem;
+        border-radius: 1rem 1rem 0.25rem 1rem;
+        background: color-mix(in srgb, #25d366 12%, var(--pluto-output-bg-color));
+        color: var(--pluto-output-color);
+    }
+    .bios214-prompt-history .message {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+    .bios214-prompt-history .metadata {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 1rem;
+        margin-top: 0.35rem;
+        font-size: 0.8em;
+        opacity: 0.7;
+    }
+    .bios214-prompt-history time {
+        margin-left: auto;
+        white-space: nowrap;
+    }
 </style>
 <header class="bios214-header">
     <img class="bios214-logo-color" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI3LjYuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IlN0YW5mb3JkX1NjaG9vbF9vZl9NZWRpY2luZSIKCSB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCIgdmlld0JveD0iMCAwIDE3Ny44IDEwNS44IgoJIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDE3Ny44IDEwNS44OyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzUzNTY1QTt9Cgkuc3Qxe2ZpbGw6I0M3QzdDNzt9Cgkuc3Qye2ZpbGw6IzhDMTUxNTt9Cgkuc3Qze2ZpbGw6I0ZGRkZGRjt9Cjwvc3R5bGU+CjxnPgoJPGcgaWQ9ImIiPgoJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yMC45LDgxLjNjMC44LDAuOCwyLDEuMywzLDEuM2MxLjMsMCwyLTAuNiwyLTEuNWMwLTEtMC44LTEuMy0xLjgtMS43bC0xLjYtMC43Yy0xLjEtMC41LTIuMy0xLjQtMi4zLTMuMQoJCQljMC0xLjgsMS42LTMuMywzLjktMy4zYzEuNCwwLDIuNywwLjYsMy42LDEuNWwtMS4xLDEuM2MtMC44LTAuNi0xLjUtMS0yLjUtMWMtMS4xLDAtMS44LDAuNS0xLjgsMS40YzAsMC45LDAuOSwxLjIsMS44LDEuNgoJCQlsMS42LDAuN0MyNyw3OC41LDI4LDc5LjMsMjgsODFjMCwxLjktMS42LDMuNC00LjIsMy40Yy0xLjYsMC0zLjEtMC42LTQuMi0xLjdMMjAuOSw4MS4zTDIwLjksODEuM3oiLz4KCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMzMuNSw3NS4zYzEuMSwwLDIsMC40LDIuNiwxbC0xLDEuM2MtMC41LTAuNC0wLjktMC42LTEuNS0wLjZjLTEuNCwwLTIuNCwxLjItMi40LDIuOWMwLDEuNywxLDIuOSwyLjMsMi45CgkJCWMwLjcsMCwxLjMtMC40LDEuOC0wLjhsMC44LDEuM2MtMC44LDAuNy0xLjksMS4xLTIuOSwxLjFjLTIuNCwwLTQuMi0xLjctNC4yLTQuNkMyOS4yLDc3LDMxLjIsNzUuMywzMy41LDc1LjNMMzMuNSw3NS4zeiIvPgoJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0zNy41LDcxLjdoMnYzLjJsLTAuMSwxLjdjMC43LTAuNywxLjYtMS4zLDIuOC0xLjNjMS45LDAsMi43LDEuMywyLjcsMy41djUuNWgtMnYtNS4yYzAtMS40LTAuNC0yLTEuNC0yCgkJCWMtMC44LDAtMS4zLDAuNC0yLDEuMXY2LjFoLTJWNzEuN0wzNy41LDcxLjd6Ii8+CgkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTUwLjcsNzUuM2MyLjIsMCw0LjIsMS43LDQuMiw0LjZjMCwyLjktMiw0LjYtNC4yLDQuNmMtMi4yLDAtNC4xLTEuNy00LjEtNC42QzQ2LjYsNzcsNDguNSw3NS4zLDUwLjcsNzUuM3oKCQkJIE01MC43LDgyLjhjMS4zLDAsMi4xLTEuMiwyLjEtMi45YzAtMS44LTAuOC0yLjktMi4xLTIuOWMtMS4zLDAtMiwxLjItMiwyLjlDNDguNyw4MS42LDQ5LjQsODIuOCw1MC43LDgyLjh6Ii8+CgkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTYwLjEsNzUuM2MyLjIsMCw0LjIsMS43LDQuMiw0LjZjMCwyLjktMiw0LjYtNC4yLDQuNmMtMi4yLDAtNC4xLTEuNy00LjEtNC42QzU2LDc3LDU4LDc1LjMsNjAuMSw3NS4zegoJCQkgTTYwLjEsODIuOGMxLjMsMCwyLjEtMS4yLDIuMS0yLjljMC0xLjgtMC44LTIuOS0yLjEtMi45cy0yLDEuMi0yLDIuOUM1OC4xLDgxLjYsNTguOSw4Mi44LDYwLjEsODIuOHoiLz4KCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNNjYsNzEuN2gydjEwLjRjMCwwLjUsMC4yLDAuNywwLjQsMC43YzAuMSwwLDAuMiwwLDAuMywwbDAuMywxLjVjLTAuMiwwLjEtMC42LDAuMi0xLjEsMC4yCgkJCWMtMS41LDAtMi0wLjktMi0yLjRWNzEuN0w2Niw3MS43eiIvPgoJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik03Nyw3NS4zYzIuMiwwLDQuMiwxLjcsNC4yLDQuNmMwLDIuOS0yLDQuNi00LjIsNC42Yy0yLjIsMC00LjEtMS43LTQuMS00LjZDNzIuOSw3Nyw3NC44LDc1LjMsNzcsNzUuM3oKCQkJIE03Nyw4Mi44YzEuMywwLDIuMS0xLjIsMi4xLTIuOWMwLTEuOC0wLjgtMi45LTIuMS0yLjlzLTIsMS4yLTIsMi45Qzc1LDgxLjYsNzUuNyw4Mi44LDc3LDgyLjh6Ii8+CgkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTg3LjIsNzMuM2MtMC4zLTAuMS0wLjctMC4yLTEtMC4yYy0wLjcsMC0xLjEsMC41LTEuMSwxLjV2MC45aDEuN3YxLjZoLTEuN3Y3LjFoLTJ2LTcuMWgtMS4ydi0xLjVsMS4yLTAuMQoJCQl2LTAuOWMwLTEuOCwwLjgtMy4xLDIuOS0zLjFjMC42LDAsMS4yLDAuMSwxLjYsMC4zTDg3LjIsNzMuM0w4Ny4yLDczLjN6Ii8+CgkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTkxLjgsNzIuNmgyLjNsMi4xLDUuN2wwLjgsMi4ySDk3bDAuOC0yLjJsMi4xLTUuN2gyLjN2MTEuNmgtMS45di01LjNjMC0xLjEsMC4yLTIuNiwwLjMtMy43aC0wLjFsLTAuOSwyLjYKCQkJbC0yLDUuM2gtMWwtMi01LjNsLTAuOS0yLjZoLTAuMWMwLjEsMS4xLDAuMywyLjYsMC4zLDMuN3Y1LjNoLTEuOUw5MS44LDcyLjZMOTEuOCw3Mi42eiIvPgoJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMDgsNzUuM2MyLjQsMCwzLjYsMS43LDMuNiw0LjFjMCwwLjQsMCwwLjgtMC4xLDFIMTA2YzAuMiwxLjYsMS4yLDIuNSwyLjYsMi41YzAuOCwwLDEuNC0wLjIsMi0wLjZsMC43LDEuMwoJCQljLTAuOCwwLjYtMS45LDAuOS0zLDAuOWMtMi40LDAtNC4zLTEuNy00LjMtNC42QzEwNCw3Ny4xLDEwNiw3NS4zLDEwOCw3NS4zTDEwOCw3NS4zeiBNMTA5LjgsNzkuMWMwLTEuNC0wLjYtMi4yLTEuOC0yLjIKCQkJYy0xLDAtMS45LDAuOC0yLjEsMi4ySDEwOS44TDEwOS44LDc5LjF6Ii8+CgkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTExNi43LDc1LjNjMSwwLDEuNiwwLjQsMi4zLDFsLTAuMS0xLjR2LTMuMmgydjEyLjVoLTEuN2wtMC4xLTAuOWgtMC4xYy0wLjYsMC42LTEuNSwxLjItMi41LDEuMgoJCQljLTIuMiwwLTMuNi0xLjctMy42LTQuNkMxMTMsNzcuMSwxMTQuOCw3NS4zLDExNi43LDc1LjNMMTE2LjcsNzUuM3ogTTExNy4xLDgyLjhjMC43LDAsMS4yLTAuMywxLjgtMXYtNC4xCgkJCWMtMC42LTAuNS0xLjItMC43LTEuOC0wLjdjLTEuMSwwLTIsMS4xLTIsMi45QzExNS4xLDgxLjgsMTE1LjgsODIuOCwxMTcuMSw4Mi44TDExNy4xLDgyLjh6Ii8+CgkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTEyMi45LDcyLjhjMC0wLjcsMC41LTEuMiwxLjMtMS4yczEuMywwLjUsMS4zLDEuMmMwLDAuNy0wLjUsMS4yLTEuMywxLjJTMTIyLjksNzMuNSwxMjIuOSw3Mi44egoJCQkgTTEyMy4yLDc1LjVoMnY4LjdoLTJWNzUuNXoiLz4KCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTMxLjMsNzUuM2MxLjEsMCwyLDAuNCwyLjYsMWwtMSwxLjNjLTAuNS0wLjQtMC45LTAuNi0xLjUtMC42Yy0xLjQsMC0yLjQsMS4yLTIuNCwyLjljMCwxLjcsMSwyLjksMi4zLDIuOQoJCQljMC43LDAsMS4zLTAuNCwxLjgtMC44bDAuOSwxLjNjLTAuOCwwLjctMS45LDEuMS0yLjksMS4xYy0yLjQsMC00LjItMS43LTQuMi00LjZDMTI2LjksNzcsMTI4LjksNzUuMywxMzEuMyw3NS4zTDEzMS4zLDc1LjN6Ii8+CgkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTEzNSw3Mi44YzAtMC43LDAuNS0xLjIsMS4zLTEuMnMxLjMsMC41LDEuMywxLjJjMCwwLjctMC41LDEuMi0xLjMsMS4yUzEzNSw3My41LDEzNSw3Mi44eiBNMTM1LjIsNzUuNWgyCgkJCXY4LjdoLTJWNzUuNXoiLz4KCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTM5LjUsNzUuNWgxLjdsMC4xLDEuMmgwLjFjMC44LTAuOCwxLjctMS40LDIuOS0xLjRjMS45LDAsMi43LDEuMywyLjcsMy41djUuNWgtMnYtNS4yYzAtMS40LTAuNC0yLTEuNC0yCgkJCWMtMC44LDAtMS4zLDAuNC0yLDEuMXY2LjFoLTJMMTM5LjUsNzUuNUwxMzkuNSw3NS41eiIvPgoJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xNTIuNSw3NS4zYzIuNCwwLDMuNiwxLjcsMy42LDQuMWMwLDAuNCwwLDAuOC0wLjEsMWgtNS41YzAuMiwxLjYsMS4yLDIuNSwyLjYsMi41YzAuOCwwLDEuNC0wLjIsMi0wLjYKCQkJbDAuNywxLjNjLTAuOCwwLjYtMS45LDAuOS0zLDAuOWMtMi40LDAtNC4zLTEuNy00LjMtNC42QzE0OC41LDc3LjEsMTUwLjUsNzUuMywxNTIuNSw3NS4zTDE1Mi41LDc1LjN6IE0xNTQuNCw3OS4xCgkJCWMwLTEuNC0wLjYtMi4yLTEuOC0yLjJjLTEsMC0xLjksMC44LTIuMSwyLjJIMTU0LjRMMTU0LjQsNzkuMXoiLz4KCTwvZz4KCTxyZWN0IHg9IjU4LjIiIHk9IjYzIiBjbGFzcz0ic3QxIiB3aWR0aD0iOTcuOSIgaGVpZ2h0PSIxLjYiLz4KCTxnPgoJCTxnPgoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTQ5LjUsNDQuMmg2LjV2MS42aC00LjZ2Mi43aDMuOXYxLjZoLTMuOXYzLjJoNC43VjU1aC02LjZMMTQ5LjUsNDQuMkwxNDkuNSw0NC4yeiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTM0LjQsNDQuMmgxLjlsMy40LDZsMS4xLDIuM2gwLjFjLTAuMS0xLjEtMC4yLTIuNS0wLjItMy43di00LjdoMS44VjU1aC0xLjlsLTMuNC02bC0xLjEtMi4zSDEzNgoJCQkJYzAuMSwxLjEsMC4yLDIuNCwwLjIsMy42VjU1aC0xLjhWNDQuMkwxMzQuNCw0NC4yeiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTI1LjQsNDQuMmgxLjlWNTVoLTEuOVY0NC4yeiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTE2LDQ0YzEuMywwLDIuNCwwLjYsMy4xLDEuNGwtMS4xLDEuMmMtMC41LTAuNS0xLjItMC45LTItMC45Yy0xLjgsMC0zLDEuNS0zLDMuOWMwLDIuNCwxLjIsMy45LDIuOSwzLjkKCQkJCWMwLjksMCwxLjYtMC40LDIuMi0xLjFsMS4xLDEuMmMtMC45LDEtMiwxLjYtMy4zLDEuNmMtMi43LDAtNC45LTItNC45LTUuNUMxMTEsNDYuMSwxMTMuMiw0NCwxMTYsNDR6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMDIuNiw0NC4yaDEuOVY1NWgtMS45VjQ0LjJ6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04OCw0NC4yaDIuOWMzLjMsMCw1LjIsMS44LDUuMiw1LjNjMCwzLjYtMS45LDUuNC01LjEsNS40aC0zVjQ0LjJMODgsNDQuMnogTTkwLjcsNTMuNAoJCQkJYzIuMiwwLDMuNC0xLjIsMy40LTMuOWMwLTIuNi0xLjItMy44LTMuNC0zLjhoLTAuOHY3LjdMOTAuNyw1My40TDkwLjcsNTMuNHoiLz4KCQkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTc0LjgsNDQuMmg2LjV2MS42aC00LjZ2Mi43aDMuOXYxLjZoLTMuOXYzLjJoNC43VjU1aC02LjZMNzQuOCw0NC4yTDc0LjgsNDQuMnoiLz4KCQkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTU4LjIsNDQuMmgyLjFsMS45LDUuM2wwLjcsMkg2M2wwLjctMmwxLjktNS4zaDIuMVY1NWgtMS44VjUwYzAtMSwwLjItMi40LDAuMi0zLjRoLTAuMWwtMC45LDIuNUw2My40LDU0CgkJCQloLTAuOWwtMS44LTQuOWwtMC44LTIuNWgtMC4xYzAuMSwxLDAuMiwyLjQsMC4yLDMuNFY1NWgtMS44TDU4LjIsNDQuMkw1OC4yLDQ0LjJ6Ii8+CgkJPC9nPgoJCTxnPgoJCQk8cGF0aCBjbGFzcz0ic3QyIiBkPSJNNjIuNywzOC43Yy0xLjcsMC0zLTAuMi00LjItMC42TDU4LjIsMzh2LTAuOWMwLTEuMiwwLTEuNywwLTIuMWwwLTAuN2gwLjhsMCwwLjNjMCwwLjYsMC4yLDEuMiwwLjYsMS41CgkJCQljMC41LDAuNiwxLjgsMSwzLDFjMi41LDAsMy42LTAuOSwzLjYtMi45YzAtMS43LTEuMS0yLjQtMi41LTMuNGwtMC4yLTAuMmwtMS41LTFjLTIuMS0xLjQtMy4yLTIuNi0zLjItNC44CgkJCQljMC0xLjEsMC40LTQuNyw1LjgtNC43YzIuMiwwLDMuOSwwLjMsNCwwLjNsMC4yLDBsMCwwLjJjMCwwLDAsMC43LDAsMS41YzAsMC42LDAsMS4xLDAsMS43bDAsMC40aC0wLjdsMC0wLjIKCQkJCWMtMC4xLTAuNy0wLjItMS4yLTAuNi0xLjZjLTAuNS0wLjUtMS43LTAuOC0yLjktMC44Yy0yLjksMC0zLjIsMS41LTMuMiwyLjZjMCwxLjUsMC44LDIsMi41LDMuMmwxLjksMS4zCgkJCQljMS43LDEuMSwzLjIsMi4yLDMuMiw0LjlDNjguOSwzOC4yLDY0LjUsMzguNyw2Mi43LDM4LjdMNjIuNywzOC43eiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QyIiBkPSJNNzUuNCwzOC44Yy0yLDAtMy4xLTAuNy0zLjYtMi4zYy0wLjItMC42LTAuMi0xLjktMC4yLTIuNmMwLTIuMSwwLTMuNywwLTUuNmwwLTAuOUg3MHYtMC41bDAuMi0wLjEKCQkJCWMwLjgtMC4zLDEuMS0wLjUsMS40LTAuOGMxLjItMSwyLjEtMi42LDIuMS0yLjZsMC4zLTAuNWgwLjZ2Mi45SDc5djEuNmgtNC40djYuOGMwLDIsMC40LDMuMiwyLjMsMy4yYzAuOSwwLDEuNi0wLjMsMS42LTAuMwoJCQkJbDAuMy0wLjFsMC4yLDAuNWwtMC4xLDAuMUM3OC44LDM3LjUsNzcuOCwzOC44LDc1LjQsMzguOEw3NS40LDM4Ljh6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik04NCwzOC43Yy0zLjUsMC0zLjgtMi43LTMuOC0zLjVjMC0xLDAuMy0yLjcsMi41LTMuNWMyLjMtMC44LDIuOC0wLjksNC40LTEuNHYtMC40YzAtMC44LDAtMS0wLjItMS40CgkJCQljLTAuMy0wLjktMS4yLTEuNS0yLjQtMS41Yy0xLjcsMC0yLjUsMS4zLTIuNSwxLjNMODIsMjguNmwtMC43LTAuNGwwLjEtMC4yYzAuMy0xLDEuNi0yLjcsNC4zLTIuN2MxLjgsMCwzLDAuNSwzLjcsMS42CgkJCQlDOTAsMjcuOCw5MCwyOSw5MCwzMC4zYzAsMS4xLDAsMi40LTAuMSwzLjNjMCwwLjcsMCwxLjMsMCwxLjZjMCwwLjksMC4xLDEuNiwwLjksMS42YzAuMiwwLDAuMywwLDAuNC0wLjFsMC4yLTAuMmwwLjQsMC41CgkJCQlsLTAuMSwwLjJjLTAuNywwLjgtMS40LDEuNC0yLjYsMS40Yy0xLDAtMS43LTAuNS0yLTEuM0M4Ni43LDM4LDg1LjYsMzguNyw4NCwzOC43eiBNODcuMSwzMS45Yy0xLjcsMC41LTIuMywwLjgtMi44LDEuMQoJCQkJYy0wLjcsMC40LTEuMSwxLjEtMS4xLDJjMCwwLjcsMC4yLDEuOSwxLjksMS45YzAuNiwwLDEuMy0wLjEsMi0wLjZDODcuMSwzNi4zLDg3LjEsMzEuOSw4Ny4xLDMxLjl6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik05MywzOC42VjM4bDAuMiwwYzAuMiwwLDAuOC0wLjEsMS4xLTAuNWMwLjQtMC40LDAuNC0xLjUsMC40LTMuN1YzMGMwLTEuNiwwLTIuMy0wLjItMi42CgkJCQlDOTQuMywyNyw5My43LDI3LDkzLjQsMjdjMCwwLTAuMSwwLTAuMSwwbC0wLjIsMHYtMC43bDAuMywwYzAuMSwwLDAuMSwwLDAuMiwwYzAuNCwwLDEuMywwLDIuMy0wLjJjMC44LTAuMSwxLjItMC40LDEuNC0wLjUKCQkJCWwwLjItMC4xbDAuMiwwLjF2MWMwLjctMC41LDItMS4yLDMuNy0xLjJjMi4zLDAsMy44LDEuMSw0LjMsMy4xYzAuMSwwLjUsMC4yLDEuNywwLjIsMi4zdjMuOGMwLDIuMSwwLjEsMi43LDAuNSwzLjEKCQkJCWMwLjIsMC4yLDAuNiwwLjMsMSwwLjRsMC4yLDB2MC42bC0wLjYsMGMtMC45LDAtMS43LTAuMS0yLjYtMC4xYy0wLjksMC0xLjgsMC0yLjksMC4xbC0wLjMsMFYzOGwwLjIsMGMwLjUtMC4xLDAuOC0wLjIsMS4xLTAuNAoJCQkJYzAuNC0wLjQsMC40LTEuNCwwLjUtMi4zYzAtMC4xLDAtMC4zLDAtMC41YzAtMC41LDAtMS41LDAtMi4yYzAtMSwwLTItMC4xLTNjLTAuMi0xLjctMS4xLTIuNC0yLjctMi40Yy0xLjIsMC0xLjksMC4zLTIuNCwwLjUKCQkJCXY2LjhjMCwyLjEsMC4xLDIuNywwLjUsMy4xYzAuMiwwLjIsMC42LDAuMywxLDAuNGwwLjIsMHYwLjZsLTAuNywwYy0wLjksMC0xLjctMC4xLTIuNS0wLjFjLTAuOSwwLTEuOCwwLTMsMC4xTDkzLDM4LjZMOTMsMzguNnoKCQkJCSIvPgoJCQk8cGF0aCBjbGFzcz0ic3QyIiBkPSJNMTA5LjEsMzguNlYzOGwwLjIsMGMwLjIsMCwwLjgtMC4xLDEuMS0wLjVjMC40LTAuNCwwLjQtMS41LDAuNC0zLjd2LTYuNGgtMS43di0wLjdsMC4yLTAuMQoJCQkJYzAuNy0wLjMsMS4yLTAuNSwxLjUtMC44YzAtMS4xLDAtMi42LDAuMi0zLjRjMC41LTIuNywyLjItNCw1LjItNGMxLjIsMCwyLjQsMC40LDMuMiwxbDAuMSwwLjFsMCwwLjNsLTEuMywxLjhoLTAuM2wtMC4xLTAuMgoJCQkJYy0wLjUtMS4xLTEuMi0xLjUtMi4yLTEuNWMtMC40LDAtMSwwLjEtMS4zLDAuNWMtMC42LDAuNi0wLjcsMS40LTAuNywzdjIuNWgyLjl2MS42aC0yLjl2Ny4yYzAsMS43LDAuMSwyLjUsMC4zLDIuOQoJCQkJYzAuNCwwLjUsMS41LDAuNiwxLjgsMC42aDAuM3YwLjdsLTAuMywwYy0xLjQtMC4xLTIuNS0wLjEtMy4yLTAuMWMtMSwwLTIsMC0zLjIsMC4xTDEwOS4xLDM4LjZMMTA5LjEsMzguNnoiLz4KCQkJPHBhdGggY2xhc3M9InN0MiIgZD0iTTEyMy45LDM4LjhjLTMuOSwwLTYuMy0yLjUtNi4zLTYuNWMwLTMuMiwxLjctNi45LDYuNi02LjljMy45LDAsNi4zLDIuNSw2LjMsNi41CgkJCQlDMTMwLjQsMzUuMSwxMjguNywzOC44LDEyMy45LDM4Ljh6IE0xMjQsMjYuOWMtMC44LDAtMS40LDAuMi0xLjgsMC42Yy0xLDAuOS0xLjYsMi41LTEuNiw0LjdjMCwwLjksMC4yLDUuMiwzLjMsNS4yCgkJCQljMC44LDAsMS40LTAuMiwxLjgtMC42YzEtMC45LDEuNi0yLjUsMS42LTQuN0MxMjcuNCwzMS4yLDEyNy4yLDI2LjksMTI0LDI2LjlMMTI0LDI2Ljl6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik0xMzEuNywzOC42VjM4bDAuMiwwYzAuMiwwLDAuOC0wLjEsMS4xLTAuNWMwLjQtMC40LDAuNC0xLjUsMC40LTMuN1YzMGMwLTEuNiwwLTIuMy0wLjItMi42CgkJCQljLTAuMy0wLjQtMC44LTAuNC0xLjItMC40YzAsMC0wLjEsMC0wLjEsMGwtMC4yLDB2LTAuOGwwLjMsMGMwLjEsMCwwLjEsMCwwLjIsMGMwLjQsMCwxLjMsMCwyLjMtMC4yYzAuNi0wLjEsMS4yLTAuMywxLjQtMC40CgkJCQlsMC4xLTAuMWwwLjIsMC4xdjEuMWMwLjYtMC42LDEuNi0xLjIsMy0xLjJjMC45LDAsMS42LDAuMiwyLjIsMC43bDAuMSwwLjF2MC40bC0xLjEsMmgtMC41bC0wLjEtMC4xYy0wLjMtMC41LTAuOS0xLTIuMS0xCgkJCQljLTAuNSwwLTEsMC4xLTEuNCwwLjR2Ni41YzAsMS43LDAuMSwyLjUsMC4zLDIuOGMwLjQsMC41LDEuNCwwLjYsMS44LDAuNmgwLjN2MC43bC0wLjMsMGMtMS40LTAuMS0yLjUtMC4xLTMuMi0wLjEKCQkJCWMtMSwwLTIsMC0zLjIsMC4xTDEzMS43LDM4LjZMMTMxLjcsMzguNnoiLz4KCQkJPHBhdGggY2xhc3M9InN0MiIgZD0iTTE1MS45LDM4LjhsLTAuMy0wLjF2LTEuMWMtMC42LDAuNS0xLjksMS4yLTMuNiwxLjJjLTMuNSwwLTUuOC0yLjUtNS44LTYuMmMwLTEuMywwLjItMi41LDAuNy0zLjUKCQkJCWMxLjEtMi4zLDMuMy0zLjcsNi4xLTMuN2MxLDAsMiwwLjEsMi41LDAuMnYtMi44YzAtMS42LDAtMi41LTAuMi0yLjhjLTAuMy0wLjQtMC44LTAuNC0xLjEtMC40YzAsMC0wLjEsMC0wLjEsMGwtMC4yLDBsMC4xLTAuNgoJCQkJaDAuM2MwLjEsMCwxLjYtMC4xLDIuOC0wLjRjMC41LTAuMSwxLTAuMiwxLjMtMC4zbDAuMSwwbDAuMiwwLjFsMCwwLjFjLTAuMSwxLjEtMC4xLDMuMy0wLjEsNXYxMC41YzAsMS42LDAsMi41LDAuMiwyLjgKCQkJCWMwLjMsMC40LDAuOCwwLjUsMS4xLDAuNWMwLDAsMC4xLDAsMC4xLDBsMC4yLDB2MC43aC0wLjNjLTAuMywwLTEuNCwwLjEtMi41LDAuM2MtMC42LDAuMS0xLjEsMC4yLTEuMywwLjNMMTUxLjksMzguOAoJCQkJTDE1MS45LDM4Ljh6IE0xNDksMjYuOWMtMi41LDAtMy43LDEuNy0zLjcsNS4zYzAsMS40LDAuNCw0LjgsNC4xLDQuOGgwLjFjMC40LDAsMS4zLTAuMSwyLTAuNXYtOC42CgkJCQlDMTUxLjMsMjcuNiwxNTAuNiwyNi45LDE0OSwyNi45TDE0OSwyNi45eiIvPgoJCTwvZz4KCQk8Zz4KCQkJPHBhdGggY2xhc3M9InN0MiIgZD0iTTQ4LjEsMjBIMjAuM2MtMC43LDEuNi0yLjIsOC0xLjEsMTUuM2MwLDAuMiwwLjEsMC40LDAuMSwwLjZjMS4zLDcsNS4xLDE0LjcsMTQuNiwyMAoJCQkJYzAuMSwwLjEsMC4yLDAuMSwwLjMsMC4yYzAuMS0wLjEsMC4yLTAuMSwwLjMtMC4yQzU0LjIsNDQuOCw0OS40LDIzLjIsNDguMSwyMHoiLz4KCQkJPHBhdGggY2xhc3M9InN0MyIgZD0iTTMzLjksMjB2MTUuM0gxOS4yYzAsMC4yLDAuMSwwLjQsMC4xLDAuNmgxNC42djIwYzAuMSwwLjEsMC4yLDAuMSwwLjMsMC4yYzAuMS0wLjEsMC4yLTAuMSwwLjMtMC4yVjIwSDMzLjkKCQkJCXoiLz4KCQkJPHBhdGggY2xhc3M9InN0MyIgZD0iTTI2LjYsMjIuOWwwLDAuNGMwLjMtMC4yLDAuNy0wLjQsMS0wLjVjLTAuMiwwLjgtMC42LDEtMSwxLjFsMCwwLjdjMC40LTAuMywwLjktMC43LDEuMy0wLjgKCQkJCWMtMC4yLDEtMC43LDEuNC0xLjMsMS41VjI2YzAuNS0wLjMsMS4xLTAuOCwxLjctMC45Yy0wLjMsMS4xLTEsMS41LTEuNywxLjV2MC42YzAuNS0wLjMsMS4xLTAuNywxLjctMC44Yy0wLjMsMS0xLDEuNi0xLjcsMS43CgkJCQl2MC41YzAuNS0wLjMsMS4xLTAuNywxLjctMC44Yy0wLjMsMS4xLTEsMS42LTEuNywxLjd2MC40YzAuNS0wLjMsMS40LTAuOSwyLTFjLTAuNCwxLjEtMS4yLDEuOC0yLDEuOXYwLjUKCQkJCWMwLjMtMC4yLDAuOS0wLjUsMS4yLTAuNWMtMC4yLDAuOC0wLjgsMS4xLTEuMiwxLjJ2MC45YzAuMSwwLDAuMiwwLDAuMywwYzAtMC4zLDAuMi0wLjcsMC42LTAuOWMwLDAuMi0wLjEsMC42LTAuMiwwLjgKCQkJCWMwLjIsMCwwLjUtMC4xLDAuNy0wLjJjLTAuMS0wLjUsMC0xLjEsMC42LTEuN2MwLjEsMC40LDAsMSwwLDEuM2MwLjItMC4xLDAuNS0wLjMsMC43LTAuNWMtMC4zLTAuNS0wLjItMS4xLDAuMy0xLjgKCQkJCWMwLjEsMC4zLDAuMiwxLDAuMiwxLjRjMC4yLTAuMiwwLjQtMC41LDAuNi0wLjdjLTAuNC0wLjQtMC40LTAuOSwwLjEtMS43YzAuMSwwLjMsMC4zLDAuOSwwLjMsMS4yYzAuMi0wLjIsMC4zLTAuNCwwLjUtMC43CgkJCQljLTAuMS0wLjIsMC0wLjQsMC4xLTAuNWMwLjItMC4yLDAuNC0wLjQsMC42LTAuMmMwLjMsMC4xLDAuMSwwLjUsMCwwLjdjLTAuMSwwLjItMC4yLDAuMy0wLjQsMC4zYy0wLjEsMC4zLTAuNCwwLjYtMC41LDAuOAoJCQkJYzAuNCwwLjEsMC43LDAuMiwxLDAuNWMtMC42LDAuMy0xLDAuMi0xLjMtMC4xYy0wLjIsMC4zLTAuNSwwLjYtMC43LDAuOGMwLjQsMC4xLDAuNywwLjIsMSwwLjZjLTAuNywwLjMtMS4yLDAuMi0xLjUtMC4xCgkJCQljLTAuMiwwLjItMC41LDAuNC0wLjcsMC42YzAuNCwwLjIsMC43LDAuNCwxLDAuOGMtMC44LDAuMi0xLjMsMC0xLjUtMC41Yy0wLjIsMC4xLTAuNSwwLjItMC43LDAuMmMwLjIsMC4yLDAuNCwwLjMsMC41LDAuNgoJCQkJYy0wLjUsMC0wLjgtMC4xLTAuOS0wLjVjLTAuMSwwLTAuMiwwLjEtMC4zLDAuMXYxbC0wLjctMC4zdi0wLjhjLTAuMSwwLTAuMi0wLjEtMC4zLTAuMWMtMC4xLDAuMy0wLjMsMC40LTAuOSwwLjQKCQkJCWMwLjEtMC4yLDAuMi0wLjQsMC40LTAuNmMtMC4yLTAuMS0wLjUtMC4yLTAuNy0wLjNjLTAuMiwwLjUtMC43LDAuNy0xLjUsMC41YzAuMi0wLjMsMC41LTAuNiwxLTAuOGMtMC4yLTAuMS0wLjQtMC4zLTAuNi0wLjUKCQkJCWMtMC4zLDAuMy0wLjgsMC41LTEuNSwwLjJjMC4zLTAuMywwLjYtMC41LDEtMC42Yy0wLjItMC4yLTAuNC0wLjUtMC42LTAuOGMtMC4zLDAuMy0wLjgsMC40LTEuNCwwLjFjMC4zLTAuMywwLjYtMC42LDEtMC42CgkJCQljLTAuMS0wLjItMC4yLTAuNC0wLjQtMC42Yy0wLjEsMC0wLjIsMC0wLjQtMC4yYy0wLjEtMC4yLTAuMy0wLjYsMC0wLjhjMC4yLTAuMSwwLjUsMC4xLDAuNiwwLjNjMC4xLDAuMiwwLjEsMC4zLDAsMC41CgkJCQljMC4xLDAuMiwwLjMsMC40LDAuNCwwLjZjLTAuMS0wLjYsMC4xLTEuMSwwLjItMS40YzAuNSwwLjcsMC40LDEuMywwLjEsMS44YzAuMiwwLjMsMC40LDAuNSwwLjYsMC43Yy0wLjEtMC40LDAtMSwwLjEtMS40CgkJCQljMC41LDAuNywwLjUsMS40LDAuMywxLjhjMC4yLDAuMiwwLjQsMC4zLDAuNiwwLjVDMjQsMzIsMjQsMzEuNCwyNC4xLDMxYzAuNSwwLjUsMC43LDEuMiwwLjYsMS43YzAuMiwwLjEsMC41LDAuMiwwLjcsMC4yCgkJCQljLTAuMS0wLjItMC4yLTAuNi0wLjItMC45YzAuNCwwLjMsMC41LDAuNiwwLjUsMC45YzAuMSwwLDAuMiwwLjEsMC4zLDAuMWwwLTAuOWMtMC40LTAuMS0xLTAuMy0xLjItMS4xYzAuNCwwLjEsMC45LDAuMiwxLjIsMC41CgkJCQlWMzFjLTAuOC0wLjEtMS42LTAuNi0yLTEuOGMwLjcsMC4xLDEuNCwwLjUsMiwwLjl2LTAuNGMtMC43LDAtMS40LTAuNy0xLjctMS42YzAuNiwwLjEsMS4xLDAuNCwxLjcsMC44di0wLjUKCQkJCWMtMC43LTAuMS0xLjQtMC42LTEuNy0xLjdjMC42LDAuMSwxLjEsMC40LDEuNywwLjh2LTAuNmMtMC43LDAtMS4zLTAuNC0xLjctMS41YzAuNiwwLjEsMS4xLDAuNCwxLjcsMC44di0wLjcKCQkJCWMtMC41LTAuMS0xLTAuNC0xLjMtMS41YzAuNSwwLjEsMC45LDAuMywxLjMsMC43di0wLjdjLTAuNC0wLjEtMC44LTAuMi0xLTEuMWMwLjMsMC4xLDAuNiwwLjEsMSwwLjRsMC0wLjQKCQkJCWMtMC4zLTAuNS0wLjItMC43LTAuMi0xYzAtMC4zLDAuMi0wLjYsMC41LTAuNmMwLjQsMCwwLjUsMC4zLDAuNSwwLjZDMjYuOCwyMi4yLDI2LjksMjIuNCwyNi42LDIyLjkiLz4KCQkJPGc+CgkJCQk8cGF0aCBjbGFzcz0ic3QzIiBkPSJNNDIsMzEuNWMwLjItMi42LDAuNi0zLjQsMS4yLTMuOWwwLjEtMC4xbC0wLjMtMS44bC0wLjIsMGMtMC4zLDAtMC42LDAuMy0wLjgsMC41VjI1bC0yLTEuMnYxCgkJCQkJYy0wLjItMC4xLTAuMy0wLjItMC4zLTAuM2MtMC4yLTAuMS0wLjQtMC4yLTAuNS0wLjJjLTAuMSwwLTAuMiwwLTAuMywwYy0wLjEsMC0wLjIsMC4xLTAuNCwwYy0wLjktMC4yLTEuNiwwLTIsMC42CgkJCQkJYy0wLjQsMC41LTAuNCwxLjMtMC4yLDJjMC4yLDAuNSwwLjUsMSwwLjksMS42YzAuMiwwLjIsMS43LDEuOSwyLjEsMi4yYzAuMiwwLjIsMC41LDAuNSwwLjcsMC43djAuNmwtMC40LTAuM0wzOS4zLDMzbDAuMiwwLjEKCQkJCQljMC40LDAuMiwwLjcsMC44LDEsNC4xYy0wLjksMC40LTIuMiwxLjUtMi4yLDIuN2MwLDAuNSwwLjIsMS4zLDEuNiwxLjhjMC4zLDAuMSwwLjUsMC4yLDAuOCwwLjNjMCwwLjYsMCwxLjMsMCwyCgkJCQkJYy0wLjMsMC4xLTAuNywwLjQtMC44LDAuOGMtMC4xLDAuNCwwLjEsMC43LDAuNywxYzAuMSwwLDAuMSwwLjEsMC4yLDAuMWMwLDAuMiwwLDAuNCwwLDAuNmMtMC4yLDAuMS0wLjMsMC4yLTAuNSwwLjQKCQkJCQljLTAuMSwwLjEtMC4yLDAuMi0wLjEsMC4zYzAsMCwwLDAuMSwwLjIsMC4xYzAuMSwwLDAuMiwwLDAuNC0wLjFjMCwwLDAuMSwwLDAuMSwwYzAuMSwwLjIsMC4zLDAuNCwwLjUsMC40CgkJCQkJYzAuMywwLDAuNS0wLjIsMC41LTAuNGwwLDB2MGMwLTAuMSwwLTAuMiwwLTAuM2MwLjItMC4xLDAuMy0wLjMsMC4zLTAuNWMwLTAuMy0wLjEtMC41LTAuMy0wLjdjMC0wLjMsMC0wLjYsMC0wLjkKCQkJCQljMC45LTAuMiwxLjgtMC44LDEuOC0xLjVjMC0wLjUtMC4yLTEuMi0xLjctMS44Yy0wLjEsMC0wLjEsMC0wLjItMC4xYzAtMS4yLDAtMi40LDAtMy40YzEuNS0wLjgsMi42LTEuNSwyLjctMi41CgkJCQkJQzQ0LjcsMzQuNSw0My45LDMzLjMsNDIsMzEuNUw0MiwzMS41eiBNMzkuNywyOS4zYy0yLjQtMi4yLTIuNS0zLjItMi4zLTMuNmMwLjItMC41LDAuOC0wLjUsMC45LTAuNWMwLjEsMCwwLjEsMCwwLjEsMC4xCgkJCQkJYzAsMC4xLDAuMSwwLjQsMC42LDAuNWMwLjUsMC4yLDAuOSwwLjMsMS4yLDAuM3YzLjVDNDAsMjkuNSwzOS45LDI5LjQsMzkuNywyOS4zeiBNNDIuNiw0My4zYzAsMC4xLTAuMSwwLjMtMC44LDAuNQoJCQkJCWMwLTAuNCwwLTAuOCwwLTEuMkM0Mi4zLDQyLjgsNDIuNiw0My4xLDQyLjYsNDMuM3ogTTQxLjcsMjUuMnYxbC0wLjUtMC4xbC0wLjMtMC4xYzAtMC4yLTAuMS0wLjQtMC4yLTAuNnYtMC43TDQxLjcsMjUuMgoJCQkJCUw0MS43LDI1LjJ6IE0zOS41LDM5LjljMC0wLjMsMC4zLTAuNywxLjEtMS4zYzAsMC43LDAuMSwxLjQsMC4xLDIuMkMzOS45LDQwLjUsMzkuNSw0MC4yLDM5LjUsMzkuOXogTTQxLjEsNDIuMgoJCQkJCWMwLjEsMCwwLjIsMC4xLDAuMywwLjFjMCwwLjksMCwxLjksMCwyLjljLTAuMSwwLTAuMi0wLjEtMC4yLTAuMkM0MS4yLDQ0LjEsNDEuMSw0My4xLDQxLjEsNDIuMkw0MS4xLDQyLjJ6IE00MS4yLDQ3LjEKCQkJCQljMC0wLjMsMC0wLjcsMC0xYzAuMSwwLDAuMiwwLjEsMC4yLDAuMWMwLDAuMywwLDAuNiwwLDAuOUM0MS40LDQ3LjIsNDEuMyw0Ny4yLDQxLjIsNDcuMUw0MS4yLDQ3LjF6IE00MS40LDQxLjIKCQkJCQljLTAuMSwwLTAuMi0wLjEtMC4zLTAuMWMtMC4yLTYuOS0wLjgtNy45LTEuMi04LjJsMC4yLTAuNGwwLjYsMC40di0xYzAuMSwwLjEsMC4yLDAuMSwwLjIsMC4yYzAuMiwwLjIsMC41LDAuNCwwLjcsMC42CgkJCQkJQzQxLjQsMzQuNiw0MS40LDM3LjQsNDEuNCw0MS4yTDQxLjQsNDEuMnogTTQxLjYsMzFjLTAuMy0wLjMtMC43LTAuNi0xLTF2LTMuOWMwLDAsMC4xLDAsMC4xLTAuMWwwLjMsMC4xbDAuNCwwLjZsMC4xLDBsMC0wLjQKCQkJCQlsMC4yLDBWMjdsMC40LDAuMWMwLjEtMC4yLDAuNC0wLjYsMC43LTAuOGwwLjIsMUM0Mi4zLDI3LjksNDEuOSwyOC42LDQxLjYsMzFMNDEuNiwzMXogTTQzLjIsMzUuM2MtMC4xLDAuNS0wLjUsMC45LTEuNCwxLjMKCQkJCQljMC0xLjQsMC0yLjYsMC4xLTMuNkM0Mi44LDMzLjksNDMuMywzNC42LDQzLjIsMzUuM0w0My4yLDM1LjN6Ii8+CgkJCQk8cGF0aCBjbGFzcz0ic3QyIiBkPSJNMzkuMSwyNS4zYzAsMC0wLjEsMC0wLjEsMGMtMC4xLDAtMC4xLDAtMC4yLDAuMWMwLDAuMSwwLDAuMiwwLjEsMC4zYzAsMCwwLjEsMCwwLjEsMGMwLjEsMCwwLjEsMCwwLjItMC4xCgkJCQkJQzM5LjMsMjUuNSwzOS4yLDI1LjQsMzkuMSwyNS4zTDM5LjEsMjUuM3oiLz4KCQkJCTxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik0zOS41LDI0LjZjMCwwLTAuMS0wLjEtMC4yLTAuMWMwLDAtMC4xLDAtMC4xLDBjMCwwLDAsMC4xLDAsMC4xYzAsMC4xLDAsMC4xLDAuMSwwLjJjMCwwLDAuMSwwLjEsMC4yLDAuMQoJCQkJCWMwLDAsMC4xLDAsMC4xLDBjMCwwLDAtMC4xLDAtMC4xQzM5LjYsMjQuOCwzOS42LDI0LjcsMzkuNSwyNC42TDM5LjUsMjQuNnoiLz4KCQkJPC9nPgoJCQk8cGF0aCBjbGFzcz0ic3QzIiBkPSJNMzAuMyw0MS43di0zLjNoLTUuOHY1LjhoMS44djMuM2g1Ljh2LTUuOEwzMC4zLDQxLjdMMzAuMyw0MS43eiBNMjguNiwzOS4yaDF2Mi40aC0xVjM5LjJ6IE0yOS42LDQ0LjNWNDUKCQkJCWgtMC43di0wLjdIMjkuNnogTTI1LjQsMzkuMmgyLjR2MWgtMi40VjM5LjJ6IE0yNi4zLDQzLjVoLTF2LTIuNGgxVjQzLjV6IE0yNyw0MWgwLjd2MC43SDI3QzI3LDQxLjcsMjcsNDEsMjcsNDF6IE0yNy4xLDQyLjYKCQkJCWgyLjR2MWgtMi40VjQyLjZ6IE0yOC4xLDQ2LjdoLTF2LTIuNGgxVjQ2Ljd6IE0zMS4yLDQ2LjdoLTIuNHYtMWgyLjRWNDYuN3ogTTMxLjMsNDVoLTF2LTIuNGgxVjQ1eiIvPgoJCTwvZz4KCTwvZz4KPC9nPgo8L3N2Zz4K" alt="Stanford School of Medicine">
@@ -64,19 +123,443 @@ HTML("""
     </div>
 </header>
 """)
-
-
-# ╔═╡ 25bd2f7a-dbd6-11f1-a8a1-5b411ca021eb
-md"""
+    introduction = md"""
 # Activity 3: Test your 2D excitation pattern
+
+**Scanner laboratory · November 13, 2026 · Cima.X (3T3), Lucas Center**
+
+Test the custom 2D excitation you designed in Activity 2 on a physical phantom in the Cima.X MRI scanner. Use this notebook to record your experiment and compare the acquired images with your simulated SE-EPI reconstruction.
+"""
+    PlutoUI.@htl("$(header)$(introduction)")
+end
+
+# ╔═╡ 46e643ac-ded9-11f1-8296-71bfeafed268
+md"""
+## Part 1: Record your experiment
+
+!!! info "Instructions"
+    1. Bring the `.seq` file exported in Activity 2, Part 3.8, and the corresponding simulated SE-EPI reconstruction from Part 3.6.
+    2. Fill in your name, target shape, Pulseq filename, and both parameter tables below. Record any changes made at the scanner, or write “none”.
 """
 
-# ╔═╡ 25bd2fca-dbd6-11f1-a8a1-5b411ca021eb
+# ╔═╡ 039beeb5-9139-4740-9721-c9bf1aa3c61d
 md"""
-To be uploaded soon!
+**Name:**
+[your name]
+
+**Target shape:**
+[your custom excitation pattern]
+
+**Pulseq file:**
+[filename.seq]
+"""
+
+# ╔═╡ 46e643d4-ded9-11f1-8296-71bfeafed268
+md"""
+**Sequence parameters:**
+
+| Acquisition parameter                        |                         |
+| :------------------------------------------- | :---------------------- |
+| Excitation flip angle (deg)                  | [fill in]               |
+| Lines per shot                               | [fill in]               |
+| Number of shots                              | [fill in]               |
+| TE (ms)                                      | [fill in]               |
+| TR (ms)                                      | [fill in]               |
+| Field of view (mm)                           | [fill in]               |
+| Matrix ($N_x\times N_y$)                     | [fill in]               |
+| In-plane resolution (mm)                     | [fill in]               |
+| Slice thickness (mm)                         | [fill in]               |
+
+| 2D RF parameter                              |                         |
+| :------------------------------------------- | :---------------------- |
+| Field of view (mm)                           | [fill in]               |
+| Matrix ($N_x\times N_y$)                     | [fill in]               |
+| In-plane resolution (mm)                     | [fill in]               |
+
+**Changes made at the scanner:** [describe any changes, or write “none”]
+"""
+# Hide the code when you are done 👁︎
+
+# ╔═╡ 46e643e8-ded9-11f1-8296-71bfeafed268
+md"""
+## Part 2: Compare simulated and measured images
+
+!!! info "Instructions"
+    1. Use simulated and acquired images from the same sequence, with matching FOV, resolution, and orientation. Scale each from black (minimum) to white (95th percentile), then save beside this notebook as `sim_patternname.png` and `acq_patternname.png`.
+"""
+
+# ╔═╡ 46e643f2-ded9-11f1-8296-71bfeafed268
+begin
+    simulation_file = "sim_patternname.png"   # <== CHANGE THIS
+    acquisition_file = "acq_patternname.png"  # <== CHANGE THIS
+end;
+# Hide the code when you are done 👁︎
+
+# ╔═╡ 46e64406-ded9-11f1-8296-71bfeafed268
+let
+    simulation_path = joinpath(@__DIR__, simulation_file)
+    acquisition_path = joinpath(@__DIR__, acquisition_file)
+    placeholder(filename) = PlutoUI.@htl("""
+    <span style="display:grid;place-items:center;width:100%;aspect-ratio:1;box-sizing:border-box;padding:1rem;background:#f3f4f6;border:1px solid #d1d5db;overflow-wrap:anywhere;">
+        <code>$(filename)</code>
+    </span>
+    """)
+    PlutoUI.@htl("""
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;text-align:center;">
+        <div>
+            <strong>Simulation · Activity 2</strong>
+            <p>$(isfile(simulation_path) ? LocalResource(simulation_path, :style => "width:100%;height:auto;", :alt => "Simulated SE-EPI reconstruction") : placeholder(simulation_file))</p>
+        </div>
+        <div>
+            <strong>Scanner · Phantom experiment</strong>
+            <p>$(isfile(acquisition_path) ? LocalResource(acquisition_path, :style => "width:100%;height:auto;", :alt => "Acquired phantom image") : placeholder(acquisition_file))</p>
+        </div>
+    </div>
+    """)
+end
+
+# ╔═╡ 46e64410-ded9-11f1-8296-71bfeafed268
+md"""
+**Figure 1. Comparison of simulated and acquired images.**
+"""
+# Hide the code when you are done 👁︎
+
+# ╔═╡ 46e6441a-ded9-11f1-8296-71bfeafed268
+let
+    instructions = md"""
+    1. Describe the main $(HTML("<u>similarities</u>")) and $(HTML("<u>differences</u>")) between the simulated and measured images. Consider the excited pattern, its size and position, the signal distribution, and any artifacts.
+    2. Explain the differences using the experimental parameters and simulation assumptions.
+    3. Summarize what you learned this week.
+    """
+    Markdown.MD([
+        Markdown.Header{2}(["Part 3: Interpret the results"]),
+        Markdown.Admonition("info", "Instructions", instructions.content),
+    ])
+end
+
+# ╔═╡ 46e64424-ded9-11f1-8296-71bfeafed268
+md"""
+**Part 3.1 — Similarities and differences**
+
+[Write your observations here and refer to Figure 1.]
+"""
+# Hide the code when you are done 👁︎
+
+# ╔═╡ 07920726-deda-11f1-9f7e-5d50f7c12261
+md"""
+**Part 3.2 — Explanation**
+
+[Explain the observations and identify any remaining uncertainty here.]
+"""
+# Hide the code when you are done 👁︎
+
+# ╔═╡ 07920780-deda-11f1-9f7e-5d50f7c12261
+md"""
+**Part 3.3 — What I learned this week**
+
+[Write what you learned this week here.]
+"""
+# Hide the code when you are done 👁︎
+
+# ╔═╡ 46e6442e-ded9-11f1-8296-71bfeafed268
+md"""
+## Submission
+
+!!! info "Instructions"
+    1. Use Pluto’s **Export… → PDF** menu and check that both images, the parameter tables, and your answers are visible in the PDF.
+    2. Submit **the PDF report plus the exact `.seq` file used on the scanner** to [Day 3 — Scanner report: 2D excitation pattern](https://canvas.stanford.edu/courses/233500/assignments/840670) by **November 13 at 23:59 Pacific**. This scanner activity is worth **6 points**.
+"""
+
+# ╔═╡ 2cd756d8-dd92-11f1-8cb3-895d35658f26
+md"""
+## Reproducibility
+### Packages
+"""
+
+# ╔═╡ 2cd75714-dd92-11f1-8cb3-895d35658f26
+PlutoUI.@htl("""
+<span class="bios214-history-clock" aria-hidden="true">$(@bind prompt_history_tick Clock(2; fixed=true, start_running=true))</span>
+$(md"""### Prompt history
+Prompts are recorded only when your coding agent uses the course skill.""")
+""")
+
+# ╔═╡ 2cd75728-dd92-11f1-8cb3-895d35658f26
+let
+    prompt_history_tick
+    path = first(split(@__FILE__, "#==#"; limit=2))
+    prompt_history_header = join((chopprefix(line, "#>")
+        for line in eachline(path) if startswith(line, "#>")), "\n")
+    history = get(TOML.parse(prompt_history_header), "pluto_student_history", Dict())
+    if isempty(history)
+        md"No prompts recorded yet."
+    else
+        PlutoUI.@htl("""
+        <div class="bios214-prompt-history">
+            $([PlutoUI.@htl("""
+                <article>
+                    <div class="message">$(history[key][2])</div>
+                    <div class="metadata">
+                        <span class="model">$(get(history[key], 3, "Model not recorded"))</span>
+                        <time datetime=$(history[key][1])>$(history[key][1])</time>
+                    </div>
+                </article>
+            """) for key in sort(collect(keys(history)))])
+            <script>
+                for (const time of currentScript.parentElement.querySelectorAll("time")) {
+                    const date = new Date(time.dateTime);
+                    const day = date.toLocaleDateString(undefined, {month: "short", day: "numeric"});
+                    const clock = date.toLocaleTimeString(undefined, {hour: "numeric", minute: "2-digit"});
+                    time.textContent = day + " · " + clock;
+                }
+            </script>
+        </div>
+        """)
+    end
+end
+
+# ╔═╡ 00000000-0000-0000-0000-000000000001
+PLUTO_PROJECT_TOML_CONTENTS = """
+[deps]
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+
+[compat]
+PlutoUI = "~0.7.84"
+"""
+
+# ╔═╡ 00000000-0000-0000-0000-000000000002
+PLUTO_MANIFEST_TOML_CONTENTS = """
+# This file is machine-generated - editing it directly is not advised
+
+julia_version = "1.10.13"
+manifest_format = "2.0"
+project_hash = "90ba4a2739b01616f38b110b6b7d04bf732248e6"
+
+[[deps.AbstractPlutoDingetjes]]
+git-tree-sha1 = "e71ee7b4aa06b045259a7d6101e1cb45ad140bce"
+uuid = "6e696c72-6542-2067-7265-42206c756150"
+version = "1.4.1"
+
+[[deps.ArgTools]]
+uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
+version = "1.1.1"
+
+[[deps.Artifacts]]
+uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
+
+[[deps.Base64]]
+uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+
+[[deps.ColorTypes]]
+deps = ["FixedPointNumbers", "Random"]
+git-tree-sha1 = "af523e59de94de05b9b367a2ca4d63233aacd222"
+uuid = "3da002f7-5984-5a60-b8a6-cbb66c0b333f"
+version = "0.12.5"
+
+    [deps.ColorTypes.extensions]
+    StyledStringsExt = "StyledStrings"
+
+    [deps.ColorTypes.weakdeps]
+    StyledStrings = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
+
+[[deps.CompilerSupportLibraries_jll]]
+deps = ["Artifacts", "Libdl"]
+uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+version = "1.1.2+1"
+
+[[deps.Dates]]
+deps = ["Printf"]
+uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
+
+[[deps.Downloads]]
+deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
+uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
+version = "1.6.0"
+
+[[deps.FileWatching]]
+uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
+
+[[deps.FixedPointNumbers]]
+deps = ["Random", "Statistics"]
+git-tree-sha1 = "59af96b98217c6ef4ae0dfe065ac7c20831d1a84"
+uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
+version = "0.8.6"
+
+[[deps.Hyperscript]]
+deps = ["Test"]
+git-tree-sha1 = "179267cfa5e712760cd43dcae385d7ea90cc25a4"
+uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
+version = "0.0.5"
+
+[[deps.HypertextLiteral]]
+deps = ["Tricks"]
+git-tree-sha1 = "d1a86724f81bcd184a38fd284ce183ec067d71a0"
+uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
+version = "1.0.0"
+
+[[deps.IOCapture]]
+deps = ["Logging", "Random"]
+git-tree-sha1 = "0ee181ec08df7d7c911901ea38baf16f755114dc"
+uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
+version = "1.0.0"
+
+[[deps.InteractiveUtils]]
+deps = ["Markdown"]
+uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+
+[[deps.LibCURL]]
+deps = ["LibCURL_jll", "MozillaCACerts_jll"]
+uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
+version = "0.6.4"
+
+[[deps.LibCURL_jll]]
+deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll", "Zlib_jll", "nghttp2_jll"]
+uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
+version = "8.7.1+0"
+
+[[deps.LibSSH2_jll]]
+deps = ["Artifacts", "Libdl", "MbedTLS_jll"]
+uuid = "29816b5a-b9ab-546f-933c-edad1886dfa8"
+version = "1.11.0+1"
+
+[[deps.Libdl]]
+uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+
+[[deps.LinearAlgebra]]
+deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
+uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+
+[[deps.Logging]]
+uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
+
+[[deps.MIMEs]]
+git-tree-sha1 = "c64d943587f7187e751162b3b84445bbbd79f691"
+uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
+version = "1.1.0"
+
+[[deps.Markdown]]
+deps = ["Base64"]
+uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
+
+[[deps.MbedTLS_jll]]
+deps = ["Artifacts", "Libdl"]
+uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
+version = "2.28.1010+0"
+
+[[deps.MozillaCACerts_jll]]
+uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
+version = "2026.10.20"
+
+[[deps.NetworkOptions]]
+uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
+version = "1.2.0"
+
+[[deps.OpenBLAS_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
+uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
+version = "0.3.23+5"
+
+[[deps.PlutoUI]]
+deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Downloads", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
+git-tree-sha1 = "9869376035f47756b8b8e711fd0d06a06d51da6f"
+uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+version = "0.7.84"
+
+[[deps.Printf]]
+deps = ["Unicode"]
+uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[[deps.Random]]
+deps = ["SHA"]
+uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
+[[deps.Reexport]]
+git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
+uuid = "189a3867-3050-52da-a836-e630ba90ab69"
+version = "1.2.2"
+
+[[deps.SHA]]
+uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+version = "0.7.0"
+
+[[deps.Serialization]]
+uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
+
+[[deps.SparseArrays]]
+deps = ["Libdl", "LinearAlgebra", "Random", "Serialization", "SuiteSparse_jll"]
+uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+version = "1.10.0"
+
+[[deps.Statistics]]
+deps = ["LinearAlgebra", "SparseArrays"]
+uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+version = "1.10.0"
+
+[[deps.SuiteSparse_jll]]
+deps = ["Artifacts", "Libdl", "libblastrampoline_jll"]
+uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
+version = "7.2.1+1"
+
+[[deps.TOML]]
+deps = ["Dates"]
+uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+version = "1.0.3"
+
+[[deps.Test]]
+deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
+uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[deps.Tricks]]
+git-tree-sha1 = "311349fd1c93a31f783f977a71e8b062a57d4101"
+uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
+version = "0.1.13"
+
+[[deps.URIs]]
+deps = ["Serialization"]
+git-tree-sha1 = "eb3b85ca904a1d1647b15acc091b113b8874b648"
+uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
+version = "1.7.3"
+
+[[deps.UUIDs]]
+deps = ["Random", "SHA"]
+uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
+
+[[deps.Unicode]]
+uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+
+[[deps.Zlib_jll]]
+deps = ["Libdl"]
+uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
+version = "1.3.2+0"
+
+[[deps.libblastrampoline_jll]]
+deps = ["Artifacts", "Libdl"]
+uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version = "5.11.0+0"
+
+[[deps.nghttp2_jll]]
+deps = ["Artifacts", "Libdl"]
+uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
+version = "1.70.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╟─25bd2f20-dbd6-11f1-a8a1-5b411ca021eb
-# ╟─25bd2f7a-dbd6-11f1-a8a1-5b411ca021eb
-# ╟─25bd2fca-dbd6-11f1-a8a1-5b411ca021eb
+# ╟─a762c10a-ec64-470b-b21c-da08a6340466
+# ╟─46e643ac-ded9-11f1-8296-71bfeafed268
+# ╠═039beeb5-9139-4740-9721-c9bf1aa3c61d
+# ╠═46e643d4-ded9-11f1-8296-71bfeafed268
+# ╟─46e643e8-ded9-11f1-8296-71bfeafed268
+# ╠═46e643f2-ded9-11f1-8296-71bfeafed268
+# ╟─46e64406-ded9-11f1-8296-71bfeafed268
+# ╟─46e64410-ded9-11f1-8296-71bfeafed268
+# ╟─46e6441a-ded9-11f1-8296-71bfeafed268
+# ╠═46e64424-ded9-11f1-8296-71bfeafed268
+# ╠═07920726-deda-11f1-9f7e-5d50f7c12261
+# ╠═07920780-deda-11f1-9f7e-5d50f7c12261
+# ╟─46e6442e-ded9-11f1-8296-71bfeafed268
+# ╟─2cd756d8-dd92-11f1-8cb3-895d35658f26
+# ╠═2cd75700-dd92-11f1-8cb3-895d35658f26
+# ╟─2cd75714-dd92-11f1-8cb3-895d35658f26
+# ╟─2cd75728-dd92-11f1-8cb3-895d35658f26
+# ╟─00000000-0000-0000-0000-000000000001
+# ╟─00000000-0000-0000-0000-000000000002
