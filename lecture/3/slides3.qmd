@@ -135,7 +135,7 @@ using KomaMRI.KomaMRIPlots.PlotlyBase
 
 scanner = Scanner(limits=HardwareLimits(RF_dead_time=0.0, RF_ring_down_time=0.0, ADC_dead_time=0.0))
 const TE = 90e-3
-const rf_duration = 5e-3
+const rf_duration = 1e-3
 const demo_T1, demo_T2 = 0.45, 0.12
 
 function rf_block(angle; phase=0.0, duration=rf_duration)
@@ -154,7 +154,7 @@ end
 
 # Save actual KomaMRI states at the simulation block boundaries. The browser
 # only displays these states; it does not run a separate Bloch implementation.
-function record_experiment(seq, obj; start=0.0, origin=rf_duration/2, te=TE)
+function record_experiment(seq, obj; start=0.0, origin=rf_duration/2, te=TE, dt_rf=10e-6)
     n = length(obj.x)
     shown = unique(round.(Int, range(1, n; length=min(n,61))))
     times = [0.0]
@@ -167,7 +167,7 @@ function record_experiment(seq, obj; start=0.0, origin=rf_duration/2, te=TE)
     end
     simulate(obj, seq, scanner; verbose=false, callbacks=(record,),
         sim_params=Dict("gpu"=>false, "Nthreads"=>1, "precision"=>"f64",
-            "Δt"=>1e-3, "Δt_rf"=>100e-6, "max_block_length"=>1,
+            "Δt"=>1e-3, "Δt_rf"=>dt_rf, "max_block_length"=>1,
             "max_rf_block_length"=>1, "return_type"=>"state"))
     keep = findall(>=(start), times)
     wave = plot_seq(seq; slider=false, show_rf_frame=false)
@@ -202,32 +202,44 @@ precess_data = record_experiment(precess_seq, precess_obj; start=rf_duration)
 # correlating frequency with position and shifting the gradient echo.
 npositions, nfrequencies = 31, 501
 positions = repeat(collect(range(-5e-3, 5e-3; length=npositions)); inner=nfrequencies)
-omega = repeat(50 .* tan.(π .* (((1:nfrequencies) .- 0.5) ./ nfrequencies .- 0.5)); outer=npositions)
+lorentzian_width = 50.0
+omega = repeat(lorentzian_width .* tan.(π .* (((1:nfrequencies) .- 0.5) ./ nfrequencies .- 0.5)); outer=npositions)
 niso = length(positions)
 ensemble = Phantom(x=positions, Δw=omega, T1=fill(demo_T1,niso), T2=fill(demo_T2,niso))
 fid_seq = rf_block(π/2) + acquire_for(0.24)
-fid_obj = Phantom(x=[0.0], Δw=[2π*5], T1=[demo_T1], T2=[demo_T2])
+fid_obj = Phantom(x=zeros(3), Δw=2π .* [0,20,-20], T1=fill(40e-3,3), T2=fill(20e-3,3))
 fid_data = record_experiment(fid_seq, fid_obj)
+fid_data["colors"] = ["#6e40aa", "#d62728", "#278bc3"]
 
 # RF centers are at t=0 and TE/2. Both echo experiments have the same TE.
-se_seq = rf_block(π/2) + acquire_for(TE/2 - rf_duration) +
-    rf_block(π; phase=π/2) + acquire_for(TE/2 - rf_duration/2) + acquire_for(TE/2)
-se_data = record_experiment(se_seq, ensemble)
+echo_rf_duration = rf_duration
+se_seq = rf_block(π/2; duration=echo_rf_duration) + acquire_for(TE/2 - echo_rf_duration) +
+    rf_block(π; phase=π/2, duration=echo_rf_duration) + acquire_for(TE/2 - echo_rf_duration/2) + acquire_for(TE/2)
+se_ensemble = ensemble[abs.(ensemble.Δw) .<= 2π*100]
+se_data = record_experiment(se_seq, se_ensemble; origin=echo_rf_duration/2, dt_rf=10e-6)
 gradient_amplitude = 0.5e-3
-ge_prephaser_duration = (TE - rf_duration/2)/2
-ge_seq = rf_block(π/2) + gradient_block(-gradient_amplitude, ge_prephaser_duration) +
-    gradient_block(gradient_amplitude, 2ge_prephaser_duration) + acquire_for(rf_duration/4)
+ge_prephaser_duration = (TE - echo_rf_duration/2)/2
+ge_seq = rf_block(π/2; duration=echo_rf_duration) + gradient_block(-gradient_amplitude, ge_prephaser_duration) +
+    gradient_block(gradient_amplitude, 2ge_prephaser_duration) + acquire_for(echo_rf_duration/4)
 gradient_ensemble = Phantom(x=positions, T1=fill(demo_T1,niso), T2=fill(demo_T2,niso))
-ge_data = record_experiment(ge_seq, gradient_ensemble)
+ge_data = record_experiment(ge_seq, gradient_ensemble; origin=echo_rf_duration/2, dt_rf=10e-6)
 
 comparison_TE = 30e-3
-se_comparison_seq = rf_block(π/2) + acquire_for(comparison_TE/2 - rf_duration) +
-    rf_block(π; phase=π/2) + acquire_for(comparison_TE/2 - rf_duration/2) + acquire_for(comparison_TE/2)
-se_comparison_data = record_experiment(se_comparison_seq, ensemble; te=comparison_TE)
-comparison_prephaser_duration = (comparison_TE - rf_duration/2)/2
-ge_comparison_seq = rf_block(π/2) + gradient_block(-gradient_amplitude, comparison_prephaser_duration) +
-    gradient_block(gradient_amplitude, 2comparison_prephaser_duration) + acquire_for(rf_duration/4)
-ge_comparison_data = record_experiment(ge_comparison_seq, ensemble; te=comparison_TE)
+comparison_rf_duration = rf_duration
+comparison_ensemble = ensemble[abs.(ensemble.Δw) .<= 2π*100]
+comparison_lobe_duration = comparison_TE/2 - comparison_rf_duration
+# Equal gradient areas before and after the 180° pulse cancel at TE.
+se_comparison_seq = rf_block(π/2; duration=comparison_rf_duration) + gradient_block(-gradient_amplitude, comparison_lobe_duration) +
+    rf_block(π; phase=π/2, duration=comparison_rf_duration) + acquire_for(comparison_rf_duration/2) +
+    gradient_block(-gradient_amplitude, comparison_lobe_duration) + gradient_block(-gradient_amplitude, comparison_TE/2)
+se_comparison_data = record_experiment(se_comparison_seq, comparison_ensemble;
+    origin=comparison_rf_duration/2, te=comparison_TE, dt_rf=10e-6)
+comparison_prephaser_duration = (comparison_TE - comparison_rf_duration/2)/2
+ge_comparison_seq = rf_block(π/2; duration=comparison_rf_duration) + gradient_block(-gradient_amplitude, comparison_prephaser_duration) +
+    gradient_block(gradient_amplitude, comparison_prephaser_duration) +
+    gradient_block(gradient_amplitude, comparison_prephaser_duration) + acquire_for(comparison_rf_duration/4)
+ge_comparison_data = record_experiment(ge_comparison_seq, comparison_ensemble;
+    origin=comparison_rf_duration/2, te=comparison_TE, dt_rf=10e-6)
 
 function demo_html(id, data; mode="ensemble")
     print("```{=html}\n<div id=\"$id\" class=\"bloch-demo r-stretch\" data-mode=\"$mode\">")
@@ -306,13 +318,13 @@ $T_1$ and $T_2$: Relaxation parameters
 ::: {.column width="50%"}
 ```{julia}
 #| output: asis
-demo_html("rf-excitation", time_window(relax_data, -2.5, 2.5; reset=true); mode="rotation")
+demo_html("rf-excitation", time_window(relax_data, -rf_duration*500, rf_duration*500; reset=true); mode="rotation")
 ```
 :::
 ::: {.column width="50%"}
 ```{julia}
 #| output: asis
-demo_html("rf-and-relaxation", time_window(relax_data, 2.5, Inf; reset=true); mode="rotation")
+demo_html("rf-and-relaxation", time_window(relax_data, rf_duration*500, Inf; reset=true); mode="rotation")
 ```
 :::
 :::
@@ -345,13 +357,13 @@ $$
 ::: {.column width="50%"}
 ```{julia}
 #| output: asis
-demo_html("fid-excitation", time_window(fid_data, -2.5, 2.5; reset=true); mode="rotation")
+demo_html("fid-excitation", time_window(fid_data, -rf_duration*500, rf_duration*500; reset=true); mode="rotation")
 ```
 :::
 ::: {.column width="50%"}
 ```{julia}
 #| output: asis
-demo_html("free-induction-decay", time_window(fid_data, 2.5, Inf; reset=true); mode="rotation")
+demo_html("free-induction-decay", time_window(fid_data, rf_duration*500, rf_duration*500 + 60; reset=true); mode="rotation")
 ```
 :::
 :::
@@ -430,12 +442,14 @@ demo_html("spin-echo-signal", se_data; mode="echo-signal")
 
 # Where is $T_2^*$?
 
+::: {.v-center .r-stretch style="justify-content: center;"}
 $$
 \frac{\mathrm{d}\boldsymbol{M}}{\mathrm{d}t}=
 \gamma\boldsymbol{M}\times\textcolor{#2a7fb8}{\boldsymbol{B}}
 -\frac{M_x\hat{\boldsymbol{x}}+M_y\hat{\boldsymbol{y}}}{T_2}
 -\frac{(M_z-M_0)\hat{\boldsymbol{z}}}{T_1}
 $$
+:::
 
 # Signal produced by a distribution of isochromats
 
@@ -484,7 +498,9 @@ $$\omega=\frac{1}{T_2'}\tan\!\left[\pi\left(u-\frac12\right)\right],\quad u\sim 
 :::
 :::
 ::: {.column .figure-centered width="42%"}
-![](figures/inverse-cdf.png){height=365px fig-alt="Map a uniform random sample through the inverse cumulative distribution"}
+```{=html}
+<div class="inverse-cdf" style="height:420px" aria-label="Lorentzian cumulative distribution mapping uniform samples to off-resonance frequencies using the inverse tangent formula"></div>
+```
 :::
 :::
 
@@ -517,11 +533,12 @@ demo_html("echo-comparison", Dict("se"=>se_comparison_data,"ge"=>ge_comparison_d
 
 ```{julia}
 #| output: asis
-demo_html("echo-signal-comparison", Dict("se"=>se_comparison_data,"ge"=>ge_comparison_data); mode="comparison-signal")
+demo_html("echo-signal-comparison", Dict("se"=>se_comparison_data,"ge"=>ge_comparison_data,
+    "T2_ms"=>1e3demo_T2,"T2star_ms"=>1e3/(inv(demo_T2)+lorentzian_width)); mode="comparison-signal")
 ```
 
 ::: {.notes}
-Both experiments use the same off-resonance distribution, T1, T2, and TE of 30 ms. The preceding magnetization comparison has a shared time slider; this slide shows the complete signals. The spin echo refocuses static off-resonance, while the gradient echo refocuses the imposed gradient only.
+Both experiments use the same spatial and off-resonance distributions, T1, T2, 1 ms RF pulses, and TE of 30 ms. Equal same-polarity gradient areas around the 180° pulse refocus the spatial phase in SE; opposite gradient areas refocus it in GE. The spin echo also refocuses static off-resonance. Time is zero at the end of excitation. Both exponential references start at the same post-excitation net signal, with 1/T2* = 1/T2 + 50 s⁻¹.
 :::
 
 # Brownian motion (1827)
@@ -627,9 +644,9 @@ For free water, $p(r)$ and $E(q)$ are Gaussian
 $$E(b)=e^{-bD}$$
 :::
 ::: {.column width="45%"}
-$D=3.0\times10^{-3}\;\mathrm{mm}^2/\mathrm{s}$ at $37^\circ\mathrm{C}$
+$$D=3.0\times10^{-3}\;\mathrm{mm}^2/\mathrm{s}\quad\text{at }37^\circ\mathrm{C}$$
 
-$b=1000\;\mathrm{s}/\mathrm{mm}^2$
+$$b=1000\;\mathrm{s}/\mathrm{mm}^2$$
 :::
 :::
 
@@ -693,7 +710,7 @@ window.addEventListener('load', async () => {
   function axes(scene='scene') {
     return [
       {type:'scatter3d',mode:'lines',x:[0,1.1,null,0,0,null,0,0],y:[0,0,null,0,1.1,null,0,0],z:[0,0,null,0,0,null,0,1.1],line:{color:C.gray,width:3},scene,showlegend:false,hoverinfo:'skip'},
-      {type:'scatter3d',mode:'text',x:[1.2,0,-.08],y:[0,1.2,0],z:[0,0,1.05],text:['x′','y′','z'],textfont:{size:20,color:C.gray},scene,showlegend:false,hoverinfo:'skip'}];
+      {type:'scatter3d',mode:'text',x:[1.2,0],y:[0,1.2],z:[0,0],text:['x′','y′'],textfont:{size:20,color:C.gray},scene,showlegend:false,hoverinfo:'skip'}];
   }
   function scene(domain,data,zoom=1) {
     const states=data.m.flat(),ranges=[0,1,2].map(i=>{
@@ -703,12 +720,13 @@ window.addEventListener('load', async () => {
     const spans=ranges.map(([lo,hi])=>hi-lo),scale=2.3*zoom/Math.max(...spans);
     return {domain,xaxis:{visible:false,range:ranges[0]},yaxis:{visible:false,range:ranges[1]},zaxis:{visible:false,range:ranges[2]},
       aspectmode:'manual',aspectratio:{x:spans[0]*scale,y:spans[1]*scale,z:spans[2]*scale},
-      camera:{eye:{x:1.6,y:-1.1,z:.7},projection:{type:'orthographic'}},
+      camera:{eye:{x:1.6,y:1.6,z:.9},projection:{type:'orthographic'}},
+      annotations:[{x:0,y:0,z:1.05,text:'z',showarrow:false,xshift:-20,font:{size:20,color:C.gray}}],
       bgcolor:'rgba(0,0,0,0)',uirevision:'view'};
   }
   const rainbow=['#6e40aa','#714bce','#4775de','#278bc3','#1aa59c','#3dbb65','#8cbd36','#c8ac24','#e9782d','#d94451'];
   function vectors(data,k,sceneName='scene',showLegend=true) {
-    const m=data.m[k],out=m.map((v,j)=>({...arrowMesh(v,m.length===1?C.ink:rainbow[j%10]),scene:sceneName,
+    const m=data.m[k],out=m.map((v,j)=>({...arrowMesh(v,m.length===1?C.ink:(data.colors?.[j]??rainbow[j%10])),scene:sceneName,
       ...(m.length>1?{name:'Isochromats',legendgroup:'isochromats',showlegend:showLegend&&j===0}:{})}));
     if(m.length>1)out.push({...arrowMesh([data.net[k][0],data.net[k][1],0],C.ink,'Net M<sub>xy</sub>',undefined,.025,.06,.12),scene:sceneName,
       legendgroup:'net-magnetization',showlegend:showLegend});
@@ -726,9 +744,29 @@ window.addEventListener('load', async () => {
       hovertemplate:'%{x:.2f} ms<br>%{y:.1f}°<extra>RF phase</extra>',line:{color:'#df7b22',width:2,dash:'dot'}});
     return traces;
   }
+  function rfShading(d,xref='x',yref='y domain') {
+    const rf=d.wave.data.find(t=>t.name==='B₁,x'),shapes=[];
+    let start=null;
+    rf.x.forEach((x,i)=>{
+      if(x!=null && Math.abs(rf.y[i])>1e-9) {
+        if(start===null)start=x-d.origin_ms;
+      } else if(start!==null) {
+        shapes.push({type:'rect',xref,yref,x0:start,x1:rf.x[i-1]-d.origin_ms,y0:0,y1:1,
+          fillcolor:'rgba(155,88,207,0.15)',line:{width:0},layer:'below'});
+        start=null;
+      }
+    });
+    return shapes;
+  }
+  function afterExcitation(d) {
+    const end=rfShading(d)[0].x1;
+    return {...d,t:d.t.map(t=>t-end),origin_ms:d.origin_ms+end,te_ms:d.te_ms-end};
+  }
   const graphs=[];
   for(const el of document.querySelectorAll('.bloch-demo')) {
-    const d=JSON.parse(el.querySelector('script').textContent),mode=el.dataset.mode;
+    const mode=el.dataset.mode;
+    let d=JSON.parse(el.querySelector('script').textContent);
+    if(mode==='echo-signal')d=afterExcitation(d);
     if(mode==='comparison'||mode==='comparison-signal'){await comparison(el,d,mode==='comparison-signal');graphs.push(el);continue;}
     if(mode==='rotation'||mode==='precession') {
       const a=axes();
@@ -761,14 +799,15 @@ window.addEventListener('load', async () => {
       continue;
     }
     const signalMode=mode==='echo-signal';
+    const showTimeSlider=el.id!=='spin-echo-signal';
     const endTime=d.t[d.t.length-1];
     const data=sequenceTraces(d),hasPhase=data.some(t=>t.yaxis==='y3');
     const waveValues=data.filter(t=>t.yaxis==='y').flatMap(t=>t.y.filter(Number.isFinite));
     const waveMin=Math.min(0,...waveValues),waveMax=Math.max(0,...waveValues),wavePad=.05*(waveMax-waveMin);
-    const waveRange=[waveMin-wavePad,waveMax+wavePad],phaseScale=100/waveMax;
+    const waveRange=[waveMin<0?waveMin-wavePad:0,waveMax+wavePad],phaseScale=100/waveMax;
     const layout={...base,margin:{l:55,r:30,t:45,b:120},
-      xaxis:{...axis,domain:[0,signalMode?.43:.34],anchor:'y',title:{text:'Time (ms)',standoff:5},range:[-d.origin_ms,endTime]},
-      yaxis:{...d.wave.layout.yaxis,domain:[0,1],anchor:'x',automargin:true,autorange:false,range:waveRange},
+      xaxis:{...axis,domain:[0,signalMode?.43:.34],anchor:'y',title:{text:'Time (ms)',standoff:5},range:[-d.origin_ms,endTime],showline:true,mirror:true,linecolor:C.gray,linewidth:1.2},
+      yaxis:{...d.wave.layout.yaxis,...axis,domain:[0,1],anchor:'x',automargin:true,autorange:false,range:waveRange,showline:true,mirror:true,linecolor:C.gray,linewidth:1.2},
       yaxis3:{overlaying:'y',anchor:'x',side:'right',range:waveRange.map(v=>v*phaseScale),visible:hasPhase,tickvals:[0,90],tickfont:{color:'#df7b22',size:16},showgrid:false,zeroline:false},
       legend:{orientation:'h',x:0,y:1.1,font:{size:18}}};
     let moving=[];
@@ -784,33 +823,44 @@ window.addEventListener('load', async () => {
     }
     layout.legend2={orientation:'h',x:.72,y:1.1,font:{size:18}};
     const shapes=k=>[
+      ...(signalMode?rfShading(d,'x2','y2 domain'):[]),
       {type:'line',xref:'x',yref:'y domain',x0:d.te_ms,x1:d.te_ms,y0:0,y1:1,line:{color:C.gray,width:1.5,dash:'dot'}},
       ...(signalMode?[{type:'line',xref:'x2',yref:'y2 domain',x0:d.te_ms,x1:d.te_ms,y0:0,y1:1,line:{color:C.gray,width:1.5,dash:'dot'}}]:[]),
-      {type:'line',xref:'x',yref:'y domain',x0:d.t[k],x1:d.t[k],y0:0,y1:1,line:{color:'#d33',width:2}},
-      ...(signalMode?[{type:'line',xref:'x2',yref:'y2 domain',x0:d.t[k],x1:d.t[k],y0:0,y1:1,line:{color:'#d33',width:2}}]:[])];
-    const frames=d.t.map((t,k)=>({name:String(k),traces:moving,
-      data:signalMode?[]:vectors(d,k).map(t=>({...t,legend:'legend2'})),layout:{shapes:shapes(k)}}));
+      ...(showTimeSlider?[{type:'line',xref:'x',yref:'y domain',x0:d.t[k],x1:d.t[k],y0:0,y1:1,line:{color:'#d33',width:2}}]:[]),
+      ...(signalMode&&showTimeSlider?[{type:'line',xref:'x2',yref:'y2 domain',x0:d.t[k],x1:d.t[k],y0:0,y1:1,line:{color:'#d33',width:2}}]:[])];
+    const frames=showTimeSlider?d.t.map((t,k)=>({name:String(k),traces:moving,
+      data:signalMode?[]:vectors(d,k).map(t=>({...t,legend:'legend2'})),layout:{shapes:shapes(k)}})):[];
     layout.shapes=shapes(0);
-    layout.annotations=[{text:'TE',xref:'x',yref:'paper',x:d.te_ms,y:1.02,showarrow:false,font:{color:C.gray,size:16}},
-      ...(signalMode?[{text:'TE',xref:'x2',yref:'paper',x:d.te_ms,y:1.02,showarrow:false,font:{color:C.gray,size:16}}]:[])];
-    layout.sliders=[slider(d.t.map((t,k)=>({label:t.toFixed(1),method:'animate',args:[[String(k)],animation]})),'Time: ',' ms')];
-    layout.sliders[0].pad.t=75;
+    layout.annotations=[{text:'TE',xref:'x',yref:'paper',x:d.te_ms,y:.98,xshift:7,xanchor:'left',yanchor:'top',showarrow:false,font:{color:C.gray,size:16}},
+      ...(signalMode?[{text:'TE',xref:'x2',yref:'paper',x:d.te_ms,y:.98,xshift:7,xanchor:'left',yanchor:'top',showarrow:false,font:{color:C.gray,size:16}}]:[])];
+    if(showTimeSlider) {
+      layout.sliders=[slider(d.t.map((t,k)=>({label:t.toFixed(1),method:'animate',args:[[String(k)],animation]})),'Time: ',' ms')];
+      layout.sliders[0].pad.t=75;
+    }
     await Plotly.newPlot(el,{data,layout,frames,config});graphs.push(el);
   }
   async function comparison(el,d,signalMode=false) {
-    const se=d.se,ge=d.ge,end=Math.min(se.t.at(-1),ge.t.at(-1)),ts=Array.from({length:Math.round(end)+1},(_,i)=>i);
+    const se=signalMode?afterExcitation(d.se):d.se,ge=signalMode?afterExcitation(d.ge):d.ge;
+    const end=signalMode?Math.min(se.t.at(-1),ge.t.at(-1)):Math.min(se.te_ms,ge.te_ms);
+    const ts=[...new Set([...se.t,...ge.t].filter(t=>t<=end).map(t=>+t.toFixed(6)))].sort((a,b)=>a-b);
     const nearest=(ds,t)=>ds.t.reduce((best,x,i)=>Math.abs(x-t)<Math.abs(ds.t[best]-t)?i:best,0);
     const ks=ts.map(t=>nearest(se,t)),kg=ts.map(t=>nearest(ge,t));
     let data,frames=[];
     const layout={...base,margin:{l:signalMode?65:0,r:20,t:40,b:signalMode?65:120},
       legend:{orientation:'h',x:.5,xanchor:'center',y:1.08,font:{size:18}}};
     if(signalMode) {
+      const excitationEnd=0;
+      const envelopeCount=Math.ceil(end-excitationEnd)+1;
+      const envelopeTimes=Array.from({length:envelopeCount},(_,i)=>excitationEnd+(end-excitationEnd)*i/(envelopeCount-1));
+      const postExcitation=ds=>{const v=ds.net[nearest(ds,excitationEnd)];return Math.hypot(v[0],v[1]);};
       data=[{type:'scatter',mode:'lines',x:se.t,y:se.net.map(v=>Math.hypot(v[0],v[1])),name:'SE',line:{color:C.blue,width:3}},
-        {type:'scatter',mode:'lines',x:ge.t,y:ge.net.map(v=>Math.hypot(v[0],v[1])),name:'GE',line:{color:'#df7b22',width:3,dash:'dash'}}];
-      layout.xaxis={...axis,domain:[0,1],anchor:'y',title:{text:'Time (ms)',standoff:5},range:[0,end]};
+        {type:'scatter',mode:'lines',x:ge.t,y:ge.net.map(v=>Math.hypot(v[0],v[1])),name:'GE',line:{color:'#df7b22',width:3,dash:'dash'}},
+        {type:'scatter',mode:'lines',x:envelopeTimes,y:envelopeTimes.map(t=>postExcitation(se)*Math.exp(-(t-excitationEnd)/d.T2_ms)),name:'exp(−t/T<sub>2</sub>)',line:{color:C.ink,width:2,dash:'dot'}},
+        {type:'scatter',mode:'lines',x:envelopeTimes,y:envelopeTimes.map(t=>postExcitation(ge)*Math.exp(-(t-excitationEnd)/d.T2star_ms)),name:'exp(−t/T<sub>2</sub><sup>*</sup>)',line:{color:C.gray,width:2,dash:'dot'}}];
+      layout.xaxis={...axis,domain:[0,1],anchor:'y',title:{text:'Time (ms)',standoff:5},range:[se.t[0],end]};
       layout.yaxis={...axis,domain:[0,1],anchor:'x',range:[0,1.03],title:{text:'S'}};
-      layout.annotations=[{text:'TE',x:se.te_ms,y:1,xref:'x',yref:'paper',yanchor:'bottom',showarrow:false,font:{size:17,color:C.gray}}];
-      layout.shapes=[{type:'line',xref:'x',yref:'y domain',x0:se.te_ms,x1:se.te_ms,y0:0,y1:1,line:{color:C.gray,width:1.5,dash:'dot'}}];
+      layout.annotations=[{text:'TE',x:se.te_ms,y:.98,xref:'x',yref:'paper',yanchor:'top',showarrow:false,font:{size:17,color:C.gray}}];
+      layout.shapes=[...rfShading(se),{type:'line',xref:'x',yref:'y domain',x0:se.te_ms,x1:se.te_ms,y0:0,y1:1,line:{color:C.gray,width:1.5,dash:'dot'}}];
     } else {
       const a=axes(),b=axes('scene2'),va=vectors(se,ks[0]),vb=vectors(ge,kg[0],'scene2',false);
       data=[...a,...va,...b,...vb];
@@ -818,22 +868,42 @@ window.addEventListener('load', async () => {
       const moving=[...va.map((_,i)=>ia+i),...vb.map((_,i)=>ib+i)];
       frames=ts.map((t,k)=>({name:String(k),traces:moving,data:[...vectors(se,ks[k]),...vectors(ge,kg[k],'scene2',false)]}));
       const view={m:[...se.m,...ge.m]};
-      layout.scene=scene({x:[0,.48],y:[0,1]},view);
-      layout.scene2=scene({x:[.52,1],y:[0,1]},view);
+      layout.scene=scene({x:[0,.48],y:[0,1]},view,1.4);
+      layout.scene2=scene({x:[.52,1],y:[0,1]},view,1.4);
+      layout.scene.annotations[0].yshift=-25;
+      layout.scene2.annotations[0].yshift=-25;
       layout.annotations=[{text:'Spin echo',x:.24,y:1.08,xref:'paper',yref:'paper',showarrow:false},{text:'Gradient echo',x:.77,y:1.08,xref:'paper',yref:'paper',showarrow:false}];
       layout.legend.y=1.02;
-      layout.sliders=[slider(ts.map((t,k)=>({label:String(t),method:'animate',args:[[String(k)],animation]})),'Time: ',' ms')];
-      layout.sliders[0].pad.t=75;
+      layout.sliders=[slider(ts.map((t,k)=>({label:t.toFixed(2),method:'animate',args:[[String(k)],animation]})),'Time: ',' ms')];
+      layout.sliders[0].pad.t=25;
     }
     await Plotly.newPlot(el,{data,layout,frames,config});
   }
   const linspace=(a,b,n)=>Array.from({length:n},(_,i)=>a+(b-a)*i/(n-1));
+  for(const el of document.querySelectorAll('.inverse-cdf')) {
+    const T2prime=.05,w=linspace(-150,150,601),u=linspace(.1,.9,9);
+    const quantiles=u.map(p=>Math.tan(Math.PI*(p-.5))/T2prime);
+    const shapes=quantiles.flatMap((q,j)=>[
+      {type:'line',x0:-150,x1:q,y0:u[j],y1:u[j],line:{color:C.purple,width:1.5}},
+      {type:'line',x0:q,x1:q,y0:0,y1:u[j],line:{color:C.purple,width:1.5,dash:'dot'}}]);
+    await Plotly.newPlot(el,[
+      {type:'scatter',mode:'lines',x:w,y:w.map(x=>.5+Math.atan(T2prime*x)/Math.PI),
+        line:{color:C.blue,width:3},showlegend:false,
+        hovertemplate:'ω = %{x:.1f} rad/s<br>P(ω) = %{y:.3f}<extra></extra>'},
+      {type:'scatter',mode:'markers',x:quantiles,y:u,marker:{color:C.purple,size:6},showlegend:false,
+        hovertemplate:'u = %{y:.1f}<br>ω = %{x:.1f} rad/s<extra></extra>'}],
+      {...base,margin:{l:70,r:15,t:10,b:65},shapes,
+        xaxis:{...axis,title:{text:'ω (rad/s)'},range:[-150,150],tickvals:[-100,0,100]},
+        yaxis:{...axis,title:{text:'P(ω)'},range:[0,1],dtick:.2}},config);
+    graphs.push(el);
+  }
   for(const el of document.querySelectorAll('.relaxation-curves')) {
     const t=linspace(0,1600,161),values=[50,100,120,150,200,300,450,600,800,1000];
     const traces=[{type:'scatter',mode:'lines',x:t,y:t.map(x=>Math.exp(-x/120)),name:'M<sub>xy</sub>',line:{color:C.purple,width:3}},
       {type:'scatter',mode:'lines',x:t,y:t.map(x=>1-Math.exp(-x/450)),xaxis:'x2',yaxis:'y2',name:'Mz',line:{color:C.blue,width:3}}];
     const steps=(which)=>values.map(v=>({label:String(v),method:'restyle',args:[{y:[t.map(x=>which?1-Math.exp(-x/v):Math.exp(-x/v))]},[which]]}));
-    await Plotly.newPlot(el,traces,{...base,margin:{l:65,r:25,t:30,b:110},
+    await Plotly.newPlot(el,traces,{...base,margin:{l:65,r:25,t:65,b:110},
+      legend:{...base.legend,y:1.08,yanchor:'bottom'},
       xaxis:{...axis,domain:[0,.44],anchor:'y',title:{text:'Time (ms)'}},yaxis:{...axis,range:[0,1.05],domain:[0,1],anchor:'x',title:{text:'M<sub>xy</sub>'}},
       xaxis2:{...axis,domain:[.56,1],anchor:'y2',title:{text:'Time (ms)'}},yaxis2:{...axis,range:[0,1.05],domain:[0,1],anchor:'x2',title:{text:'M<sub>z</sub>'}},
       sliders:[slider(steps(0),'T₂: ',' ms',2,0,.44,-.25),slider(steps(1),'T₁: ',' ms',6,.56,.44,-.25)]},config);graphs.push(el);
