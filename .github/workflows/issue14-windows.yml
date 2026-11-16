@@ -1,0 +1,55 @@
+name: Diagnose issue 14 on Windows
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue14-windows.yml
+      - diagnostics/issue14/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      JULIA_PKG_PRECOMPILE_AUTO: '0'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.10.13'
+          arch: x64
+      - name: Record Windows runtime
+        run: julia --startup-file=no -e 'using InteractiveUtils; versioninfo()'
+      - name: Extract the published Activity 2 environment
+        shell: pwsh
+        run: |
+          Copy-Item lab/2/activity2.jl diagnostics/issue14/activity2-source.jl
+          julia --startup-file=no diagnostics/issue14/prepare.jl
+      - name: Install the pinned notebook dependencies and Malt
+        shell: pwsh
+        run: |
+          julia --startup-file=no --project=diagnostics/issue14/environment -e 'using Pkg; Pkg.instantiate()'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          julia --startup-file=no --project=diagnostics/issue14/parent -e 'using Pkg; Pkg.instantiate()'
+      - name: Compare plain Julia and Malt at 4, 10, and 20 threads
+        shell: pwsh
+        run: |
+          $failed = $false
+          foreach ($case in @('plain-4', 'malt-4', 'plain-10', 'malt-10', 'plain-20', 'malt-20')) {
+            julia --startup-file=no --project=diagnostics/issue14/parent diagnostics/issue14/run.jl $case
+            if ($LASTEXITCODE -ne 0) { $failed = $true }
+          }
+          if ($failed) { throw 'At least one reconstruction case failed; see the case logs.' }
+      - name: Save results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: issue14-windows-results
+          path: diagnostics/issue14/*.toml
+          if-no-files-found: ignore
