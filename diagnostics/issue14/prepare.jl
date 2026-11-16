@@ -1,4 +1,4 @@
-source = read(joinpath(@__DIR__, "activity2-source.jl"), String)
+source = replace(read(joinpath(@__DIR__, "activity2-source.jl"), String), "\r\n" => "\n")
 envdir = joinpath(@__DIR__, "environment")
 mkpath(envdir)
 for (name, marker) in [("Project", "PROJECT"), ("Manifest", "MANIFEST")]
