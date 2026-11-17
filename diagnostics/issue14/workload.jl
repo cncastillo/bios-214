@@ -1,4 +1,4 @@
-using KomaMRI, LinearAlgebra, Random, TOML
+using KomaMRI, LinearAlgebra, Random, Serialization, TOML
 import KomaMRIBase.PulseDesigner as PD
 import MRISequenceBuildingBlocks as SBB
 import KomaMRI: MRIReco
@@ -7,10 +7,10 @@ const FFTW = NFFT.FFTW
 
 include(joinpath(@__DIR__, "2cd7102e-dd92-11f1-8cb3-895d35658f26.jl"))
 
-function workload()
+function workload(images_path=nothing)
     println("ENVIRONMENT ", (julia=VERSION, os=Sys.KERNEL, arch=Sys.ARCH,
         threads=Threads.nthreads(), koma=pkgversion(KomaMRI), mrireco=pkgversion(MRIReco),
-        nfft=pkgversion(NFFT), fftw=pkgversion(FFTW)))
+        nfft=pkgversion(NFFT), fftw=pkgversion(FFTW), provider=FFTW.fftw_provider))
     flush(stdout)
     sys = Scanner(limits=HardwareLimits(B0=3.0, B1=20e-6, Gmax=30e-3, Smax=180,
         ADC_Δt=1e-6, DUR_Δt=10e-6, GR_Δt=10e-6, RF_Δt=1e-6,
@@ -27,6 +27,9 @@ function workload()
         timed = @timed reconstruct_with_labels(raw)
         images = timed.value.images
         all(x -> all(isfinite, x.image), images) || error("Non-finite reconstruction")
+        if iteration == 3 && images_path !== nothing
+            serialize(images_path, [Array(x.image) for x in images])
+        end
         summary = Dict("iteration"=>iteration, "seconds"=>timed.time,
             "allocated_bytes"=>timed.bytes, "images"=>length(images),
             "shapes"=>[collect(size(x.image)) for x in images],
@@ -37,11 +40,11 @@ function workload()
         GC.gc()
     end
     return Dict("julia"=>string(VERSION), "os"=>string(Sys.KERNEL), "arch"=>string(Sys.ARCH),
-        "threads"=>Threads.nthreads(), "results"=>results)
+        "threads"=>Threads.nthreads(), "provider"=>FFTW.fftw_provider, "results"=>results)
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    result = workload()
+    result = workload(ARGS[1] * ".bin")
     open(ARGS[1], "w") do io
         TOML.print(io, result)
     end

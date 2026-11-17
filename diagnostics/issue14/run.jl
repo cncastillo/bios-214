@@ -3,7 +3,7 @@ using TOML
 
 envdir = joinpath(@__DIR__, "environment")
 script = joinpath(@__DIR__, "workload.jl")
-for (mode, threads) in [("plain",4), ("malt",4), ("plain",10), ("malt",10), ("plain",20), ("malt",20)]
+for (mode, threads) in [("plain",1), ("plain",4), ("malt",4), ("plain",8), ("malt",8), ("plain",10), ("malt",10), ("plain",20), ("malt",20)]
     label = "$(mode)-$(threads)"
     isempty(ARGS) || label in ARGS || continue
     output = joinpath(@__DIR__, label * ".toml")
@@ -16,7 +16,7 @@ for (mode, threads) in [("plain",4), ("malt",4), ("plain",10), ("malt",10), ("pl
         try
             result = Malt.remote_eval_fetch(worker, quote
                 include($script)
-                workload()
+                workload($output * ".bin")
             end)
             result["malt"] = string(pkgversion(Malt))
             open(output, "w") do io
