@@ -83,7 +83,7 @@ function start(; image=nothing)
             error("OpenRecon is already running; call OpenReconClient.stop() before changing images")
         return nothing
     end
-    image = something(image, "openrecon_research_bios214radial:v0.1.2")
+    image = something(image, "ghcr.io/mcgrathcm/bios214-radial:0.1.2-build-3")
     container = strip(read(`docker run --rm -d --platform linux/amd64
                             -p 127.0.0.1::9002 $image`, String))
     try
