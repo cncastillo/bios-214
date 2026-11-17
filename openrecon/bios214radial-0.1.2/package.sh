@@ -32,6 +32,3 @@ docker pull --platform "${OPENRECON_DIND_PLATFORM}" docker:24.0-dind
 )
 cp "${RECIPE}/openrecon/OpenRecon_research_bios214radial_V0.1.2.zip" "${ROOT}/dist/"
 cp "${RECIPE}/docs.pdf" "${ROOT}/dist/OpenRecon_research_bios214radial_V0.1.2.pdf"
-cd "${ROOT}/dist"
-shasum -a 256 OpenRecon_research_bios214radial_V0.1.2.zip \
-    OpenRecon_research_bios214radial_V0.1.2.pdf > SHA256SUMS
