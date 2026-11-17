@@ -1,18 +1,41 @@
 # OpenRecon client
 
-Load the Docker tar inside the scanner ZIP first. With Docker running and
-Koma's `raw::RawAcquisitionData`, run from the repository root:
+Load the Docker tar inside the scanner ZIP. With Docker running and Koma's
+`raw::RawAcquisitionData`, run from the repository root:
 
 ```julia
 include("openrecon/OpenReconClient.jl")
 using .OpenReconClient
-image = recon_docker(raw)  # Matrix{Float32}, indexed [y,x]
+OpenReconClient.start()
+image = OpenReconClient.recon(raw)  # Matrix{Float32}, indexed [y,x]
 ```
 
-The helper starts the image, streams MRD over TCP, returns the image and stops
-the container. It mounts no files and needs only KomaMRIFiles and Julia's
-built-in Sockets. For simulation, request `"return_type" => "raw"` from Koma,
-or convert a signal matrix with `signal_to_raw_data(signal, seq; sys)`.
+Call `OpenReconClient.recon(raw)` again for each simulation. The container
+stays running, including after rejected input. When finished, call:
+
+```julia
+OpenReconClient.stop()
+```
+
+Repeated `start()` calls reuse the running container; repeated `stop()` calls
+are safe. The default image is `openrecon_research_bios214radial:v0.1.2`.
+Alternatively, pull the GHCR image using the command in its release notes.
+Replace the initial `start()` call with the following, substituting its build
+number for `N`:
+
+```julia
+OpenReconClient.start(; image="ghcr.io/mcgrathcm/bios214-radial:0.1.2-build-N")
+```
+
+Stop the current server before changing images. The original
+`recon_docker(raw)` helper still starts and stops a container for one call;
+if a server is already running, it reuses it and leaves it running.
+
+The client mounts no files and needs only KomaMRIFiles and Julia's built-in
+Sockets. For simulation, request `"return_type" => "raw"` from Koma, or convert
+a signal matrix with `signal_to_raw_data(signal, seq; sys)`. Keeping the
+container running avoids Docker startup and shutdown, but its adapter still
+starts Julia/BART for each reconstruction.
 Tested on host Julia 1.10.13 with KomaMRIBase 0.15.2, KomaMRICore 0.14.0 and
 KomaMRIFiles 0.12.0. The container retains Julia 1.12.7.
 

@@ -3,7 +3,15 @@ module OpenReconClient
 using Sockets
 using KomaMRIFiles: MRIFiles
 
-export reconstruct, recon_docker
+export start, recon, stop, reconstruct, recon_docker
+
+struct Server
+    container::String
+    port::Int
+    image::String
+end
+
+const server = Ref{Union{Nothing,Server}}(nothing)
 
 function send_raw(socket, raw, config)
     name = zeros(UInt8, 1024)
@@ -67,8 +75,15 @@ function reconstruct(raw; host=ip"127.0.0.1", port=9002, config="bios214radial",
     end
 end
 
-"""Stream raw data to the unchanged scanner image and return one Float32[y,x] matrix."""
-function recon_docker(raw; image="openrecon_research_bios214radial:v0.1.2")
+"""Start one OpenRecon container, or reuse it if already started. Accepts a local or GHCR image."""
+function start(; image=nothing)
+    current = server[]
+    if current !== nothing
+        image === nothing || image == current.image ||
+            error("OpenRecon is already running; call OpenReconClient.stop() before changing images")
+        return nothing
+    end
+    image = something(image, "openrecon_research_bios214radial:v0.1.2")
     container = strip(read(`docker run --rm -d --platform linux/amd64
                             -p 127.0.0.1::9002 $image`, String))
     try
@@ -77,12 +92,44 @@ function recon_docker(raw; image="openrecon_research_bios214radial:v0.1.2")
         ready == :ok || error("MRD server did not start")
         address = strip(read(`docker port $container 9002/tcp`, String))
         port = parse(Int, last(split(address, ':')))
-        return only(reconstruct(raw; port)).image
+        server[] = Server(container, port, image)
     catch
-        @error "OpenRecon container output" log=read(`docker logs $container`, String)
+        @error "OpenRecon container output" log=read(ignorestatus(`docker logs $container`), String)
+        run(ignorestatus(`docker stop $container`))
         rethrow()
+    end
+    return nothing
+end
+
+"""Reconstruct raw data using the running server and return one Float32[y,x] matrix."""
+function recon(raw; timeout=180)
+    current = server[]
+    current === nothing && error("Call OpenReconClient.start() before OpenReconClient.recon(raw)")
+    try
+        return only(reconstruct(raw; port=current.port, timeout)).image
+    catch
+        @error "OpenRecon container output" log=read(ignorestatus(`docker logs $(current.container)`), String)
+        rethrow()
+    end
+end
+
+"""Stop the container started by this client. Safe to call more than once."""
+function stop()
+    current = server[]
+    current === nothing && return nothing
+    run(`docker stop $(current.container)`)
+    server[] = nothing
+    return nothing
+end
+
+"""Reconstruct once, starting and stopping a container only if none is already running."""
+function recon_docker(raw; image=nothing)
+    temporary = server[] === nothing
+    start(; image)
+    try
+        return recon(raw)
     finally
-        run(`docker stop $container`)
+        temporary && stop()
     end
 end
 
