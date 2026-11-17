@@ -1,0 +1,14 @@
+[deps]
+BartIO = "8b90e6a2-6e4d-4906-89ae-b5f72ca4a65b"
+KomaMRIBase = "d0bc0b20-b151-4d03-b2a4-6ca51751cb9c"
+KomaMRICore = "4baa4f4d-2ae9-40db-8331-a7d1080e3f4e"
+KomaMRIFiles = "fcf631a6-1c7e-4e88-9e64-b8888386d9dc"
+NPZ = "15e1cf62-19b3-5cfa-8e77-841668bca605"
+
+[compat]
+BartIO = "=0.4.0"
+KomaMRIBase = "=0.15.2"
+KomaMRICore = "=0.14.0"
+KomaMRIFiles = "=0.12.0"
+NPZ = "=0.4.3"
+julia = "1.12"

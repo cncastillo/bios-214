@@ -1,0 +1,328 @@
+# One-PR container releases
+
+Recipe updates now build and test before merge, then promote the exact tested
+artifacts after merge. They no longer create a second release-metadata PR.
+
+## Flow
+
+1. A recipe-only PR runs `PR container candidate` with `contents: read` and no
+   secrets on an ephemeral ARC runner. Each recipe fans out into one candidate
+   per concrete container it declares, so a recipe listing both architectures
+   builds `<name>` on the ARC pool and `<name>_arm64` on an ephemeral ARM64
+   runner.
+2. Each candidate builds a Docker archive and SIF, runs the deploy/fulltest and
+   Dive checks, generates the release JSON preview, and stores everything for
+   30 days under its own container identity. Dive's wasted-percentage rule is
+   applied only once the absolute waste is worth judging: below
+   `DIVE_RATIO_FLOOR_BYTES` that ratio measures the shared neurodocker
+   preamble rather than the recipe, so `one_pr_release.py dive-gate` waives
+   that one rule and the step says so. Every other Dive rule, and this one
+   above the floor, still fails the candidate.
+3. A trusted `workflow_run` posts one action-first lifecycle summary on recipe
+   PRs. The heading names the exact container, version, and architecture and
+   tells the maintainer whether to merge, fix a candidate, wait for promotion,
+   or retry a failed promotion. The summary separates deploy and fulltest
+   counts, names the passed or failed checks, reports Dive findings, and gives
+   artifact-specific download and smoke-test commands with size and expiry.
+   Later candidate and promotion runs update that comment in place. When the
+   candidate outcome materially changes from failed to passed or passed to
+   failed, the reporter also posts a short, commit-linked PR notification. This
+   makes GitHub notify subscribers without duplicating the detailed report on
+   every push. Reruns of the same outcome do not create another notification,
+   and completed runs for superseded PR heads are ignored.
+   Fork PRs carry their PR number and head SHA in the compact report; the trusted
+   reporter fetches that PR and verifies its repository, branch, and SHA before
+   commenting. The reporter downloads only compact, schema-checked JSON summaries;
+   it never opens candidate images or test logs.
+4. `Container release gate` is the stable required check for branch rules.
+   Its last step merges the PR head into current main and runs
+   `one_pr_release.py freshness`. That step applies promotion's own rule: every
+   recipe the merge would publish needs a candidate built from the same
+   fingerprint. The step fails when main has changed a candidate recipe or one
+   of its `macros/` or `builder/templates/` inputs since the branch was cut, or
+   when main added a recipe that consumes a macro the PR changes. It runs even
+   when the PR needed no candidates, and passes mixed recipe-and-code PRs,
+   which promotion skips. Update the branch to rebuild the candidates. `Recheck candidate freshness` reruns every
+   passing gate when main changes those paths, so a green PR turns red before
+   it is merged. A merge in the minute before that rerun finishes still fails
+   at promotion; recover it with an `epoch` bump. A rerun uses the workflow
+   file from the run it repeats, so PRs whose last candidate run predates this
+   check need a branch update to gain it.
+5. After merge, `Promote merged container candidate` runs the same trusted
+   release planner over the merge commit. It exits successfully when no
+   candidate was required; otherwise a GitHub-hosted job waits for the candidate
+   run for the exact PR head SHA to finish before allocating the ARC publishing
+   runner. It verifies the PR number, recipe fingerprint, artifact hashes, and
+   release metadata before publishing the tested files.
+   The variant a candidate claims is re-resolved against the merged recipe, so a
+   candidate cannot promote itself into an identity the recipe never declared.
+6. The promoter commits the generated JSON to `releases/` on `main`. That push
+   triggers the existing apps/webapps update workflows.
+7. For each default x86_64 candidate with an `OpenReconLabel.json`, the promoter
+   opens or reuses an OpenRecon metadata PR after the release metadata push. If
+   the version, label, and README are unchanged, it dispatches the OpenRecon
+   build directly so same-version container rebuilds still propagate.
+   An OpenRecon `params.sh` that pins a dated image tag is repointed at the build
+   date this release published, so the OpenRecon build pulls the image the
+   promoter just pushed. When no release metadata resolves that date, the tag is
+   left alone and the PR body says so.
+
+Manual builds remain available as a recovery path. The old push-to-main
+`auto-build` workflow is removed so recipe changes cannot start an untested
+second build.
+
+## Concurrent merges and staged recovery
+
+Publication uses unique PR-head staging names. The finalizer holds the
+`promote-container-and-metadata` lock while it promotes public names and commits
+release metadata. Source merges do not hold this lock.
+
+Before any public writes, `select-current-metadata` validates every staged
+manifest and release preview against the original trusted merge. It checks the
+PR head, PR number, recipe fingerprint, variant, filenames, digest formats, and
+release metadata, including records that may be excluded. The original merge
+must be an ancestor of the current trusted checkout. A malformed record, missing
+preview, or incorrect binding fails the entire selection.
+
+The finalizer then excludes recipes whose image inputs changed after that merge,
+and candidates older than existing release metadata. It preserves the existing
+source-only policy and release-preview checks. It finalizes the remaining
+containers, and OpenRecon sync receives only those containers. An all-superseded
+batch succeeds without public writes, a release commit, or OpenRecon sync. The
+run log lists excluded containers, and the lifecycle comment lists finalized
+containers. A filename such as `test_adapter.py` is still a recipe-local build
+input. The planner does not infer source-only status from a filename.
+
+After rebasing the generated metadata commit onto `main`, `verify-metadata`
+strictly revalidates the selected set. A new same-recipe merge at this point
+aborts the push. Git's fast-forward requirement rejects an intervening main
+update; the retry rebases and revalidates again. Do not remove this check or
+silently shrink an already-created metadata commit. Public tags and object
+copies happen before this push and cannot be rolled back atomically with Git.
+Other finalizers share the lock, but an outside source merge can still cause a
+late failure. Hold overlapping source merges until promotion finishes when
+possible.
+
+To recover a failed **push** promotion whose publish jobs all succeeded, dispatch
+the promoter on `main` with the original PR number and failed run ID:
+
+When this is the failure, `report_promotion` prints the filled-in command in
+the PR's candidate comment, the run summary, and an error annotation.
+
+```bash
+gh workflow run promote-container-candidate.yml \
+  --repo neurodesk/neurocontainers --ref main \
+  -f pr_number=3661 -f staged_run_id=38935478621
+```
+
+This is a publication action for a maintainer to run after reviewing the staged
+records and current source. It downloads only the original run's small promotion
+metadata artifacts, skips the candidate wait and publish matrix, and finalizes
+the validated current subset from existing staging names. It does not rebuild,
+download, or upload Docker archives or SIF payloads. The finalizer still uses
+registry manifests and server-side object copies, the same main-ref OIDC
+identity, signing policy, credentials, lock, and release App token.
+
+Recovery checks the source run's repository, workflow path, push event, main
+branch, exact merge SHA, failed finalizer, successful publish jobs, and complete
+unexpired metadata artifact set. The artifacts currently expire after seven
+days. The original staged objects and tags must still exist. The candidate
+digests were checked during the successful publish jobs; metadata-only recovery
+does not repeat payload hashing. Missing staged objects or required signing
+sidecars remain errors. Keep the signing policy consistent with the source run.
+Recovery is deliberately unavailable for incomplete publication, untrusted
+events, or missing metadata. A recipe removed from current main also fails
+closed and needs separate review.
+
+For a read-only local rehearsal, download the metadata and combine the manifest
+arrays without modifying any artifact:
+
+```bash
+gh run download 38935478621 --repo neurodesk/neurocontainers \
+  --pattern 'promotion-metadata-*' --dir staged
+mkdir -p previews
+cp -R staged/*/release-previews/* previews/
+jq -s 'add' staged/*/verified-manifest-*.json > published.json
+python tools/one_pr_release.py select-current-metadata \
+  --bundle previews --manifests published.json --output selected.json \
+  --pr-number 3661 \
+  --head-sha 7c941b104d349658203624c6f7ece00d994487be \
+  --merge-sha a73387a132628c4a2a0f990399fd2d9472603f84
+jq 'map(.container)' selected.json
+```
+
+Run the rehearsal from a clean, current `main` checkout containing the repair.
+At main `ef652c82`, the expected result is `qsmxt` and `vesselboost`; `synthseg`
+is superseded. Recheck this result before recovery because main can move again.
+Do not hand-edit the selected list, release previews, or `releases/`.
+
+Rerunning only the old failed finalize job checks out fixed Python code from
+current main, but uses the old workflow definition. Its `verify-metadata` call
+still requires every entry to be current, so it cannot recover a mixed batch.
+A plain redispatch without `staged_run_id` repeats publication and can fail on a
+superseded recipe before finalization. Use the explicit staged recovery path.
+
+### Recovery reporting identity
+
+A dispatch can run on a newer main commit than the original PR merge. After
+resolving the PR, the promoter retains a small reporting artifact for 90 days.
+Its name is the machine-readable association:
+
+```text
+promotion-identity-v1-<PR number>-<PR head SHA>-<original merge SHA>-<staged source run ID or 0>-<emitting attempt>
+```
+
+The candidate reporter reads artifact metadata, without downloading the archive.
+It checks the owning run's repository, workflow path, main branch, event, and
+artifact provenance before matching the PR, head, and merge. A nonzero source ID
+must resolve to the original trusted push at that merge. This record associates
+an attempted operation; it does not prove that staging or publication succeeded.
+Signing acceptance runs do not emit it. Reporting artifact failures do not stop
+release processing.
+
+The reporter compares paginated original push and authenticated dispatch runs by
+their latest attempt's start time, then run ID and attempt. It reads the current
+Actions outcome, including failures and pending runs. Dispatch success also
+requires a successful finalizer in the latest jobs. A retained identity from an
+earlier attempt still binds the same run, since reruns keep the original inputs.
+
+Legacy dispatches, runs whose resolver has not emitted an identity, and missing,
+expired, or invalid artifacts cannot establish a recovery association. The
+reporter falls back to verified runs and adds a reporting note. It never treats
+a title or an existing success comment as proof. This reporting contract does
+not change release validation or publication.
+
+## Candidate bundle cleanup
+
+Candidate bundles are uncompressed Docker archives and SIFs, often tens of GB
+each, kept for 30 days. Promotion and `pr_number` republishing only select
+bundles for a merged PR's final head SHA, and an open PR's head can still become
+one. A head stays live while it is an open PR's head, or a merged PR's final
+head whose merge has not finalized: no attempt of any trusted `push` promotion
+run for the merge commit has a successful `finalize` job. Finalization is
+permanent; a later rerun that fails does not make the merge recoverable from
+bundles again.
+
+Every six hours `prune-candidate-artifacts.yml` deletes the bundles of every
+other head: finalized merges, superseded pushes and PRs closed without merging.
+Bundles of live heads are kept until they expire, including older runs for the
+same head, because a running promotion may already have selected one.
+
+Republishing a finalized merge from bundles is not supported. A `pr_number`
+dispatch for a finalized merge fails before selecting any bundle, so it never
+publishes a partly deleted set; publish again with `manual-build`. The
+promotion's own lifecycle update leaves the finalized status in place, but the
+candidate reporter may later list the refused dispatch as a failed attempt.
+Signing acceptance for a finalized merge is refused the same way; `manual-build`
+does not replace it, so run signing acceptance before or instead of finalizing. This holds for an all-superseded batch too, which finalized
+without publishing. Recovery of a merge that has not finalized is unchanged,
+including staged recovery, which reuses promotion metadata rather than bundles.
+When a passing candidate run has no bundles left, because they expired or were
+deleted, the lifecycle comment points at `manual-build` instead of a rerun.
+
+Reopening a PR or pushing back to a dead SHA starts a new candidate run, which
+promotion would select instead. Only a running promotion downloads bundles, and
+a reopen-and-merge could reach one before the new run is visible, so the sweep
+re-reads PRs after planning and stops deleting whenever a promotion run, in any
+unfinished status, exists. The next sweep continues. This is a check, not a lock:
+a promotion starting between the check and a delete could still select the
+bundle and fail to download it. Rerunning that promotion selects the candidate
+run the reopen or push started.
+
+Bundles younger than six hours, dead heads with a candidate run still in
+progress, and bundles not owned by a `pull_request` run of the candidate
+workflow are kept. Reports and promotion artifacts are never touched. Existing
+PR comments keep download links to deleted bundles until the reporter next
+refreshes them.
+
+Run the workflow manually for a dry run; tick `apply` to delete.
+
+## Required repository configuration
+
+- Make `Container release gate` a required pull-request check.
+- Create a GitHub App with repository `Contents: read/write`, install it only on
+  this repository, and add the App as the ruleset bypass actor for `main`.
+- Store its credentials as `NEUROCONTAINERS_RELEASE_APP_ID` and
+  `NEUROCONTAINERS_RELEASE_APP_PRIVATE_KEY`.
+- Store the Nectar registry account name as
+  `REGISTRY_RC_NECTAR_ORG_AU_USERNAME`; its key remains in
+  `REGISTRY_RC_NECTAR_ORG_AU_CLI_KEY`.
+- Keep `QUAY_API_TOKEN` configured with permission to change repository
+  visibility. Quay creates new repositories as private, so promotion uses this
+  token to preserve anonymous pulls after the first push.
+- Keep ARC runners ephemeral. Fork approval remains the point where maintainers
+  decide whether untrusted recipe build commands may run.
+
+## Release planning
+
+The planner reads the base and head `build.yaml` files as YAML data. It does not
+render Jinja or execute any code from the pull request. Changes that affect only
+`auto_update`, `copyright`, `draft`, `icon`, documentation (`readme`, `readme_url`,
+`structured_readme`), literal `categories`, semantically unchanged YAML, or
+`fulltest.yaml` are currently classified as source-only. The workflow validates
+them and preserves the existing release. When `fulltest.yaml` changes without an
+image change, Recipes CI builds each declared variant and runs deploy checks and
+the changed runtime suite against the freshly built SIF. These verification
+builds are required by the Container release gate and are not promoted. Other
+source-only changes build or promote no candidate.
+This is a behavioural release projection, not a claim that rebuilding would
+produce byte-identical images; the current image still embeds the raw
+`build.yaml` and README.
+
+Documentation may use simple context substitutions such as
+`{{ context.version }}`. More complex templates remain candidate-required because
+rendering can have side effects. Documentation inside an existing image remains
+the version shipped with that image; updated documentation is available in the
+recipe source until the next image release.
+
+The apps.json repository consolidates releases from configured source repositories
+on its daily schedule. It reads the current recipe's `domains` to route every
+published version, while app metadata and categories come from release JSON.
+It does not rewrite release JSON or publish images.
+
+## Retiring a recipe
+
+Deleting `recipes/<name>/` leaves the planner with nothing to classify, and an
+unannounced deletion looks exactly like an accidental one, so removal is
+fail-closed too. A recipe leaves the repository only by being listed in
+`workflows/retired_recipes.yaml` in the same pull request that deletes it:
+
+```yaml
+retired:
+  - recipe: oldname
+    superseded_by: newname
+    reason: Renamed; newname carries the maintained recipe.
+```
+
+Each entry needs a plain directory name and a non-empty reason; `superseded_by`
+is optional but must name a recipe that exists at head when it is given. The
+planner rejects an entry whose `recipes/<name>/build.yaml` is still present, so
+the manifest cannot drift from the tree.
+
+A retirement publishes nothing and withdraws nothing. The recipe is reported as
+`retired` rather than `changed`, which keeps it out of the schema validation
+that runs by path, and no candidate is built. Artifacts already in `releases/`
+keep their metadata, so the apps.json catalog continues to serve every version
+that was built. Retired recipe domains are declared in
+`workflows/retired_recipes.yaml`.
+
+Because the gate runs the planner from the trusted base, a pull request cannot
+both introduce a new removal rule and rely on it. Land the policy change first,
+then the removal.
+
+Every other recipe definition change is deliberately fail-closed and requires
+a candidate. A changed recipe-local file such as `install.sh` also requires a
+candidate even when `build.yaml` itself is unchanged. The explicit top-level
+field policy is checked against the accepted recipe schema so adding a field
+cannot silently broaden the source-only tier.
+
+Registry and object-storage credentials are the same secrets used by the legacy
+build workflow. GHCR and S3 are release-critical; Docker Hub, Nectar, and Quay
+remain best-effort mirrors.
+
+`Validate Recipe YAML` remains a separate status check but no longer comments on
+the PR. Its schema validation is also part of the container candidate gate, so
+the single approval summary covers it without sending a second notification.
+When a version bump changes both `build.yaml` and `fulltest.yaml`, the legacy
+released-container test workflow also defers to the candidate gate instead of
+retesting the previous published image and posting its own result comments.

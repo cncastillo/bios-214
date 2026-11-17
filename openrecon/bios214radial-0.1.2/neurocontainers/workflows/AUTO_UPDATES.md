@@ -1,0 +1,510 @@
+# Automatic recipe updates
+
+The daily `Auto Update Recipes` workflow reads every recipe's `auto_update` policy.
+It opens at most five new PRs per run. Each PR updates `build.yaml` and the sibling
+`fulltest.yaml`, validates the recipe, and generates its Dockerfile before pushing.
+Container CI then builds and tests the proposed version. Upstream changes can
+still require recipe fixes, such as a renamed release archive or a new dependency.
+
+Changes confined to `auto_update` use the existing source-only release path and
+skip container builds. Changes to install commands still require candidate builds.
+
+## Configure a recipe
+
+Every recipe requires an explicit policy. `sf-init` inserts a GitHub source
+placeholder; replace it before validation. CI checks the whole recipe collection,
+so a new recipe cannot silently escape update tracking.
+
+Select the source that publishes the software the recipe actually installs.
+For example, a package installed from PyPI should normally track PyPI rather than
+a repository's tags. Use `{{ context.version }}` in its install command, base image,
+or declared download URL. Update paths and launchers that contain that version too.
+A fixed source commit, an unversioned install, or a dependency's version does not
+establish a working update path for the main software. Validation checks source
+acquisition inputs and rejects version references confined to runtime paths,
+tests, or unused variables. For Git installs, use `git clone --branch` with the
+version and repository together; a separate checkout cannot establish which
+repository receives the tag. This is a static check for common mistakes, not
+proof that arbitrary shell code installs the right program. Reviewers still
+confirm that the selected upstream, archive layout, and runtime tests match the
+main software.
+
+```yaml
+auto_update:
+  method: github_release
+  repo: QSMxT/QSMxT
+```
+
+Supported methods and source fields:
+
+| Method | Required source | Selection |
+| --- | --- | --- |
+| `github_release` | `repo: owner/project` | Highest stable release; falls back to tags only when there are no releases |
+| `github_tags` | `repo: owner/project` | Highest stable tag |
+| `pypi` | `package: project-name` | Highest stable version with a non-yanked distribution |
+| `dockerhub` | `repo: owner/image` | Highest stable image tag |
+| `oci` | `url: https://registry/v2/repository/tags/list` | Highest stable image tag, with anonymous registry authentication |
+| `npm` | `package: package-name` | Stable `latest` dist-tag, or highest stable version when unavailable |
+| `webpage` | `url` and `version_regex` | Highest stable version extracted from an HTTPS page or JSON feed |
+
+Use `version_regex` to restrict a tag family and extract the recipe version.
+It must contain a named `version` group. Tag providers match the whole tag;
+`webpage` searches the response body.
+
+```yaml
+auto_update:
+  method: dockerhub
+  repo: deepmi/fastsurfer
+  version_regex: 'cpu-v(?P<version>\d+\.\d+\.\d+)'
+```
+
+For GitHub release filenames that contain hashes or change between releases,
+add an `assets` mapping. Each key is a declared `files[].name`; its regex must
+match exactly one asset in the selected release.
+
+```yaml
+auto_update:
+  method: github_release
+  repo: SuperElastix/elastix
+  assets:
+    downloaded_file: 'elastix-[0-9.]+-(?:linux|ubuntu)\.zip'
+```
+
+The updater rewrites that file's URL from the selected release, preserving
+`{{ context.version }}` in the tag and, when present, the filename. Missing or ambiguous matches
+fail the update. Files with pinned checksums are rejected until their checksum
+handling is updated. The main install command continues to use `get_file`.
+
+When GitHub tags change prefixes between releases, persist the exact source ref
+in a recipe variable and name it with `tag_variable`. The updater replaces it
+with the selected upstream tag while updating the recipe version. For example:
+
+```yaml
+variables:
+  upstream_tag: '1.9.3'
+auto_update:
+  method: github_release
+  repo: CyclotronResearchCentre/bidsme
+  tag_variable: upstream_tag
+```
+
+Use `git clone --branch {{ context.upstream_tag }}` for that repository. A release
+tagged `v1.9.6` then sets `version: 1.9.6` and `upstream_tag: v1.9.6` together.
+The initial tag must map to the current recipe version using the configured
+regex. Keep the variable as a plain or quoted scalar, without YAML anchors.
+Selection compares software versions; a new build suffix for the same software
+version does not trigger another PR.
+
+The default numeric scheme excludes prereleases and development versions.
+For software distributed only as prereleases, such as DAFNE, explicitly set
+`include_prereleases: true`. GitHub drafts remain excluded.
+For vendor releases such as MATLAB's `2025b` or BrainSuite's `23a`, set
+`version_scheme: year_letter`. GitHub draft and prerelease flags still apply.
+For dated snapshots such as a Posit Package Manager CRAN snapshot, set
+`version_scheme: date` on a `sources` entry; a top-level policy rejects it,
+because a date is not a container version. Only real `YYYY-MM-DD` dates match, the latest date
+wins, and an older observed date never replaces the pin. Mark such a source
+`dependency: true` so a new daily snapshot does not rebuild the container alone.
+Recipes already storing a leading `v` keep that prefix when bumped.
+
+## Software versions and dated container builds
+
+The container version identifies the primary software release. Numeric versions
+with fewer than three components are padded with zeros: `7.1` becomes `7.1.0`,
+while `7.1.3` stays `7.1.3`. Longer versions, upstream prerelease/post-release
+suffixes, date labels, and vendor formats are preserved. Container rebuilds use
+the existing build date to distinguish artifacts of the same software version.
+Dependency updates and packaging changes do not invent a new software version.
+
+Use `method: sources` to track the software and its dependencies separately.
+Every sources policy declares `container_version`:
+
+- A source ID selects the primary software source. Its locally recorded version
+  determines the container label, including when only a dependency changes.
+- `{variable: upstream_version}` selects a recipe variable for software pinned
+  separately from an update provider. An optional `prefix` retains vendor naming,
+  for example `{variable: palm_version, prefix: alpha}`.
+- `false` identifies locally maintained software or a bundle without a single
+  upstream version. Updates retain its existing version and use the build date.
+  Do not use this to bypass a known primary software version.
+
+```yaml
+version: 7.1.0
+variables:
+  upstream_version: "7.1"
+  model_commit: 0123456789abcdef0123456789abcdef01234567
+
+auto_update:
+  method: sources
+  container_version: application
+  sources:
+    - id: application
+      method: pypi
+      package: example-tool
+      target:
+        variable: upstream_version
+        fulltest_variable: upstream_version
+    - id: models
+      method: git_commit
+      url: https://huggingface.co/example/models
+      ref: refs/heads/main
+      target:
+        variable: model_commit
+```
+
+Install with `{{ context.upstream_version }}` so padding the container label does
+not change the upstream URL, tag, or package pin. The sibling `fulltest.yaml`
+uses `version: 7.1.0` to identify the container and `upstream_version: "7.1"` for
+software assertions with `${upstream_version}`. Dependency variables remain
+independent of both values.
+
+APT sources retain the full package pin for installation and derive the label
+from the upstream version, excluding the epoch, Debian revision, and repack suffix.
+A commit source can name the container only when it records version metadata from
+that commit. Otherwise use a recorded software variable or a local/bundle policy.
+
+Direct release policies can use `version_variable: upstream_version` to keep
+exact upstream pins separate from the padded label. The updater adds this binding
+when an upstream release needs padding and updates software assertions with it.
+
+All observations resolve before any files are written. The updater changes the
+recipe and fulltest together. Repeating the same observation produces no change.
+Source downgrade checks compare installed pins, not container labels. Correcting
+an inflated container label therefore does not downgrade the installed software.
+
+Run `python3 -m builder.audit_updates` to check version policies and reject labels
+that disagree with their software pins. Recipe metadata validation also checks
+the label. Run `python3 tools/migrate_container_versions.py` to preview corrections,
+or add `--apply` to update recipes and fulltests. The migration preserves installed
+inputs and existing release records. New builds generate the dated release metadata;
+do not relabel already published images.
+
+The source list supports the release providers above and these providers:
+
+| Method | Required source | Installed identity |
+| --- | --- | --- |
+| `github_commit` | `repo`, optional `ref` | Full commit SHA; optional `version_file` supplies version metadata from that commit |
+| `github_release_asset` | `repo`, exact `asset` filename | One release's tagged asset URL, version and verified SHA-256 |
+| `git_commit` | HTTPS `url`, full `ref` | Full commit SHA from an ordinary Git server |
+| `oci_digest` | `image`, `tag` | Immutable registry manifest or image-index digest |
+| `http_digest` | HTTPS `url` | SHA-256 of the downloaded bytes, including mutable snapshot URLs |
+| `artifact_listing` | `url`, `download_base`, `version_regex` | Published artifact URL and computed SHA-256 |
+| `apt` | `package`, `urls` | Package version from the selected distribution's `Packages.gz` or `Packages.xz` indexes |
+| `libreoffice_release` | Official stable release and source listings | Released four-part build and matching archived SHA-256s for both Linux architectures |
+| `zenodo` | Published `record` ID; optional `required_files` list | Latest published record in that record's version family containing every required file |
+| `slicer_release` | See Slicer recipes | Slicer binary and named `extensions` map from the same build revision |
+| `freesurfer_release` | See SynthSeg recipe | FreeSurfer release and its corresponding model bundle |
+
+For a `github_commit` source, `version_file` reads the version at the observed commit.
+It accepts a plain version file by default. To extract a version from a source header,
+add `version_regex` with a named `version` group. The file must be UTF-8, at most
+64 KiB, and match the expression exactly once. Bind `target.variables` to `version`
+and declare the same variable in `fulltest.yaml` so the commit, software version,
+container label, and runtime assertion update together. `target.fulltest_variable`
+follows the primary target value, which is the commit SHA for this provider.
+
+A commit source can also expose `submodules` as commit metadata. Map each metadata
+field to a list of relative submodule paths. Each path is resolved at the preceding
+repository's exact commit, starting with the observed parent commit. Bind these
+fields through `target.variables` to update the parent and nested pins together.
+For example, `submodules: {backend_commit: [third_party/helper, backend]}` follows
+`third_party/helper` in the parent and then `backend` in that submodule. Submodule
+repositories must use HTTPS GitHub URLs. The parent's ancestry check still applies.
+
+```yaml
+version_file: src/version.h
+version_regex: '#define TOOL_VERSION "(?P<version>[0-9.]+)"'
+target:
+  variable: source_commit
+  variables:
+    upstream_version: version
+```
+
+An `http_digest` URL may use `{{ context.variable }}` for scalar recipe variables.
+Put any source that updates those variables **before** the digest source. The URL
+uses the pins staged by those earlier observations, including a newly selected
+commit, so the archive checksum and recipe/fulltest commit update together.
+Literal URLs retain their existing behavior. Unknown variables, cyclic aliases,
+and references to the current or a later source's targets fail before downloading
+the archive; failed observations leave both recipe and fulltest unchanged.
+For example, follow a `github_commit` source targeting `source_commit` with:
+
+```yaml
+- id: source_archive_digest
+  method: http_digest
+  url: https://github.com/example/tool/archive/{{ context.source_commit }}.tar.gz
+  target:
+    file: source_archive
+```
+
+Keep the declared file's URL bound to the same `context.source_commit` and its
+current verified `sha256`. URL rendering does not advance installed pins or change
+the container's current image inputs by itself.
+
+LibreOffice uses `libreoffice_release` with a variable target for its four-part
+`upstream_version` and `target.variables` mappings for `x86_64_sha256` and
+`aarch64_sha256`. The provider selects a three-part release from the official
+stable listing, reads its exact build from the corresponding source listing,
+and requires both archived binary checksums to match the stable downloads.
+Declared files use the permanent `downloadarchive.documentfoundation.org`
+URLs and those digest variables. Missing architectures, ambiguous builds, or
+checksum differences fail the observation before any recipe edits. Release
+candidates in the archive listing are never used to discover updates.
+
+Zenodo records need no version label when only their record ID is tracked.
+Use `required_files` when an installer needs a specific asset layout. The
+provider searches published versions from newest to oldest and selects one
+containing every listed filename. Version metadata is still required when a
+target explicitly binds it, as MuscleMap does.
+
+A `target.variable` receives the observed identity by default. Set `value: tag`
+for exact release tags or `value: version` for parsed release versions.
+`target.variables` maps additional recipe variables to observation fields such
+as `version` and `tag`, or to metadata fields from the
+same observation. MuscleMap uses this to update a model record and its version
+together. Slicer uses it to keep the application and extension compatible.
+
+For downloaded binaries, use `target.file` with the existing declared file name:
+
+```yaml
+auto_update:
+  method: sources
+  sources:
+    - id: standalone
+      method: artifact_listing
+      url: https://example.org/downloads/
+      download_base: https://example.org/downloads/
+      version_regex: 'tool-(?P<version>\d+\.\d+)\.tar\.gz'
+      target:
+        file: tool_archive
+        variables:
+          upstream_version: version
+```
+
+The current declared file needs a verified `sha256`. The updater replaces its URL
+and SHA-256 together. The builder verifies both cached and newly downloaded
+bytes against that digest. Runtime versions can come from named filename groups
+or an exact `matlab_readme` member in the archive. Failed or ambiguous observations
+leave the recipe unchanged and fail the update check.
+
+Some vendor pages publish root-relative download links that omit their project
+path. Set `rebase_root_relative_links: true` and include the project path in
+`download_base` to resolve those links within that project. Links already inside
+the configured base use normal URL resolution; external hosts and directory
+traversal still fail validation.
+
+For GitHub release binaries, select the release and its asset together:
+
+```yaml
+- id: application
+  method: github_release_asset
+  repo: example/tool
+  asset: tool-linux.zip
+  target:
+    file: tool_archive
+    variables:
+      upstream_version: version
+```
+
+This provider selects the highest suitable release using the same stable-version
+rules as `github_release`. It downloads the named asset from that exact tag and
+verifies its size and any published SHA-256. The declared file keeps an explicit
+tagged URL even when GitHub redirects downloads to a signed CDN URL. Each check
+reads the asset bytes again. A replacement under an unchanged release tag is a
+re-published build, not a release: like a dependency pin, its new checksum is
+held and ships with the next version update. This applies to every file source
+that reports a version. Missing, duplicate or incomplete assets fail the check. Do not
+combine an independent release selector with a `releases/latest` digest source;
+those selectors can resolve different releases.
+
+When the asset filename contains the release version, write `{version}` in its
+place, for example `asset: flames-{version}-linux-x64.tar.gz`. The provider
+substitutes the version parsed from the selected tag, after any `version_regex`,
+so a repository that publishes several tag families can still pin one family's
+asset and digest. The filename may contain one placeholder.
+
+Snapshot hashing uses conditional HTTP requests when the server supplies an ETag
+or Last-Modified value. Only an explicit `304 Not Modified` reuses the previous
+verified digest. Servers without validators are downloaded and hashed again.
+The scheduled workflow preserves this metadata cache between runs.
+
+A mutable URL does not show which version it serves. When the file is a ZIP
+or TAR archive, such as a Java `.jar` or binary `.tgz`, set `version_member`
+to one exact member and
+`version_regex` to a pattern with a named `version` group. The archive must
+record exactly one such version. TAR members must be regular files, and version
+members cannot exceed 64 KiB. Map it with `target.variables` so the
+container label follows the file. A rebuilt file with the same version is then
+held rather than labelled as a release:
+
+```yaml
+- id: application
+  method: http_digest
+  url: https://www.brainmap.org/ale/GingerALE.jar
+  version_member: org/brainmap/GingerALE.class
+  version_regex: '(?P<version>\d+\.\d+\.\d+)\.\d+'
+  target:
+    file: gingerale.jar
+    variables:
+      upstream_version: version
+```
+
+## Dependency sources
+
+A source that pins a library rather than the software the recipe is named for
+sets `dependency: true`. The updater still tracks and still writes it, but a
+change to it alone plans nothing: no PR, no container rebuild. Its new pin is
+written the next time another source in the same recipe moves, so a dependency
+always ships with a release that is being built and tested anyway.
+
+```yaml
+auto_update:
+  method: sources
+  container_version: false
+  sources:
+    - id: heudiconv
+      method: pypi
+      package: heudiconv
+      target:
+        variable: heudiconv_version
+        fulltest_variable: heudiconv_version
+    - id: traits
+      method: pypi
+      package: traits
+      dependency: true
+      target:
+        variable: traits_version
+        fulltest_variable: traits_version
+```
+
+Use it for transitive pins held only for compatibility, such as bidstools
+pinning `traits` for heudiconv. Do not use it for the software a user loads the
+container to run; that source must keep triggering its own updates.
+
+A recipe needs at least one source that still triggers. Marking every source a
+dependency, or marking the source that drives `container_version`, fails
+validation: a recipe that can never update should say so with `frozen` and a
+reason instead of going quiet. `dependency: false` also fails; delete the key to
+let a source trigger again.
+
+## Local code and compiled binaries
+
+Recipes consisting of repository-local scripts use `method: sources` with
+`local: []`. Changes to their own recipe files already enter candidate build and
+runtime-test CI. Shared inputs are declared as repository-relative macro paths,
+for example `local: [macros/openrecon]`. A change to a shared macro selects all
+consuming recipes and changes their build fingerprint. Literal builtin template
+calls, nested includes, and fragment-owned files are also discovered statically.
+Their contents contribute to fingerprints and build dates. Dynamic fragment names
+conservatively select all shared fragment roots. See the
+[shared fragment contract](../builder/README.md#shared-fragments) for scoping,
+path rules, and revision-based release behavior. OpenRecon consumers must
+also track the four installed shared dependencies; the audit enforces this for
+new consumers.
+
+Manual and notification-only policies fail the audit. A new recipe must select
+its installed source, a published binary feed, or repository-local build inputs.
+A policy that only changes a label, unused variable, or runtime directory fails
+validation.
+
+## Freeze a recipe
+
+A maintainer who declines an upstream for the time being sets `frozen: true` and
+records why. The recipe keeps its declared sources, so the audit still checks the
+bindings and resuming updates means deleting two lines.
+
+```yaml
+auto_update:
+  frozen: true
+  reason: >-
+    Locally maintained app; its dependency pins are held until a maintainer
+    revalidates the runtime against newer upstreams.
+  method: sources
+  container_version: false
+  sources:
+    - id: application
+      method: pypi
+      package: example-tool
+      target:
+        variable: upstream_version
+```
+
+The scheduled updater reports a frozen recipe as `frozen` with that reason and
+contacts no upstream service for it. The coverage audit reports it as `frozen`
+rather than `automatic`, so a held recipe is visible instead of silently absent.
+A reason shorter than 20 characters, or `frozen: false`, fails validation. Closing
+an update PR suppresses only that version; freezing the policy stops the next one.
+
+FieldTrip, PhysIO, and SamSrfX track their published standalone binaries. A newer
+MATLAB source release does not imply a newer standalone binary exists. Producing
+those binaries requires MATLAB Compiler and the relevant licensed toolboxes.
+The container updater cannot supply a compiler license or claim an unpublished
+source release is already available as a standalone artifact. Publication and
+runtime verification must complete before the binary feed advances.
+See [MATLAB standalone readiness](MATLAB_STANDALONE.md) for the prepared
+FieldTrip/PhysIO candidate workflow and the remaining SamSrfX compilation work.
+
+## Verify and inspect results
+
+Run the coverage check without network access:
+
+```bash
+python -m builder.audit_updates --json update-coverage.json
+```
+
+Preview one recipe or the entire collection:
+
+```bash
+python -m builder.check_version qsmxt --dry-run --json update-results.json
+python -m builder.check_version --dry-run --max-prs 0 --json update-results.json
+```
+
+`--dry-run` reads upstream services and, when `GITHUB_REPOSITORY` is set, existing
+PRs. It does not modify recipes, push branches, open issues, or create PRs.
+Use an authenticated `GITHUB_TOKEN` for a full scan to avoid GitHub's low anonymous
+request limit. The GitHub token is confined to the GitHub API session; public
+package and vendor lookups use separate sessions.
+OCI registries use the [registry Bearer-token handshake](https://distribution.github.io/distribution/spec/auth/token/)
+without GitHub credentials. Anonymous registry tokens stay within that registry's
+tag requests; pagination cannot send them to another host.
+
+Every scheduled run publishes a job summary and uploads `recipe-update-results`.
+The report distinguishes current packages, proposed or opened PRs, existing PRs,
+deferred updates, repository-local packages, and lookup errors.
+Read requests retry temporary server errors up to three times. Persistent
+lookup errors and invalid policies fail the job after it has checked the other
+recipes. They no longer look like a successful run with no updates.
+
+An open or merged update PR suppresses duplicates. For independent-source plans,
+an open PR for the same container revision also suppresses additional PRs when
+a tracked branch advances again. A closed, unmerged PR is
+reported as `pr-closed`; reopen it to retry that version. This respects a
+maintainer's decision to decline an update. A later upstream version gets its own
+branch and can produce a new PR. Existing PRs do not consume the new-PR limit.
+
+The workflow requires the organization or repository secret
+`NEURODESK_GITHUB_TOKEN_ISSUE_AUTOMATION` for writes. It fails clearly if the secret
+is absent, because PRs created with the default workflow token do not trigger the
+container CI workflow. Concurrent scheduled/manual updater runs are serialized.
+
+### OpenRecon scanner versions
+
+OpenRecon scanner metadata requires a numeric `X.Y.Z` version. The sync tool pads
+`X.Y` to `X.Y.0` and projects recognized `.postN` source rebuilds onto their base
+numeric version. It rejects other suffixes, including prereleases and dated build
+suffixes. The `version` parameter keeps the exact source-container version;
+`openrecon_version` supplies the scanner version when they differ. Build dates
+belong in the source image tag, not in the scanner version.
+
+A scanner version never regresses during sync. When `params.sh` already publishes
+a higher scanner version than the projection, because a maintainer released a
+scanner package ahead of the container, the sync keeps it and notes this in the PR;
+a maintainer bumps it when a rebuild should install as a new scanner package.
+
+When `baseDockerImage` pins a digest (`name:tag@sha256:...`), the sync advances the
+dated tag and resolves the digest that the registry serves for the new tag. The
+reference must expand to a literal `name:tag` from `params.sh` assignments. When the
+release metadata or the digest cannot be resolved, the sync fails without opening a
+PR, so a stale digest is never kept and the pin is never silently dropped. The sync
+also refuses `params.sh` files that assign `version`, `openrecon_version` or
+`baseDockerImage` more than once, because it could not rewrite the effective value.

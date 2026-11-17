@@ -1,0 +1,29 @@
+name: bios214radial
+version: 0.1.2
+tests:
+- name: CLI and shared OpenRecon stack
+  script: 'bios214radial --version | grep "${version}"
+
+    bios214radial --serve --help | grep "Example server for MRD streaming format"
+
+    command -v siemens_to_ismrmrd
+
+    '
+- name: Fixed sequence BART NUFFT
+  description: Exercise the packaged sequence, trajectory derivation and a real CPU NUFFT forward/inverse.
+  command: julia --startup-file=no --threads=1,0 --gcthreads=1,0 --project=/opt/recon/julia /opt/recon/julia/smoke.jl
+  expected_output_contains: Fixed radial BART NUFFT passed
+  timeout: 300
+- name: MRD adapter imports
+  command: python3 -c "import bios214radial, ismrmrd, openrecon_metadata; print(bios214radial.__file__)"
+  expected_output_contains: /opt/code/python-ismrmrd-server/bios214radial.py
+- name: Scanner magnitude display range
+  description: Weak and strong raw signals produce the same visible image; zero input stays zero.
+  command: python3 /opt/recon/julia/test_display.py
+  expected_output_contains: Scanner display scaling passed
+  timeout: 300
+- name: KomaMRI complete fixed-sequence simulation
+  description: Bloch-simulate all preparation/imaging shots and validate the packaged NUFFT with an asymmetric phantom.
+  command: julia --startup-file=no --threads=1,0 --gcthreads=1,0 --project=/opt/recon/julia /opt/recon/julia/test_koma.jl
+  expected_output_contains: KomaMRI radial reconstruction
+  timeout: 600

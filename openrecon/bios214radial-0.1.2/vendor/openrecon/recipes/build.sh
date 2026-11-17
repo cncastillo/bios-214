@@ -1,0 +1,474 @@
+#!/bin/bash
+set -e
+#This script will run inside the tool directory
+
+BUILD_SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+REPOSITORY_ROOT=$(cd -- "$BUILD_SCRIPT_DIR/.." && pwd)
+
+# Command-line options
+IGNORE_MDPDF=false
+FORCE_LOCAL_CACHE=false
+FORCE_REMOTE_IMAGE=false
+EXPERIMENTAL_RAW_RETURN=false
+BUILD_PACKAGE_SELECTION=${BUILD_PACKAGE_SELECTION:-openrecon}
+
+usage() {
+    cat <<EOF
+Usage: /bin/bash ../build.sh [options]
+
+Options:
+  --experimental-raw-return    Allow research raw-return metadata; requires custom ICE adapter
+  --ignore-mdpdf               Skip README.md -> README.pdf generation
+  --local-cache                Force using an already-cached local base Docker image
+                               (auto-preloads the DinD bootstrap image if needed)
+  --remote-only                Use the declared registry base image; ignore all host base-image caches
+  -h, --help                   Show this help message
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --experimental-raw-return)
+            EXPERIMENTAL_RAW_RETURN=true
+            shift
+            ;;
+        --ignore-mdpdf)
+            IGNORE_MDPDF=true
+            shift
+            ;;
+        --local-cache)
+            FORCE_LOCAL_CACHE=true
+            shift
+            ;;
+        --remote-only)
+            FORCE_REMOTE_IMAGE=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Error: Unknown option '$1'"
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+if [[ "$FORCE_REMOTE_IMAGE" == "true" && "$FORCE_LOCAL_CACHE" == "true" ]]; then
+    echo "Error: --remote-only and --local-cache cannot be used together."
+    exit 1
+fi
+
+PYTHON_BIN=$(command -v python3 || true)
+if [ -z "$PYTHON_BIN" ] || ! "$PYTHON_BIN" -c 'import sys; raise SystemExit(0 if sys.prefix != sys.base_prefix else 1)'; then
+    echo "Error: neurorecon must be built from an active Python virtual environment."
+    echo ""
+    echo "From the repository root, run:"
+    echo "  python3 -m venv .venv"
+    echo "  source .venv/bin/activate"
+    echo ""
+    echo "Then return to the recipe directory and rerun ../build.sh."
+    echo "Resolved Python: ${PYTHON_BIN:-not found}"
+    exit 1
+fi
+
+if ! "$PYTHON_BIN" -m pip --version >/dev/null 2>&1; then
+    echo "Error: the active virtual environment does not contain pip."
+    echo "Recreate it from $REPOSITORY_ROOT with: python3 -m venv .venv"
+    exit 1
+fi
+
+echo "Using virtual-environment Python: $PYTHON_BIN"
+
+# When running offline with a forced local cache, allow the user to limit which
+# distributable package(s) should be created.
+if [[ "$FORCE_LOCAL_CACHE" == "true" ]]; then
+    is_ci=${GITHUB_ACTIONS:-${CI:-}}
+    if [[ -z "$is_ci" && -t 0 && -z "${BUILD_PACKAGE_SELECTION_OVERRIDE:-}" ]]; then
+        echo ""
+        echo "📦 Offline build package selection"
+        echo "  1) OpenRecon package only"
+        echo "  2) FIRE package only"
+        echo "  3) Both packages"
+        while true; do
+            read -r -p "Select package(s) to create [1]: " package_choice
+            case "${package_choice:-1}" in
+                1)
+                    BUILD_PACKAGE_SELECTION=openrecon
+                    break
+                    ;;
+                2)
+                    BUILD_PACKAGE_SELECTION=fire
+                    break
+                    ;;
+                3)
+                    BUILD_PACKAGE_SELECTION=both
+                    break
+                    ;;
+                *)
+                    echo "Please enter 1, 2, or 3."
+                    ;;
+            esac
+        done
+    fi
+fi
+
+case "$BUILD_PACKAGE_SELECTION" in
+    openrecon|fire|both)
+        ;;
+    *)
+        echo "Error: BUILD_PACKAGE_SELECTION must be one of: openrecon, fire, both"
+        exit 1
+        ;;
+esac
+
+export BUILD_PACKAGE_SELECTION
+export EXPERIMENTAL_RAW_RETURN
+echo "Package selection: $BUILD_PACKAGE_SELECTION"
+
+# Cleanup function to restore backup on exit (including interruptions)
+cleanup() {
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        echo ""
+        echo "🧹 Cleaning up generated artifacts after failed build..."
+        rm -f OpenRecon_*.tar
+        rm -f FIRE_*.img
+        rm -f FIRE_*.rootfs.tar
+        rm -f README.pdf
+        rm -f OpenRecon.dockerfile
+        rm -f .base_image.tar
+    fi
+    if [ -f "OpenReconLabel.json.backup" ]; then
+        echo ""
+        echo "🔄 Restoring OpenReconLabel.json from backup..."
+        mv OpenReconLabel.json.backup OpenReconLabel.json
+        echo "✓ OpenReconLabel.json restored."
+    fi
+    if [ -f "README.md.backup" ]; then
+        echo "🔄 Restoring README.md from backup..."
+        mv README.md.backup README.md
+        echo "✓ README.md restored."
+    fi
+    # Exit with the original exit code
+    exit $exit_code
+}
+
+# Set trap to call cleanup on EXIT, INT (Ctrl+C), TERM, and other signals
+trap cleanup EXIT INT TERM
+
+# Check and install Python dependencies in the active virtual environment.
+if ! "$PYTHON_BIN" -m pip show jsonschema &> /dev/null; then
+    "$PYTHON_BIN" -m pip install jsonschema
+fi
+
+if ! "$PYTHON_BIN" -m pip show packaging &> /dev/null; then
+    "$PYTHON_BIN" -m pip install packaging
+fi
+
+if ! command -v 7z &> /dev/null; then
+    # check if on MacOS
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+    brew install p7zip
+    fi
+    # check if on Linux
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # check if apt is available
+        if command -v apt &> /dev/null; then
+            sudo apt update
+            sudo apt install -y p7zip-full
+        # check if yum is available
+        elif command -v yum &> /dev/null; then
+            sudo yum install -y p7zip-full
+        # check if dnf is available
+        elif command -v dnf &> /dev/null; then
+            sudo dnf install -y p7zip-full
+        else
+            echo "Error: No package manager found. Please install p7zip manually."
+            exit 1
+        fi
+    fi
+fi
+
+MDPDF_MAX_ATTEMPTS=${MDPDF_MAX_ATTEMPTS:-3}
+MDPDF_RETRY_DELAY_SECONDS=${MDPDF_RETRY_DELAY_SECONDS:-5}
+MDPDF_RENDER_TIMEOUT_MS=${MDPDF_RENDER_TIMEOUT_MS:-60000}
+
+if ! [[ "$MDPDF_MAX_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
+    echo "Error: MDPDF_MAX_ATTEMPTS must be a positive integer."
+    exit 1
+fi
+
+if ! [[ "$MDPDF_RETRY_DELAY_SECONDS" =~ ^[0-9]+$ ]]; then
+    echo "Error: MDPDF_RETRY_DELAY_SECONDS must be a non-negative integer."
+    exit 1
+fi
+
+if ! [[ "$MDPDF_RENDER_TIMEOUT_MS" =~ ^[1-9][0-9]*$ ]]; then
+    echo "Error: MDPDF_RENDER_TIMEOUT_MS must be a positive integer."
+    exit 1
+fi
+
+generate_readme_pdf() {
+    local attempt
+
+    for ((attempt = 1; attempt <= MDPDF_MAX_ATTEMPTS; attempt++)); do
+        rm -f README.pdf
+        echo "📄 Generating PDF from README.md (attempt ${attempt}/${MDPDF_MAX_ATTEMPTS})..."
+
+        if mdpdf README.md --timeout="$MDPDF_RENDER_TIMEOUT_MS" && [ -s README.pdf ]; then
+            echo "✓ README.pdf generated successfully"
+            return 0
+        fi
+
+        if ((attempt < MDPDF_MAX_ATTEMPTS)); then
+            echo "⚠️  PDF generation failed; retrying in ${MDPDF_RETRY_DELAY_SECONDS}s..."
+            sleep "$MDPDF_RETRY_DELAY_SECONDS"
+        fi
+    done
+
+    echo "Error: PDF generation failed after ${MDPDF_MAX_ATTEMPTS} attempts."
+    return 1
+}
+
+if [[ "$IGNORE_MDPDF" != "true" && -f "README.md" && ! -f "README.pdf" ]] && \
+    ! command -v mdpdf &> /dev/null; then
+    export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+
+    # NVM-installed commands are not visible in a fresh non-interactive shell
+    # until nvm.sh has been loaded. Recheck mdpdf after loading it so that an
+    # existing installation stays on the fast path.
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+    if ! command -v mdpdf &> /dev/null; then
+        if ! command -v npm &> /dev/null; then
+            if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+                curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+                if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+                    echo "Error: NVM installation did not create $NVM_DIR/nvm.sh."
+                    exit 1
+                fi
+                \. "$NVM_DIR/nvm.sh"
+            fi
+
+            # Prefer the already-installed pinned Node version. Only query and
+            # install it when it is not available locally.
+            if ! nvm use --silent v22.3.0; then
+                nvm install v22.3.0
+            fi
+        fi
+
+        npm install -g mdpdf
+    fi
+fi
+
+# check docker version
+if ! command -v docker &> /dev/null; then
+    echo "Docker is not installed. Please install Docker."
+    exit 1
+fi
+
+DOCKER_TIMEOUT_BIN=$(command -v timeout || command -v gtimeout || true)
+DOCKER_CMD_TIMEOUT_SECONDS=${DOCKER_CMD_TIMEOUT_SECONDS:-15}
+
+docker_with_timeout() {
+    if [ -n "$DOCKER_TIMEOUT_BIN" ]; then
+        "$DOCKER_TIMEOUT_BIN" "${DOCKER_CMD_TIMEOUT_SECONDS}s" docker "$@"
+    else
+        docker "$@"
+    fi
+}
+
+docker_image_exists() {
+    docker_with_timeout image inspect "$1" >/dev/null 2>&1
+}
+
+# build pdf file from README.md
+# source tool-specific parameters
+source params.sh
+
+# Handle openrecon_version if set
+# When openrecon_version is set, use 'version' for docker operations
+# and 'openrecon_version' for OpenRecon-specific files and metadata
+if [ -n "$openrecon_version" ]; then
+    echo "🔧 openrecon_version detected: $openrecon_version"
+    echo "   Docker operations will use version: $version"
+    echo "   OpenRecon metadata will use version: $openrecon_version"
+    # Store original version for docker operations
+    docker_version="$version"
+    # Use openrecon_version for everything else
+    version="$openrecon_version"
+else
+    echo "📦 Using standard version: $version (for both Docker and OpenRecon)"
+    docker_version="$version"
+fi
+
+# Create backups before any modifications
+echo "Creating backup of OpenReconLabel.json..."
+cp OpenReconLabel.json OpenReconLabel.json.backup
+
+if [ -f "README.md" ]; then
+    echo "Creating backup of README.md..."
+    cp README.md README.md.backup
+    
+    # Replace VERSION_WILL_BE_REPLACED_BY_SCRIPT in README.md with $version
+    # run correct sed command on MacOS
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s/VERSION_WILL_BE_REPLACED_BY_SCRIPT/$version/g" README.md
+    fi
+    # run correct sed command on Linux
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        sed -i "s/VERSION_WILL_BE_REPLACED_BY_SCRIPT/$version/g" README.md
+    fi
+    echo "✓ Version replaced in README.md"
+fi
+
+# Build PDF from README.md (after version replacement)
+if [[ "$IGNORE_MDPDF" == "true" ]]; then
+    echo "Ignoring mdpdf."
+else
+    if [ -f "README.md" ]; then
+        if [ -f "README.pdf" ]; then
+            echo "⏭️  README.pdf already exists, skipping PDF generation."
+        else
+            generate_readme_pdf
+        fi
+        echo "✓ Documentation step complete"
+    fi
+fi
+
+LOCAL_IMAGE_TAG=""
+CANONICAL_LOCAL_TAG=""
+
+# Prefer local "name:version" tags when available.
+# If toolName is not defined in params.sh, derive from baseDockerImage like:
+#   vnmd/vesselboost_2.0.0 -> vesselboost:2.0.0
+if [ -n "$toolName" ]; then
+    CANONICAL_LOCAL_TAG="${toolName}:${docker_version}"
+else
+    BASE_IMAGE_BASENAME="${baseDockerImage##*/}"
+    if [[ "$BASE_IMAGE_BASENAME" == *_* ]]; then
+        DERIVED_TOOL_NAME="${BASE_IMAGE_BASENAME%_*}"
+        DERIVED_TOOL_VERSION="${BASE_IMAGE_BASENAME##*_}"
+        CANONICAL_LOCAL_TAG="${DERIVED_TOOL_NAME}:${DERIVED_TOOL_VERSION}"
+    fi
+fi
+
+# Explicit tags and digests identify the source build. A canonical alias may
+# refer to an older build, so only use that convenience for implicit latest.
+BASE_IMAGE_REFERENCE="${baseDockerImage##*/}"
+if [[ "$BASE_IMAGE_REFERENCE" == *:* || "$baseDockerImage" == *@* ]]; then
+    CANONICAL_LOCAL_TAG=""
+fi
+
+echo "🐳 Checking host Docker daemon..."
+docker_context=$(docker context show 2>/dev/null || echo "unknown")
+if ! docker_with_timeout ps --format '{{.ID}}' >/dev/null 2>&1; then
+    docker_status=$?
+    if [ "$docker_status" -eq 124 ]; then
+        echo "Error: Docker daemon probe timed out after ${DOCKER_CMD_TIMEOUT_SECONDS}s."
+        echo "Current Docker context: $docker_context"
+        echo "The Docker CLI is responding, but daemon-backed commands are hanging."
+        echo "Typical fixes: restart Docker Desktop, switch to a working context, or set DOCKER_HOST correctly."
+    else
+        echo "Error: Docker daemon is not reachable."
+        echo "Current Docker context: $docker_context"
+        echo "Start Docker and retry."
+    fi
+    exit 1
+fi
+echo "✓ Host Docker daemon is reachable"
+
+# Publishing must resolve the declared image in the fresh DinD daemon, without
+# importing a host image (including same-name tags or localDockerImage overrides).
+export REGISTRY_BASE_DOCKER_IMAGE="$baseDockerImage"
+if [[ "$FORCE_REMOTE_IMAGE" != "true" ]]; then
+    echo "🔍 Checking local Docker cache..."
+    if [ -n "$localDockerImage" ] && docker_image_exists "$localDockerImage"; then
+        LOCAL_IMAGE_TAG="$localDockerImage"
+    elif [ -n "$CANONICAL_LOCAL_TAG" ] && docker_image_exists "$CANONICAL_LOCAL_TAG"; then
+        LOCAL_IMAGE_TAG="$CANONICAL_LOCAL_TAG"
+    elif docker_image_exists "$baseDockerImage"; then
+        LOCAL_IMAGE_TAG="$baseDockerImage"
+    fi
+    echo "✓ Local Docker cache lookup complete"
+fi
+
+if [[ "$FORCE_REMOTE_IMAGE" == "true" ]]; then
+    echo "Using remote image (forced): $baseDockerImage"
+    export DOCKER_IMAGE_TO_USE="$baseDockerImage"
+    export USE_LOCAL_IMAGE=false
+    export FORCE_LOCAL_ONLY=false
+elif [[ "$FORCE_LOCAL_CACHE" == "true" ]]; then
+    if [ -z "$LOCAL_IMAGE_TAG" ]; then
+        echo "Error: --local-cache was requested, but no matching local image was found."
+        echo "Checked:"
+        if [ -n "$localDockerImage" ]; then
+            echo "  - $localDockerImage (from localDockerImage)"
+        fi
+        if [ -n "$CANONICAL_LOCAL_TAG" ]; then
+            echo "  - $CANONICAL_LOCAL_TAG (canonical local name:version)"
+        fi
+        echo "  - $baseDockerImage (from baseDockerImage)"
+        exit 1
+    fi
+
+    echo "Using local cached Docker image (forced): $LOCAL_IMAGE_TAG"
+    export baseDockerImage="$LOCAL_IMAGE_TAG"
+    export DOCKER_IMAGE_TO_USE="$LOCAL_IMAGE_TAG"
+    export USE_LOCAL_IMAGE=true
+    export FORCE_LOCAL_ONLY=true
+else
+    if [ -n "$LOCAL_IMAGE_TAG" ]; then
+        echo "Local Docker cache hit. Using local image: $LOCAL_IMAGE_TAG"
+        export baseDockerImage="$LOCAL_IMAGE_TAG"
+        export DOCKER_IMAGE_TO_USE="$LOCAL_IMAGE_TAG"
+        export USE_LOCAL_IMAGE=true
+    else
+        echo "No local cache hit. Using remote image: $baseDockerImage"
+        export DOCKER_IMAGE_TO_USE="$baseDockerImage"
+        export USE_LOCAL_IMAGE=false
+    fi
+    export FORCE_LOCAL_ONLY=false
+fi
+
+echo "Docker image to use: $DOCKER_IMAGE_TO_USE"
+
+# Replace VERSION_WILL_BE_REPLACED_BY_SCRIPT in OpenReconLabel.json with $version
+echo "📝 Preparing OpenReconLabel.json..."
+# run correct sed command on MacOS
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s/VERSION_WILL_BE_REPLACED_BY_SCRIPT/$version/g" OpenReconLabel.json
+fi
+# run correct sed command on Linux
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    sed -i "s/VERSION_WILL_BE_REPLACED_BY_SCRIPT/$version/g" OpenReconLabel.json
+fi
+echo "✓ Version replaced in OpenReconLabel.json"
+
+echo "This is the OpenReconLabel.json file:"
+echo "----------------------------------------"
+cat OpenReconLabel.json
+echo "----------------------------------------"
+
+echo "baseDockerImage: $baseDockerImage"
+
+# build zip file
+echo "🚀 Starting Python build pipeline..."
+"$PYTHON_BIN" -u "$BUILD_SCRIPT_DIR/build.py"
+
+# Note: Backup restoration now handled by cleanup trap function
+# This ensures restoration even if script is interrupted
+
+echo ""
+echo "🧹 Cleaning up generated build artifacts..."
+if [ -f "README.pdf" ]; then
+    rm -f README.pdf
+    echo "✓ Removed README.pdf"
+fi
+if [ -f "OpenRecon.dockerfile" ]; then
+    rm -f OpenRecon.dockerfile
+    echo "✓ Removed OpenRecon.dockerfile"
+fi

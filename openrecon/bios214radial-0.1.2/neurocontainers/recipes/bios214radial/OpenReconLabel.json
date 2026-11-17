@@ -1,0 +1,60 @@
+{
+  "general": {
+    "name": {
+      "en": "bios214radial"
+    },
+    "version": "0.1.2",
+    "vendor": "research",
+    "information": {
+      "en": "Fixed 2D radial bSSFP reconstruction using Julia and BartIO 0.4"
+    },
+    "id": "bios214radial",
+    "regulatory_information": {
+      "device_trade_name": "bios214radial",
+      "production_identifier": "0.1.2",
+      "manufacturer_address": "Research template - replace with your institution",
+      "made_in": "US",
+      "manufacture_date": "2026/11/10",
+      "material_number": "bios214radial_0.1.2",
+      "gtin": "00000000000000",
+      "udi": "Research template",
+      "safety_advices": "",
+      "special_operating_instructions": "Bundled radial_bssfp.seq only: 202 spokes, 128 samples, 4 us dwell, LIN 0:201; 128 x 128 magnitude output. Disable Prio Recon.",
+      "additional_relevant_information": "Replace template metadata before distributing a scanner package"
+    }
+  },
+  "reconstruction": {
+    "transfer_protocol": {
+      "protocol": "ISMRMRD",
+      "version": "1.4.1"
+    },
+    "port": 9002,
+    "emitter": "raw",
+    "injector": "image",
+    "can_process_adjustment_data": false,
+    "can_use_gpu": false,
+    "min_count_required_gpus": 0,
+    "min_required_gpu_memory": 0,
+    "min_required_memory": 4096,
+    "min_count_required_cpu_cores": 1,
+    "content_qualification_type": "RESEARCH"
+  },
+  "parameters": [
+    {
+      "id": "config",
+      "label": {
+        "en": "Reconstruction"
+      },
+      "type": "choice",
+      "values": [
+        {
+          "id": "bios214radial",
+          "name": {
+            "en": "bios214radial"
+          }
+        }
+      ],
+      "default": "bios214radial"
+    }
+  ]
+}

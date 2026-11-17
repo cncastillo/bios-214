@@ -1,0 +1,183 @@
+name: bios214radial
+version: 0.1.2
+architectures:
+- x86_64
+copyright:
+- license: MIT
+  url: https://opensource.org/license/mit/
+variables:
+  julia_version: 1.12.7
+  julia_series: '1.12'
+  openrecon_server_commit: 33362f2139701fbf5ea855808a325eb59b7db2ae
+  openrecon_python_tools_commit: 17fe6fbf1bb645112e2ad0023eb4f42afb36421e
+  openrecon_siemens_commit: 055eefc09dfa77fbf11fff85979dea9ef2879ba5
+  openrecon_ismrmrd_version: 1.14.2
+  base_image_digest: sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17df77c7dbc
+auto_update:
+  method: sources
+  container_version: false
+  frozen: true
+  reason: Locally maintained fixed-sequence course application; revalidate the locked Julia and OpenRecon dependencies
+    before updating.
+  local:
+  - macros/openrecon
+  sources:
+  - id: base_image
+    method: oci_digest
+    image: ubuntu
+    tag: '22.04'
+    target:
+      variable: base_image_digest
+  - id: julia
+    dependency: true
+    method: github_release
+    repo: JuliaLang/julia
+    version_regex: v(?P<version>1\.12\.\d+)
+    target:
+      variable: julia_version
+      value: version
+  - id: julia_archive
+    dependency: true
+    method: http_digest
+    url: https://julialang-s3.julialang.org/bin/linux/x64/{{ context.julia_series }}/julia-{{ context.julia_version
+      }}-linux-x86_64.tar.gz
+    target:
+      file: julia
+  - id: openrecon_ismrmrd
+    dependency: true
+    method: github_release
+    repo: ismrmrd/ismrmrd
+    target:
+      variable: openrecon_ismrmrd_version
+      value: version
+  - id: openrecon_siemens
+    dependency: true
+    method: github_commit
+    repo: ismrmrd/siemens_to_ismrmrd
+    ref: HEAD
+    target:
+      variable: openrecon_siemens_commit
+  - id: openrecon_python_tools
+    dependency: true
+    method: github_commit
+    repo: ismrmrd/ismrmrd-python-tools
+    ref: HEAD
+    target:
+      variable: openrecon_python_tools_commit
+  - id: openrecon_server
+    dependency: true
+    method: github_commit
+    repo: astewartau/python-ismrmrd-server
+    ref: fix/ismrmrd-compatibility
+    target:
+      variable: openrecon_server_commit
+files:
+- name: julia
+  url: https://julialang-s3.julialang.org/bin/linux/x64/{{ context.julia_series }}/julia-{{ context.julia_version
+    }}-linux-x86_64.tar.gz
+  sha256: 4e7e9e776634d24835250de67cde39b0d4af15bc432eb20697e6be6c28ea69e8
+- name: Project.toml
+  filename: Project.toml
+- name: Manifest.toml
+  filename: Manifest.toml
+- name: install.jl
+  filename: install.jl
+- name: recon.jl
+  filename: recon.jl
+- name: run.jl
+  filename: run.jl
+- name: smoke.jl
+  filename: smoke.jl
+- name: radial_bssfp.seq
+  filename: radial_bssfp.seq
+- name: bios214radial.py
+  filename: bios214radial.py
+- name: OpenReconLabel.json
+  filename: OpenReconLabel.json
+- name: OpenReconREADME.md
+  filename: OpenReconREADME.md
+- name: bios214radial
+  contents: "#!/usr/bin/env bash\nif [ \"${1:-}\" = \"--serve\" ]; then\n    shift\n    exec python3 /opt/code/python-ismrmrd-server/main.py\
+    \ -v -H=0.0.0.0 -p=9002 -d bios214radial \"$@\"\nfi\nprintf 'bios214radial {{ context.version }}\\n'\n"
+- name: test_koma.jl
+  filename: test_koma.jl
+- name: test_display.py
+  filename: test_display.py
+build:
+  kind: neurodocker
+  base-image: ubuntu:22.04@{{ context.base_image_digest }}
+  pkg-manager: apt
+  directives:
+  - environment:
+      DEBIAN_FRONTEND: noninteractive
+  - install:
+    - ca-certificates
+    - git
+    - python3-pip
+    - python-is-python3
+  - include: macros/openrecon/neurodocker.yaml
+  - run:
+    - tar -xzf {{ get_file("julia") }} -C /opt
+  - environment:
+      PATH: /opt/julia-{{ context.julia_version }}/bin:$PATH
+      JULIA_PROJECT: /opt/recon/julia
+      JULIA_DEPOT_PATH: /opt/julia-depot
+      JULIA_CPU_TARGET: generic
+      JULIA_NUM_PRECOMPILE_TASKS: '1'
+      JULIA_PKG_PRECOMPILE_AUTO: '0'
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MPLCONFIGDIR: /tmp/matplotlib
+      OPENRECON_SOFTWARE_VERSION: '{{ context.version }}'
+      OPENRECON_CONTAINER_VERSION: '{{ context.version }}'
+  - run:
+    - install -D -m 0644 {{ get_file("Project.toml") }} /opt/recon/julia/Project.toml
+  - run:
+    - install -D -m 0644 {{ get_file("Manifest.toml") }} /opt/recon/julia/Manifest.toml
+  - run:
+    - install -D -m 0644 {{ get_file("install.jl") }} /opt/recon/julia/install.jl
+  - run:
+    - julia --startup-file=no --threads=1,0 --gcthreads=1,0 /opt/recon/julia/install.jl
+    - chmod -R a+rX /opt/julia-depot /opt/recon
+  - run:
+    - install -D -m 0644 {{ get_file("recon.jl") }} /opt/recon/julia/recon.jl
+  - run:
+    - install -D -m 0644 {{ get_file("run.jl") }} /opt/recon/julia/run.jl
+  - run:
+    - install -D -m 0644 {{ get_file("smoke.jl") }} /opt/recon/julia/smoke.jl
+  - run:
+    - install -D -m 0644 {{ get_file("radial_bssfp.seq") }} /opt/recon/sequence/radial_bssfp.seq
+    - install -m 0644 {{ get_file("bios214radial.py") }} /opt/code/python-ismrmrd-server/bios214radial.py
+    - install -m 0644 {{ get_file("OpenReconLabel.json") }} /opt/code/python-ismrmrd-server/OpenReconLabel.json
+    - install -m 0755 {{ get_file("bios214radial") }} /usr/local/bin/bios214radial
+    - mkdir -p /tmp/share/saved_data
+    - chmod 1777 /tmp/share /tmp/share/saved_data
+  - run:
+    - install -m 0644 {{ get_file("test_koma.jl") }} /opt/recon/julia/test_koma.jl
+    - install -m 0644 {{ get_file("test_display.py") }} /opt/recon/julia/test_display.py
+  - workdir: /opt/code/python-ismrmrd-server
+deploy:
+  bins:
+  - bios214radial
+  - julia
+  - siemens_to_ismrmrd
+domains:
+- neuroimaging
+categories:
+- image reconstruction
+readme: '## bios214radial/{{ context.version }}
+
+  Fixed 2D radial bSSFP reconstruction with Julia, BartIO 0.4 and packaged BART.
+
+  Use bios214radial --serve to start the raw MRD server on TCP 9002.
+
+  The shared OpenRecon macro supplies the MRD stack, converters and metadata helper.
+
+  The returned Float32 magnitude image is 128 x 128 over 256 x 256 mm; intensities
+
+  are normalized to a peak of 4095 for each nonzero image. Set config=bios214radial and disable Prio Recon.
+
+  See OpenReconREADME.md for the fixed sequence contract and scanner instructions.
+
+  '
+icon: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTAiIGZpbGw9IiMxMzI5NGIiLz48ZyBzdHJva2U9IiM3ZGQzZmMiIHN0cm9rZS13aWR0aD0iMiI+PHBhdGggZD0iTTggMzJoNDhNMzIgOHY0OE0xNSAxNWwzNCAzNE0xNSA0OWwzNC0zNE0xMCAyM2w0NCAxOE0yMyAxMGwxOCA0NE0xMCA0MWw0NC0xOE0yMyA1NGwxOC00NCIvPjwvZz48Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSI0IiBmaWxsPSIjZmZmIi8+PC9zdmc+

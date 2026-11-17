@@ -1,0 +1,388 @@
+from __future__ import annotations
+
+import warnings
+from pathlib import Path
+
+import pytest
+import yaml
+
+from builder.config import default_config, resolve_recipe
+from builder.recipe import RecipeFile, compile_recipe, load_recipe, load_recipe_file
+from builder.dockerfile import render_dockerfile
+
+
+def write_minimal_recipe(recipe_dir: Path, **metadata: object) -> None:
+    recipe_dir.mkdir()
+    recipe = {
+        "name": "readme-test",
+        "version": "1.2.3",
+        "architectures": ["x86_64"],
+        "categories": ["programming"],
+        "build": {
+            "kind": "neurodocker",
+            "base-image": "ubuntu:24.04",
+            "pkg-manager": "apt",
+            "directives": [],
+        },
+        **metadata,
+    }
+    (recipe_dir / "build.yaml").write_text(
+        yaml.safe_dump(recipe, sort_keys=False),
+        encoding="utf-8",
+    )
+
+
+def test_loads_existing_recipe() -> None:
+    config = default_config()
+    recipe_dir = resolve_recipe(config, "dcm2niix")
+    recipe = load_recipe(recipe_dir)
+    assert recipe["name"] == "dcm2niix"
+    source = yaml.safe_load((recipe_dir / "build.yaml").read_text())
+    assert recipe["version"] == source["version"]
+
+
+def test_loads_typed_recipe_file() -> None:
+    config = default_config()
+    recipe_file = load_recipe_file(resolve_recipe(config, "dcm2niix"))
+    assert isinstance(recipe_file, RecipeFile)
+    assert recipe_file.name == "dcm2niix"
+    assert recipe_file.build["kind"] == "neurodocker"
+
+
+def test_compile_records_metadata() -> None:
+    config = default_config()
+    compiled = compile_recipe(
+        resolve_recipe(config, "dcm2niix"),
+        architecture="x86_64",
+        include_dirs=config.include_dirs,
+    )
+    assert compiled.name == "dcm2niix"
+    assert compiled.architecture == "x86_64"
+    assert f"dcm2niix/{compiled.version}" in compiled.readme
+    assert "downloaded_file" in compiled.staging_plan.files
+
+
+def test_compile_renders_structured_readme(tmp_path: Path) -> None:
+    recipe_dir = tmp_path / "readme-test"
+    write_minimal_recipe(
+        recipe_dir,
+        structured_readme={
+            "description": "Readme test {{ context.version }} description.",
+            "example": "readme-test --version",
+            "documentation": "https://example.com/docs",
+            "citation": "Example citation.",
+        },
+    )
+
+    compiled = compile_recipe(recipe_dir, architecture="x86_64")
+
+    assert "## readme-test/1.2.3 ##" in compiled.readme
+    assert "Readme test 1.2.3 description." in compiled.readme
+    assert "Example:\n```\nreadme-test --version\n```" in compiled.readme
+    assert (
+        "More documentation can be found here: https://example.com/docs"
+        in compiled.readme
+    )
+    assert "Citation:\n```\nExample citation.\n```" in compiled.readme
+    assert "ml readme-test/1.2.3" in compiled.readme
+
+
+def test_compile_preserves_top_level_readme_precedence(tmp_path: Path) -> None:
+    recipe_dir = tmp_path / "readme-test"
+    write_minimal_recipe(
+        recipe_dir,
+        readme="Top-level readme for {{ context.version }}.",
+        structured_readme={
+            "description": "Structured description.",
+            "example": "readme-test --help",
+        },
+    )
+
+    compiled = compile_recipe(recipe_dir, architecture="x86_64")
+
+    assert compiled.readme == "Top-level readme for 1.2.3."
+
+
+def test_compile_loads_readme_url(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    recipe_dir = tmp_path / "readme-test"
+    write_minimal_recipe(
+        recipe_dir,
+        readme_url="https://example.com/readme-{{ context.version }}.md",
+    )
+    requested_urls: list[str] = []
+
+    def fake_read_readme_url(url: str) -> str:
+        requested_urls.append(url)
+        return "Remote readme."
+
+    monkeypatch.setattr("builder.recipe._read_readme_url", fake_read_readme_url)
+
+    compiled = compile_recipe(recipe_dir, architecture="x86_64")
+
+    assert compiled.readme == "Remote readme."
+    assert requested_urls == ["https://example.com/readme-1.2.3.md"]
+
+
+def test_compile_rejects_empty_readme(tmp_path: Path) -> None:
+    recipe_dir = tmp_path / "readme-test"
+    write_minimal_recipe(recipe_dir, readme="   \n")
+
+    with pytest.raises(ValueError, match="README.*cannot be empty"):
+        compile_recipe(recipe_dir, architecture="x86_64")
+
+
+def test_compile_named_variant_uses_concrete_container_identity() -> None:
+    config = default_config()
+    compiled = compile_recipe(
+        resolve_recipe(config, "workshopdemo"),
+        variant="arm64",
+        include_dirs=config.include_dirs,
+    )
+
+    assert compiled.base_name == "workshopdemo"
+    assert compiled.name == "workshopdemo_arm64"
+    assert compiled.variant == "arm64"
+    assert compiled.architecture == "aarch64"
+    assert compiled.tag == "workshopdemo_arm64:1.0.0"
+
+
+def test_compile_architecture_automatically_selects_arm64_variant() -> None:
+    config = default_config()
+    compiled = compile_recipe(
+        resolve_recipe(config, "workshopdemo"),
+        architecture="aarch64",
+        include_dirs=config.include_dirs,
+    )
+
+    assert compiled.name == "workshopdemo_arm64"
+    assert compiled.variant == "arm64"
+
+
+def test_arbitrary_variant_can_span_architectures_and_enable_options(tmp_path) -> None:
+    recipe_dir = tmp_path / "gpu-tool"
+    recipe_dir.mkdir()
+    (recipe_dir / "build.yaml").write_text(
+        """name: gpu-tool
+version: 1.0.0
+architectures: [x86_64, aarch64]
+readme: gpu-tool {{ context.version }}
+options:
+  gpu:
+    default: false
+variants:
+  gpu:
+    architectures: [x86_64, aarch64]
+    options:
+      gpu: true
+build:
+  kind: neurodocker
+  base-image: ubuntu:24.04
+  pkg-manager: apt
+  directives:
+    - condition: context.options.gpu
+      run: echo gpu-enabled
+deploy:
+  bins: [gpu-tool]
+categories: [workflows]
+"""
+    )
+
+    compiled = compile_recipe(recipe_dir, variant="gpu", architecture="aarch64")
+
+    assert compiled.name == "gpu-tool_gpu_arm64"
+    assert compiled.variant == "gpu_arm64"
+    assert "gpu-enabled" in render_dockerfile(compiled.definition)
+
+
+def test_compile_rejects_variant_on_an_undeclared_architecture(tmp_path) -> None:
+    recipe_dir = tmp_path / "gpu-tool"
+    recipe_dir.mkdir()
+    (recipe_dir / "build.yaml").write_text(
+        """name: gpu-tool
+version: 1.0.0
+architectures: [x86_64, aarch64]
+variants:
+  gpu:
+    architecture: x86_64
+build:
+  kind: neurodocker
+  base-image: ubuntu:24.04
+  pkg-manager: apt
+  directives: []
+deploy:
+  bins: [gpu-tool]
+categories: [workflows]
+"""
+    )
+
+    with pytest.raises(ValueError, match="unknown variant/architecture"):
+        compile_recipe(recipe_dir, variant="gpu", architecture="aarch64")
+
+
+def write_single_architecture_recipe(recipe_dir: Path) -> None:
+    recipe_dir.mkdir()
+    (recipe_dir / "build.yaml").write_text(
+        """name: x86only
+version: 1.0.0
+architectures: [x86_64]
+readme: x86only {{ context.version }}
+build:
+  kind: neurodocker
+  base-image: ubuntu:24.04
+  pkg-manager: apt
+  directives: []
+deploy:
+  bins: [x86only]
+categories: [workflows]
+"""
+    )
+
+
+def test_macos_arm_defaults_to_x86_64_with_warning(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    recipe_dir = tmp_path / "x86only"
+    write_single_architecture_recipe(recipe_dir)
+    monkeypatch.setattr("builder.recipe.platform.system", lambda: "Darwin")
+    monkeypatch.setattr("builder.recipe.platform.machine", lambda: "arm64")
+
+    with pytest.warns(UserWarning, match="automatically selecting x86_64"):
+        compiled = compile_recipe(recipe_dir)
+
+    assert compiled.architecture == "x86_64"
+    assert compiled.name == "x86only"
+
+
+def test_linux_arm_does_not_default_to_x86_64(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    recipe_dir = tmp_path / "x86only"
+    write_single_architecture_recipe(recipe_dir)
+    monkeypatch.setattr("builder.recipe.platform.system", lambda: "Linux")
+    monkeypatch.setattr("builder.recipe.platform.machine", lambda: "aarch64")
+
+    with pytest.raises(ValueError, match="unknown variant/architecture"):
+        compile_recipe(recipe_dir)
+
+
+def test_macos_arm_prefers_supported_native_architecture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    recipe_dir = tmp_path / "native-arm"
+    write_minimal_recipe(
+        recipe_dir,
+        architectures=["x86_64", "aarch64"],
+        readme="native-arm {{ context.version }}",
+    )
+    monkeypatch.setattr("builder.recipe.platform.system", lambda: "Darwin")
+    monkeypatch.setattr("builder.recipe.platform.machine", lambda: "arm64")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        compiled = compile_recipe(recipe_dir)
+
+    assert compiled.architecture == "aarch64"
+
+
+def test_ignore_architectures_still_builds_an_undeclared_architecture(tmp_path) -> None:
+    recipe_dir = tmp_path / "x86only"
+    write_single_architecture_recipe(recipe_dir)
+
+    compiled = compile_recipe(
+        recipe_dir,
+        architecture="aarch64",
+        ignore_architecture=True,
+    )
+
+    assert compiled.architecture == "aarch64"
+    assert compiled.name == "x86only_arm64"
+    assert compiled.variant == "arm64"
+
+
+def test_undeclared_architecture_without_the_escape_hatch_is_rejected(tmp_path) -> None:
+    recipe_dir = tmp_path / "x86only"
+    write_single_architecture_recipe(recipe_dir)
+
+    with pytest.raises(ValueError, match="unknown variant/architecture"):
+        compile_recipe(recipe_dir, architecture="aarch64")
+
+
+def test_ignore_architectures_preserves_variant_options(tmp_path) -> None:
+    recipe_dir = tmp_path / "gpu-tool"
+    recipe_dir.mkdir()
+    (recipe_dir / "build.yaml").write_text(
+        """name: gpu-tool
+version: 1.0.0
+architectures: [x86_64]
+readme: gpu-tool {{ context.version }}
+options:
+  gpu:
+    default: false
+variants:
+  gpu:
+    architecture: x86_64
+    options:
+      gpu: true
+build:
+  kind: neurodocker
+  base-image: ubuntu:24.04
+  pkg-manager: apt
+  directives:
+    - condition: context.options.gpu
+      run: echo gpu-enabled
+deploy:
+  bins: [gpu-tool]
+categories: [workflows]
+"""
+    )
+
+    compiled = compile_recipe(
+        recipe_dir,
+        variant="gpu",
+        architecture="aarch64",
+        ignore_architecture=True,
+    )
+
+    assert compiled.name == "gpu-tool_gpu_arm64"
+    assert "gpu-enabled" in render_dockerfile(compiled.definition)
+
+
+@pytest.mark.parametrize("macro_name", ["openrecon_i2i", "ep3d"])
+def test_macro_declared_file_resolves_next_to_the_macro(tmp_path, macro_name) -> None:
+    macro_dir = tmp_path / "macros" / macro_name
+    macro_dir.mkdir(parents=True)
+    (macro_dir / "helper.py").write_text("HELPER = 1\n")
+    (macro_dir / "helpers.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "directives": [
+                    {"file": {"name": "helper.py", "filename": "helper.py"}},
+                    {"run": ['cp {{ get_file("helper.py") }} /opt/helper.py']},
+                ]
+            }
+        )
+    )
+    recipe_dir = tmp_path / "readme-test"
+    write_minimal_recipe(
+        recipe_dir,
+        readme="readme",
+        files=[{"name": "local.txt", "filename": "local.txt"}],
+    )
+    (recipe_dir / "local.txt").write_text("local\n")
+    recipe = yaml.safe_load((recipe_dir / "build.yaml").read_text())
+    recipe["build"]["directives"] = [{"include": f"macros/{macro_name}/helpers.yaml"}]
+    (recipe_dir / "build.yaml").write_text(yaml.safe_dump(recipe, sort_keys=False))
+
+    compiled = compile_recipe(
+        recipe_dir, architecture="x86_64", include_dirs=(tmp_path,)
+    )
+
+    files = compiled.staging_plan.files
+    assert Path(files["helper.py"].filename) == (macro_dir / "helper.py").resolve()
+    assert files["local.txt"].filename == "local.txt"

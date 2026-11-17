@@ -1,0 +1,1268 @@
+#!/usr/bin/env python3
+"""
+YAML Recipe validation using attrs.
+
+This module provides validation for neurocontainer YAML recipes using attrs classes.
+The schema matches the Zod schema from https://github.com/neurodesk/neurocontainers-ui/blob/main/lib/zodSchema.ts
+"""
+
+import base64
+import binascii
+import re
+import sys
+from pathlib import Path
+from typing import List, Dict, Union, Optional, Any, Literal
+
+import attrs
+import jinja2
+from packaging.licenses import InvalidLicenseExpression, canonicalize_license_expression
+import yaml
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from builder.update_sources import validate_direct_policy
+
+
+# ============================================================================
+# Base Types and Enums
+# ============================================================================
+
+ARCHITECTURES = ["x86_64", "aarch64"]
+
+NESTED_TEST_DIRECTIVE_ERROR = (
+    "The 'test' build directive is not supported because the builder never "
+    "ran it. Put runtime tests in recipes/<name>/fulltest.yaml."
+)
+
+# Categories from the UI - this should match CATEGORIES in the UI
+CATEGORIES = [
+    "functional imaging",
+    "arterial spin labelling",
+    "fetal imaging",
+    "image reconstruction",
+    "spectroscopy",
+    "image registration",
+    "rodent imaging",
+    "data organisation",
+    "diffusion imaging",
+    "structural imaging",
+    "quantitative imaging",
+    "image segmentation",
+    "visualization",
+    "statistics",
+    "quality control",
+    "spine",
+    "electrophysiology",
+    "bids apps",
+    "machine learning",
+    "phase processing",
+    "molecular biology",
+    "hippocampus",
+    "body",
+    "shape analysis",
+    "cryo EM",
+    "programming",
+    "workflows",
+]
+
+LEGACY_CATEGORIES = CATEGORIES + [
+    "connectomics",
+    "conversion",
+    "data management",
+    "file conversion",
+    "microscopy",
+    "modeling",
+    "motion correction",
+    "other",
+    "preprocessing",
+    "simulation",
+    "statistical analysis",
+    "tractography",
+]
+
+
+_jinja_env = jinja2.Environment()
+_ICON_DATA_URI_RE = re.compile(r"^data:image/[a-zA-Z0-9.+-]+;base64,(?P<data>.+)$")
+
+
+# ============================================================================
+# Validation Functions
+# ============================================================================
+
+
+def validate_architecture(instance, attribute, value):
+    """Validate architecture is in allowed list"""
+    if value not in ARCHITECTURES:
+        raise ValueError(
+            f"Architecture '{value}' not supported. Must be one of: {ARCHITECTURES}"
+        )
+
+
+def validate_non_empty_string(instance, attribute, value):
+    """Validate string is not empty"""
+    if not value or (isinstance(value, str) and value.strip() == ""):
+        raise ValueError(f"{attribute.name} cannot be empty")
+
+
+def validate_recipe_name(instance, attribute, value):
+    """Validate the published recipe name."""
+    validate_non_empty_string(instance, attribute, value)
+    if "_" in value:
+        raise ValueError(f"{attribute.name} cannot contain underscores (got '{value}')")
+
+
+def validate_url(instance, attribute, value):
+    """Basic URL validation"""
+    if value.startswith("{{"):
+        # Allow templated URLs
+        return
+
+    if value and not (value.startswith("http://") or value.startswith("https://")):
+        raise ValueError(
+            f"{attribute.name} must be a valid URL starting with http:// or https://"
+        )
+
+
+def validate_webapp_icon(instance, attribute, value):
+    """Validate webapp icon is an SVG file"""
+    if value and not value.endswith(".svg"):
+        raise ValueError(
+            f"Webapp icon must be an SVG file (got '{value}'). "
+            "JupyterLab requires SVG format for launcher icons."
+        )
+
+
+def validate_container_icon(instance, attribute, value):
+    """Validate container icon is an inline base64 image data URI."""
+    if not isinstance(value, str) or value.strip() == "":
+        raise ValueError("icon is required and must be a base64 image data URI")
+
+    match = _ICON_DATA_URI_RE.match(value.strip())
+    if not match:
+        raise ValueError(
+            "icon must be a base64 image data URI such as 'data:image/png;base64,...'"
+        )
+
+    payload = "".join(match.group("data").split())
+    try:
+        decoded = base64.b64decode(payload, validate=True)
+    except (binascii.Error, ValueError) as e:
+        raise ValueError("icon contains invalid base64 data") from e
+
+    if not decoded:
+        raise ValueError("icon must decode to non-empty image data")
+
+
+def validate_recipe_metadata(recipe_dict: Dict[str, Any]) -> None:
+    """Validate metadata required for published NeuroDesk container recipes."""
+    validate_container_icon(None, None, recipe_dict.get("icon"))
+
+    categories = recipe_dict.get("categories")
+    if not isinstance(categories, list) or not categories:
+        raise ValueError("categories is required and must be a non-empty list")
+
+    for category in categories:
+        if not isinstance(category, str):
+            raise ValueError("categories entries must be strings")
+        if category not in CATEGORIES:
+            raise ValueError(
+                f"Category '{category}' not supported. Must be one of: {CATEGORIES}"
+            )
+
+    domains = recipe_dict.get("domains")
+    if not isinstance(domains, list) or not domains:
+        raise ValueError("domains is required and must be a non-empty list")
+    if any(
+        not isinstance(domain, str)
+        or not re.fullmatch(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*", domain)
+        for domain in domains
+    ) or len(set(domains)) != len(domains):
+        raise ValueError("domains must contain unique lowercase domain IDs")
+
+
+def resolve_fulltest_version(config: Dict[str, Any]) -> str:
+    """Resolve the top-level fulltest version using runner-style variables."""
+    version = str(config.get("version", "") or "")
+    variables = {
+        key: str(value)
+        for key, value in config.items()
+        if key != "version" and isinstance(value, (str, int, float))
+    }
+    for _ in range(10):
+        previous = version
+        for key, value in variables.items():
+            version = version.replace(f"${{{key}}}", value)
+            version = version.replace(f"${key}", value)
+        if version == previous:
+            break
+    return version
+
+
+def validate_fulltest_contract(
+    fulltest_path: Union[str, Path], *, recipe_name: str, recipe_version: str
+) -> None:
+    """Validate metadata used to resolve the artifact a fulltest executes."""
+    path = Path(fulltest_path)
+    try:
+        config = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as e:
+        raise ValueError(f"Invalid fulltest YAML syntax in {path}: {e}") from e
+
+    if not isinstance(config, dict):
+        raise ValueError(f"{path} must contain a YAML mapping")
+
+    declared_name = str(config.get("name", "") or "")
+    if declared_name != recipe_name:
+        raise ValueError(
+            f"{path} name '{declared_name or '(missing)'}' does not match "
+            f"build.yaml name '{recipe_name}'"
+        )
+
+    declared_version = resolve_fulltest_version(config)
+    if not declared_version:
+        raise ValueError(f"{path} version is missing")
+    if "${" in declared_version or declared_version.startswith("$"):
+        raise ValueError(
+            f"{path} version '{declared_version}' contains an unexpanded variable"
+        )
+    if declared_version != str(recipe_version):
+        raise ValueError(
+            f"{path} version '{declared_version}' does not match build.yaml "
+            f"version '{recipe_version}'; update both files in the same change"
+        )
+
+    tests = config.get("tests")
+    if not isinstance(tests, list) or not tests:
+        raise ValueError(f"{path} fulltest requires a nonempty tests list")
+    for index, test in enumerate(tests, start=1):
+        command = (
+            test.get("command") or test.get("script")
+            if isinstance(test, dict)
+            else None
+        )
+        if not isinstance(command, str) or not command.strip():
+            raise ValueError(
+                f"{path} fulltest test {index} requires a nonempty command or script"
+            )
+
+
+def validate_template_syntax(template: str, path: str):
+    """Validate Jinja2 syntax for a rendered template string."""
+    if not isinstance(template, str):
+        return
+
+    if not any(marker in template for marker in ("{{", "{%", "{#")):
+        return
+
+    try:
+        _jinja_env.parse(template)
+    except jinja2.exceptions.TemplateSyntaxError as e:
+        raise ValueError(f"Jinja2 template syntax error at {path}: {e}")
+
+
+def validate_condition_syntax(condition: Any, path: str):
+    """Validate Jinja2 syntax for a condition expression."""
+    if not isinstance(condition, str) or condition.strip() == "":
+        return
+
+    try:
+        _jinja_env.parse("{{" + condition + "}}")
+    except jinja2.exceptions.TemplateSyntaxError as e:
+        raise ValueError(f"Jinja2 condition syntax error at {path}: {e}")
+
+
+def validate_executable_template(value: Any, path: str):
+    """
+    Validate syntax for values that builder passes through the recipe renderer.
+    """
+    if isinstance(value, str):
+        validate_template_syntax(value, path)
+        return
+
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            validate_executable_template(item, f"{path}[{index}]")
+        return
+
+    if isinstance(value, dict):
+        if "try" in value and isinstance(value["try"], list):
+            for index, option in enumerate(value["try"]):
+                option_path = f"{path}.try[{index}]"
+                if isinstance(option, dict):
+                    if "condition" in option:
+                        validate_condition_syntax(
+                            option["condition"], f"{option_path}.condition"
+                        )
+                    if "value" in option:
+                        validate_executable_template(
+                            option["value"], f"{option_path}.value"
+                        )
+                    for key, item in option.items():
+                        if key in {"condition", "value"}:
+                            continue
+                        validate_executable_template(item, f"{option_path}.{key}")
+                else:
+                    validate_executable_template(option, option_path)
+            return
+
+        for key, item in value.items():
+            validate_executable_template(key, f"{path}.<key>")
+            validate_executable_template(item, f"{path}.{key}")
+        return
+
+    if value is None or isinstance(value, (int, float, bool)):
+        return
+
+
+def validate_file_template_syntax(file_dict: Dict[str, Any], path: str):
+    """Validate Jinja2 syntax for file definitions rendered by the builder."""
+    if "name" in file_dict:
+        if not isinstance(file_dict["name"], str):
+            raise ValueError(f"{path}.name must be a string")
+        validate_template_syntax(file_dict["name"], f"{path}.name")
+    if "url" in file_dict:
+        if not isinstance(file_dict["url"], str):
+            raise ValueError(f"{path}.url must be a string")
+        validate_template_syntax(file_dict["url"], f"{path}.url")
+    if "contents" in file_dict:
+        if not isinstance(file_dict["contents"], str):
+            raise ValueError(f"{path}.contents must be a string")
+        validate_template_syntax(file_dict["contents"], f"{path}.contents")
+    if "condition" in file_dict:
+        validate_condition_syntax(file_dict["condition"], f"{path}.condition")
+
+
+def validate_directive_template_syntax(directive_dict: Dict[str, Any], path: str):
+    """Validate Jinja2 syntax for builder directives that are rendered at build time."""
+    if "condition" in directive_dict:
+        validate_condition_syntax(directive_dict["condition"], f"{path}.condition")
+
+    if "install" in directive_dict:
+        validate_executable_template(directive_dict["install"], f"{path}.install")
+    elif "run" in directive_dict:
+        validate_executable_template(directive_dict["run"], f"{path}.run")
+    elif "workdir" in directive_dict:
+        validate_template_syntax(directive_dict["workdir"], f"{path}.workdir")
+    elif "user" in directive_dict:
+        validate_template_syntax(directive_dict["user"], f"{path}.user")
+    elif "entrypoint" in directive_dict:
+        validate_template_syntax(directive_dict["entrypoint"], f"{path}.entrypoint")
+    elif "environment" in directive_dict and directive_dict["environment"] is not None:
+        for key, value in directive_dict["environment"].items():
+            validate_template_syntax(key, f"{path}.environment.<key>")
+            validate_executable_template(value, f"{path}.environment.{key}")
+    elif "template" in directive_dict and directive_dict["template"] is not None:
+        for key, value in directive_dict["template"].items():
+            validate_executable_template(value, f"{path}.template.{key}")
+    elif "copy" in directive_dict:
+        validate_executable_template(directive_dict["copy"], f"{path}.copy")
+        for field in ("from_image", "from_platform"):
+            if field in directive_dict:
+                validate_template_syntax(directive_dict[field], f"{path}.{field}")
+    elif "group" in directive_dict:
+        if "with" in directive_dict and directive_dict["with"] is not None:
+            for key, value in directive_dict["with"].items():
+                validate_executable_template(value, f"{path}.with.{key}")
+        for index, group_item in enumerate(directive_dict["group"]):
+            if isinstance(group_item, dict):
+                validate_directive_template_syntax(group_item, f"{path}.group[{index}]")
+    elif "include" in directive_dict:
+        validate_template_syntax(directive_dict["include"], f"{path}.include")
+        if "with" in directive_dict and directive_dict["with"] is not None:
+            for key, value in directive_dict["with"].items():
+                validate_executable_template(value, f"{path}.with.{key}")
+    elif "file" in directive_dict and directive_dict["file"] is not None:
+        validate_file_template_syntax(directive_dict["file"], f"{path}.file")
+    elif "variables" in directive_dict:
+        validate_executable_template(directive_dict["variables"], f"{path}.variables")
+    elif "deploy" in directive_dict and directive_dict["deploy"] is not None:
+        if "bins" in directive_dict["deploy"]:
+            validate_executable_template(
+                directive_dict["deploy"]["bins"], f"{path}.deploy.bins"
+            )
+        if "path" in directive_dict["deploy"]:
+            validate_executable_template(
+                directive_dict["deploy"]["path"], f"{path}.deploy.path"
+            )
+
+
+def validate_recipe_template_syntax(recipe_dict: Dict[str, Any]):
+    """Validate Jinja2 syntax in recipe fields rendered by builder."""
+    if "readme" in recipe_dict:
+        validate_template_syntax(recipe_dict["readme"], "readme")
+
+    if "readme_url" in recipe_dict:
+        validate_template_syntax(recipe_dict["readme_url"], "readme_url")
+
+    if "variables" in recipe_dict:
+        validate_executable_template(recipe_dict["variables"], "variables")
+
+    if "deploy" in recipe_dict and recipe_dict["deploy"] is not None:
+        if "bins" in recipe_dict["deploy"]:
+            validate_executable_template(recipe_dict["deploy"]["bins"], "deploy.bins")
+        if "path" in recipe_dict["deploy"]:
+            validate_executable_template(recipe_dict["deploy"]["path"], "deploy.path")
+
+    for index, file_dict in enumerate(recipe_dict.get("files") or []):
+        if isinstance(file_dict, dict):
+            validate_file_template_syntax(file_dict, f"files[{index}]")
+
+    build_dict = recipe_dict.get("build") or {}
+    if "base-image" in build_dict:
+        validate_template_syntax(build_dict["base-image"], "build.base-image")
+    if "pkg-manager" in build_dict:
+        validate_template_syntax(build_dict["pkg-manager"], "build.pkg-manager")
+
+    for index, directive_dict in enumerate(build_dict.get("directives") or []):
+        if isinstance(directive_dict, dict):
+            validate_directive_template_syntax(
+                directive_dict, f"build.directives[{index}]"
+            )
+
+
+# ============================================================================
+# Copyright Info
+# ============================================================================
+
+
+def validate_license(instance, attribute, value: Any) -> None:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("license must be a nonempty string")
+    if value in {"other-open", "other-closed", "NOASSERTION", "NONE"}:
+        return
+    if "{{" in value or "{%" in value:
+        _jinja_env.parse(value)
+        return
+    try:
+        canonicalize_license_expression(value)
+    except InvalidLicenseExpression as error:
+        raise ValueError(
+            f"Invalid SPDX license expression '{value}'. For a custom license, "
+            "use 'name' with a URL, or 'license: other-open' / "
+            "'license: other-closed' with a URL for Zenodo publication."
+        ) from error
+
+
+def validate_license_url(instance, attribute, value: Any) -> None:
+    validate_non_empty_string(instance, attribute, value)
+    if not isinstance(value, str):
+        raise ValueError("license URL must be a string")
+    validate_url(instance, attribute, value)
+
+
+@attrs.define
+class CustomCopyrightInfo:
+    name: str = attrs.field(validator=validate_non_empty_string)
+    url: str = attrs.field(validator=validate_license_url)
+
+
+@attrs.define
+class SPDXCopyrightInfo:
+    license: str = attrs.field(validator=validate_license)
+    url: Optional[str] = attrs.field(
+        default=None, validator=attrs.validators.optional(validate_url)
+    )
+    name: Optional[str] = attrs.field(
+        default=None, validator=attrs.validators.optional(validate_non_empty_string)
+    )
+
+    def __attrs_post_init__(self) -> None:
+        if self.license in {"other-open", "other-closed", "NOASSERTION", "NONE"} or (
+            "licenseref-" in self.license.lower()
+        ):
+            validate_license_url(self, attrs.fields(type(self)).url, self.url)
+
+
+# ============================================================================
+# Structured Readme
+# ============================================================================
+
+
+@attrs.define
+class StructuredReadme:
+    description: str = attrs.field()
+    example: str = attrs.field()
+    documentation: str = attrs.field(
+        default="", converter=lambda value: "" if value is None else value
+    )
+    citation: str = attrs.field(
+        default="", converter=lambda value: "" if value is None else value
+    )
+
+
+# ============================================================================
+# GUI Apps Info
+# ============================================================================
+
+
+@attrs.define
+class GUIApp:
+    name: str = attrs.field(validator=validate_non_empty_string)
+    exec: str = attrs.field(validator=validate_non_empty_string)
+
+
+# ============================================================================
+# Webapp Info
+# ============================================================================
+
+
+@attrs.define
+class AdditionalProxy:
+    path: str = attrs.field(validator=validate_non_empty_string)
+    port: int = attrs.field()
+
+
+@attrs.define
+class WebappInfo:
+    title: str = attrs.field(validator=validate_non_empty_string)
+    startup_command: str = attrs.field(validator=validate_non_empty_string)
+    port: int = attrs.field()
+    start_page: Optional[str] = attrs.field(
+        default=None
+    )  # Defaults to "/" if not specified
+    module: Optional[str] = attrs.field(default=None)
+    description: Optional[str] = attrs.field(default=None)
+    startup_timeout: Optional[int] = attrs.field(default=None)
+    category: Optional[str] = attrs.field(default=None)
+    icon: Optional[str] = attrs.field(
+        default=None, validator=attrs.validators.optional(validate_webapp_icon)
+    )
+    additional_proxies: Optional[List[AdditionalProxy]] = attrs.field(default=None)
+
+
+@attrs.define
+class DeployInfo:
+    path: Optional[List[str]] = attrs.field(default=None)
+    bins: Optional[List[str]] = attrs.field(default=None)
+    webapp: Optional[WebappInfo] = attrs.field(default=None)
+
+
+# ============================================================================
+# File Info
+# ============================================================================
+
+
+@attrs.define
+class FileInfo:
+    name: str = attrs.field(validator=validate_non_empty_string)
+    filename: Optional[str] = attrs.field(default=None)
+    contents: Optional[str] = attrs.field(default=None)
+    url: Optional[str] = attrs.field(
+        default=None, validator=attrs.validators.optional(validate_url)
+    )
+    executable: Optional[bool] = attrs.field(default=None)
+    insecure: Optional[bool] = attrs.field(default=None)
+    retry: Optional[int] = attrs.field(default=None)
+    refresh: Optional[bool] = attrs.field(default=None)
+    condition: Optional[str] = attrs.field(default=None)
+    sha256: Optional[str] = attrs.field(default=None)
+
+    @sha256.validator
+    def validate_sha256(self, attribute, value):
+        if value is None:
+            return
+        if self.url is None or self.filename is not None or self.contents is not None:
+            raise ValueError(
+                f"declared file {self.name!r}: sha256 requires a URL source"
+            )
+        if not isinstance(value, str):
+            raise ValueError("sha256 must be a string")
+        if any(marker in value for marker in ("{{", "{%", "{#")):
+            validate_template_syntax(value, f"files.{self.name}.sha256")
+            return
+        from builder.cache import normalize_sha256
+
+        normalize_sha256(value)
+
+
+# ============================================================================
+# Test Info
+# ============================================================================
+
+
+@attrs.define
+class BuiltinTest:
+    name: str = attrs.field(validator=validate_non_empty_string)
+    builtin: Literal["test_deploy.sh"] = attrs.field()
+
+
+@attrs.define
+class ScriptTest:
+    name: str = attrs.field(validator=validate_non_empty_string)
+    script: str = attrs.field(validator=validate_non_empty_string)
+    executable: Optional[str] = attrs.field(default=None)
+    manual: Optional[bool] = attrs.field(default=None)
+
+
+# ============================================================================
+# Template
+# ============================================================================
+
+
+@attrs.define
+class Template:
+    name: str = attrs.field(validator=validate_non_empty_string)
+    # Allow additional properties as a dict
+    additional_props: Dict[str, Any] = attrs.field(factory=dict)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Template":
+        """Create Template from dict, separating name from additional properties"""
+        name = data.pop("name")
+        return cls(name=name, additional_props=data)
+
+
+# ============================================================================
+# Auto Update
+# ============================================================================
+
+
+@attrs.define
+class AutoUpdate:
+    method: str = attrs.field()
+    sources: Optional[List[Dict[str, Any]]] = attrs.field(default=None)
+    container_version: Union[str, Dict[str, str], bool, None] = attrs.field(
+        default=None
+    )
+    version_variable: Optional[str] = attrs.field(default=None)
+    local: Optional[List[str]] = attrs.field(default=None)
+    repo: Optional[str] = attrs.field(default=None)
+    package: Optional[str] = attrs.field(default=None)
+    url: Optional[str] = attrs.field(default=None)
+    version_regex: Optional[str] = attrs.field(default=None)
+    version_scheme: Optional[str] = attrs.field(default=None)
+    include_prereleases: Optional[bool] = attrs.field(default=None)
+    assets: Optional[Dict[str, str]] = attrs.field(default=None)
+    tag_variable: Optional[str] = attrs.field(default=None)
+    mode: Optional[str] = attrs.field(default=None)
+    frozen: Optional[bool] = attrs.field(default=None)
+    reason: Optional[str] = attrs.field(default=None)
+
+    def __attrs_post_init__(self):
+        validate_direct_policy(
+            {
+                key: value
+                for key, value in attrs.asdict(self).items()
+                if value is not None
+            }
+        )
+
+
+# ============================================================================
+# Directive Base Classes
+# ============================================================================
+
+
+@attrs.define
+class EnvironmentDirective:
+    environment: Dict[str, str] = attrs.field()
+    condition: Optional[str] = attrs.field(default=None)
+
+
+@attrs.define
+class InstallDirective:
+    install: Union[str, List[str]] = attrs.field()
+    condition: Optional[str] = attrs.field(default=None)
+
+
+@attrs.define
+class WorkingDirectoryDirective:
+    workdir: str = attrs.field(validator=validate_non_empty_string)
+    condition: Optional[str] = attrs.field(default=None)
+
+
+@attrs.define
+class RunCommandDirective:
+    run: List[str] = attrs.field()
+    condition: Optional[str] = attrs.field(default=None)
+
+
+@attrs.define
+class VariableDirective:
+    variables: Dict[str, Any] = attrs.field()
+    condition: Optional[str] = attrs.field(default=None)
+
+
+@attrs.define
+class TemplateDirective:
+    template: Template = attrs.field()
+    condition: Optional[str] = attrs.field(default=None)
+
+
+@attrs.define
+class DeployDirective:
+    deploy: DeployInfo = attrs.field()
+    condition: Optional[str] = attrs.field(default=None)
+
+
+@attrs.define
+class UserDirective:
+    user: str = attrs.field(validator=validate_non_empty_string)
+    condition: Optional[str] = attrs.field(default=None)
+
+
+@attrs.define
+class CopyDirective:
+    copy: Union[List[str], str] = attrs.field()
+    from_image: Optional[str] = attrs.field(default=None)
+    from_platform: Optional[str] = attrs.field(default=None)
+    condition: Optional[str] = attrs.field(default=None)
+
+
+@attrs.define
+class FileDirective:
+    file: FileInfo = attrs.field()
+    condition: Optional[str] = attrs.field(default=None)
+
+
+@attrs.define
+class EntrypointDirective:
+    entrypoint: str = attrs.field(validator=validate_non_empty_string)
+    condition: Optional[str] = attrs.field(default=None)
+
+
+@attrs.define
+class IncludeDirective:
+    include: str = attrs.field()
+    condition: Optional[str] = attrs.field(default=None)
+
+    @include.validator
+    def _validate_include(self, attribute, value):
+        from builder.fragments import macro_path
+
+        macro_path(value)
+
+
+@attrs.define
+class BoutiquesDescriptor:
+    name: str = attrs.field(validator=validate_non_empty_string)
+    description: str = attrs.field(validator=validate_non_empty_string)
+    tool_version: str = attrs.field(validator=validate_non_empty_string)
+    schema_version: Literal["0.5"] = attrs.field()
+    command_line: str = attrs.field(validator=validate_non_empty_string)
+    inputs: List[Dict[str, Any]] = attrs.field()
+    # Allow additional properties
+    additional_props: Dict[str, Any] = attrs.field(factory=dict)
+
+
+@attrs.define
+class BoutiqueDirective:
+    boutique: BoutiquesDescriptor = attrs.field()
+    condition: Optional[str] = attrs.field(default=None)
+
+
+@attrs.define
+class GroupDirective:
+    group: List[Any] = attrs.field()  # Forward reference to Directive
+    condition: Optional[str] = attrs.field(default=None)
+    custom: Optional[str] = attrs.field(default=None)
+    customParams: Optional[Dict[str, Any]] = attrs.field(default=None)
+
+
+# ============================================================================
+# Build Recipe
+# ============================================================================
+
+
+@attrs.define
+class NeuroDockerBuildRecipe:
+    kind: Literal["neurodocker"] = attrs.field()
+    base_image: str = attrs.field(validator=validate_non_empty_string)
+    pkg_manager: str = attrs.field(validator=validate_non_empty_string)
+    directives: List[Any] = attrs.field()  # List of directives
+    add_default_template: Optional[bool] = attrs.field(default=None)
+    add_tzdata: Optional[bool] = attrs.field(default=None)
+    fix_locale_def: Optional[bool] = attrs.field(default=None)
+    convert_base_image: bool = attrs.field(
+        default=False, validator=attrs.validators.instance_of(bool)
+    )
+    flatten_base_image: bool = attrs.field(
+        default=False, validator=attrs.validators.instance_of(bool)
+    )
+
+
+@attrs.define
+class VariantConfig:
+    architecture: Optional[str] = attrs.field(
+        default=None, validator=attrs.validators.optional(validate_architecture)
+    )
+    architectures: Optional[List[str]] = attrs.field(default=None)
+    description: Optional[str] = attrs.field(default=None)
+    options: Optional[Dict[str, bool]] = attrs.field(default=None)
+
+    @architectures.validator
+    def _validate_architectures(self, attribute, value):
+        if value is None:
+            return
+        if not value:
+            raise ValueError("Variant architectures must not be empty")
+        for architecture in value:
+            validate_architecture(None, attribute, architecture)
+
+    def __attrs_post_init__(self):
+        if self.architecture is not None and self.architectures is not None:
+            raise ValueError("Variant must use architecture or architectures, not both")
+
+
+# ============================================================================
+# Main Container Recipe Schema
+# ============================================================================
+
+
+@attrs.define
+class ContainerRecipe:
+    name: str = attrs.field(validator=validate_recipe_name)
+    version: str = attrs.field(validator=validate_non_empty_string)
+    architectures: List[str] = attrs.field(validator=attrs.validators.min_len(1))
+    build: NeuroDockerBuildRecipe = attrs.field()
+    variants: Optional[Dict[str, VariantConfig]] = attrs.field(default=None)
+    build_default: bool = attrs.field(
+        default=True, validator=attrs.validators.instance_of(bool)
+    )
+    auto_update: Optional[AutoUpdate] = attrs.field(default=None)
+    icon: Optional[str] = attrs.field(default=None)
+    copyright: Optional[List[Union[CustomCopyrightInfo, SPDXCopyrightInfo]]] = (
+        attrs.field(default=None)
+    )
+    readme: Optional[str] = attrs.field(default=None)
+    readme_url: Optional[str] = attrs.field(
+        default=None, validator=attrs.validators.optional(validate_url)
+    )
+    structured_readme: Optional[StructuredReadme] = attrs.field(default=None)
+    files: Optional[List[FileInfo]] = attrs.field(default=None)
+    deploy: Optional[DeployInfo] = attrs.field(default=None)
+    tests: Optional[List[Union[BuiltinTest, ScriptTest]]] = attrs.field(default=None)
+    categories: Optional[List[str]] = attrs.field(default=None)
+    domains: Optional[List[str]] = attrs.field(default=None)
+    show_in_menu: Optional[bool] = attrs.field(default=None)
+    show_in_applist: Optional[bool] = attrs.field(default=None)
+    gui_apps: Optional[List[GUIApp]] = attrs.field(default=None)
+    apptainer_args: Optional[List[str]] = attrs.field(default=None)
+    draft: Optional[bool] = attrs.field(default=None)
+    description: Optional[str] = attrs.field(default=None)
+    options: Optional[Dict[str, Any]] = attrs.field(default=None)
+    variables: Optional[Dict[str, Any]] = attrs.field(default=None)
+    epoch: Optional[int] = attrs.field(default=None)
+
+    @architectures.validator
+    def _validate_architectures(self, attribute, value):
+        for arch in value:
+            if arch not in ARCHITECTURES:
+                raise ValueError(
+                    f"Architecture '{arch}' not supported. Must be one of: {ARCHITECTURES}"
+                )
+
+    @variants.validator
+    def _validate_variants(self, attribute, value):
+        if not value:
+            return
+        for name, variant in value.items():
+            if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", name):
+                raise ValueError(
+                    f"Variant name '{name}' must contain only lowercase letters, numbers, underscores, or hyphens"
+                )
+            if name == "arm64" or name.endswith("_arm64"):
+                raise ValueError(
+                    f"Variant name '{name}' conflicts with the automatic ARM64 suffix"
+                )
+            variant_architectures = variant.architectures or (
+                [variant.architecture] if variant.architecture else []
+            )
+            for architecture in variant_architectures:
+                if architecture not in self.architectures:
+                    raise ValueError(
+                        f"Variant '{name}' uses architecture '{architecture}', "
+                        "which is not listed in architectures"
+                    )
+            for option, enabled in (variant.options or {}).items():
+                if option not in (self.options or {}):
+                    raise ValueError(
+                        f"Variant '{name}' sets unknown recipe option '{option}'"
+                    )
+                if not isinstance(enabled, bool):
+                    raise ValueError(
+                        f"Variant '{name}' option '{option}' must be true or false"
+                    )
+
+    @categories.validator
+    def _validate_categories(self, attribute, value):
+        if not value:
+            raise ValueError("categories is required and must be a non-empty list")
+
+        for category in value:
+            if category not in LEGACY_CATEGORIES:
+                raise ValueError(
+                    f"Category '{category}' not supported. Must be one of: {LEGACY_CATEGORIES}"
+                )
+
+
+# ============================================================================
+# Validation Functions
+# ============================================================================
+
+
+def parse_directive_from_dict(directive_dict: Dict[str, Any]) -> Any:
+    """Parse a directive dict into the appropriate directive class"""
+    # Remove condition if present for processing
+    condition = directive_dict.get("condition")
+
+    if "environment" in directive_dict:
+        return EnvironmentDirective(
+            condition=condition, environment=directive_dict["environment"]
+        )
+    elif "install" in directive_dict:
+        return InstallDirective(condition=condition, install=directive_dict["install"])
+    elif "workdir" in directive_dict:
+        return WorkingDirectoryDirective(
+            condition=condition, workdir=directive_dict["workdir"]
+        )
+    elif "run" in directive_dict:
+        return RunCommandDirective(condition=condition, run=directive_dict["run"])
+    elif "variables" in directive_dict:
+        return VariableDirective(
+            condition=condition, variables=directive_dict["variables"]
+        )
+    elif "template" in directive_dict:
+        template = Template.from_dict(directive_dict["template"].copy())
+        return TemplateDirective(condition=condition, template=template)
+    elif "deploy" in directive_dict:
+        deploy_dict = directive_dict["deploy"].copy()
+        # Parse nested webapp if present
+        if "webapp" in deploy_dict and deploy_dict["webapp"]:
+            webapp_dict = deploy_dict["webapp"].copy()
+            # Parse nested additional_proxies
+            if (
+                "additional_proxies" in webapp_dict
+                and webapp_dict["additional_proxies"]
+            ):
+                proxies = [
+                    AdditionalProxy(**p) for p in webapp_dict["additional_proxies"]
+                ]
+                webapp_dict["additional_proxies"] = proxies
+            deploy_dict["webapp"] = WebappInfo(**webapp_dict)
+        deploy_info = DeployInfo(**deploy_dict)
+        return DeployDirective(condition=condition, deploy=deploy_info)
+    elif "user" in directive_dict:
+        return UserDirective(condition=condition, user=directive_dict["user"])
+    elif "copy" in directive_dict:
+        return CopyDirective(
+            condition=condition,
+            copy=directive_dict["copy"],
+            from_image=directive_dict.get("from_image"),
+            from_platform=directive_dict.get("from_platform"),
+        )
+    elif "file" in directive_dict:
+        file_info = FileInfo(**directive_dict["file"])
+        return FileDirective(condition=condition, file=file_info)
+    elif "test" in directive_dict:
+        raise ValueError(NESTED_TEST_DIRECTIVE_ERROR)
+    elif "include" in directive_dict:
+        return IncludeDirective(condition=condition, include=directive_dict["include"])
+    elif "entrypoint" in directive_dict:
+        return EntrypointDirective(
+            condition=condition, entrypoint=directive_dict["entrypoint"]
+        )
+    elif "boutique" in directive_dict:
+        # Handle boutique descriptor
+        boutique_data = directive_dict["boutique"].copy()
+        # Handle tool-version field (hyphenated in YAML)
+        if "tool-version" in boutique_data:
+            boutique_data["tool_version"] = boutique_data.pop("tool-version")
+        if "schema-version" in boutique_data:
+            boutique_data["schema_version"] = boutique_data.pop("schema-version")
+        if "command-line" in boutique_data:
+            boutique_data["command_line"] = boutique_data.pop("command-line")
+
+        # Extract core fields
+        core_fields = [
+            "name",
+            "description",
+            "tool_version",
+            "schema_version",
+            "command_line",
+            "inputs",
+        ]
+        core_data = {k: boutique_data.pop(k) for k in core_fields if k in boutique_data}
+
+        boutique_descriptor = BoutiquesDescriptor(
+            **core_data, additional_props=boutique_data
+        )
+        return BoutiqueDirective(condition=condition, boutique=boutique_descriptor)
+    elif "group" in directive_dict:
+        # Handle group directive recursively
+        group_directives = []
+        for group_item in directive_dict["group"]:
+            group_directives.append(parse_directive_from_dict(group_item))
+
+        return GroupDirective(
+            condition=condition,
+            custom=directive_dict.get("custom"),
+            customParams=directive_dict.get("customParams"),
+            group=group_directives,
+        )
+    else:
+        raise ValueError(f"Unknown directive type in: {directive_dict}")
+
+
+def parse_copyright_from_dict(
+    copyright_dict: Dict[str, Any],
+) -> Union[CustomCopyrightInfo, SPDXCopyrightInfo]:
+    """Parse copyright dict into appropriate copyright class"""
+    if "license" in copyright_dict:
+        return SPDXCopyrightInfo(**copyright_dict)
+    elif "name" in copyright_dict:
+        if not copyright_dict.get("url"):
+            raise ValueError("Custom license metadata must include a nonempty URL")
+        return CustomCopyrightInfo(**copyright_dict)
+    else:
+        raise ValueError(
+            "Copyright entry must have either 'license' (SPDX) or 'name' (custom) field"
+        )
+
+
+def parse_test_from_dict(test_dict: Dict[str, Any]) -> Union[BuiltinTest, ScriptTest]:
+    """Parse test dict into appropriate test class"""
+    if "builtin" in test_dict:
+        return BuiltinTest(**test_dict)
+    elif "script" in test_dict:
+        return ScriptTest(**test_dict)
+    else:
+        raise ValueError("Test must have either 'builtin' or 'script' field")
+
+
+def validate_recipe_dict(
+    recipe_dict: Dict[str, Any], *, strict_metadata: bool = True
+) -> ContainerRecipe:
+    """
+    Validate a recipe dictionary and return a ContainerRecipe instance.
+
+    Args:
+        recipe_dict: Dictionary loaded from YAML
+        strict_metadata: Require current UI categories and an inline base64 icon
+
+    Returns:
+        ContainerRecipe instance
+
+    Raises:
+        ValueError: If validation fails
+    """
+    try:
+        # Make a copy to avoid modifying the original
+        recipe_copy = recipe_dict.copy()
+
+        validate_recipe_template_syntax(recipe_copy)
+
+        # Parse copyright if present
+        if "copyright" in recipe_copy and recipe_copy["copyright"]:
+            copyright_list = []
+            for copyright_item in recipe_copy["copyright"]:
+                copyright_obj = parse_copyright_from_dict(copyright_item)
+                copyright_list.append(copyright_obj)
+            recipe_copy["copyright"] = copyright_list
+
+        # Parse structured_readme if present
+        if "structured_readme" in recipe_copy and recipe_copy["structured_readme"]:
+            structured_readme_dict = recipe_copy["structured_readme"].copy()
+            structured_readme_dict.setdefault("documentation", "")
+            structured_readme_dict.setdefault("citation", "")
+            recipe_copy["structured_readme"] = StructuredReadme(
+                **structured_readme_dict
+            )
+
+        # parse auto_update if present
+        if "auto_update" in recipe_copy and recipe_copy["auto_update"]:
+            recipe_copy["auto_update"] = AutoUpdate(**recipe_copy["auto_update"])
+        else:
+            recipe_copy["auto_update"] = None
+
+        # Parse build recipe
+        build_dict = recipe_copy["build"].copy()
+
+        # Handle hyphenated field names
+        if "base-image" in build_dict:
+            build_dict["base_image"] = build_dict.pop("base-image")
+        if "pkg-manager" in build_dict:
+            build_dict["pkg_manager"] = build_dict.pop("pkg-manager")
+        if "add-default-template" in build_dict:
+            build_dict["add_default_template"] = build_dict.pop("add-default-template")
+        if "add-tzdata" in build_dict:
+            build_dict["add_tzdata"] = build_dict.pop("add-tzdata")
+        if "fix-locale-def" in build_dict:
+            build_dict["fix_locale_def"] = build_dict.pop("fix-locale-def")
+        if "flatten-base-image" in build_dict:
+            build_dict["flatten_base_image"] = build_dict.pop("flatten-base-image")
+        if "convert-base-image" in build_dict:
+            build_dict["convert_base_image"] = build_dict.pop("convert-base-image")
+
+        # Parse directives
+        directives = []
+        for directive_dict in build_dict["directives"]:
+            directive_obj = parse_directive_from_dict(directive_dict)
+            directives.append(directive_obj)
+        build_dict["directives"] = directives
+
+        build_recipe = NeuroDockerBuildRecipe(**build_dict)
+        recipe_copy["build"] = build_recipe
+
+        if "variants" in recipe_copy and recipe_copy["variants"]:
+            recipe_copy["variants"] = {
+                str(name): VariantConfig(**config)
+                for name, config in recipe_copy["variants"].items()
+            }
+
+        # Parse files if present
+        if "files" in recipe_copy and recipe_copy["files"]:
+            files_list = []
+            for file_dict in recipe_copy["files"]:
+                file_obj = FileInfo(**file_dict)
+                files_list.append(file_obj)
+            recipe_copy["files"] = files_list
+
+        # Parse deploy if present
+        if "deploy" in recipe_copy and recipe_copy["deploy"]:
+            deploy_dict = recipe_copy["deploy"].copy()
+            # Parse nested webapp if present
+            if "webapp" in deploy_dict and deploy_dict["webapp"]:
+                webapp_dict = deploy_dict["webapp"].copy()
+                # Parse nested additional_proxies
+                if (
+                    "additional_proxies" in webapp_dict
+                    and webapp_dict["additional_proxies"]
+                ):
+                    proxies = [
+                        AdditionalProxy(**p) for p in webapp_dict["additional_proxies"]
+                    ]
+                    webapp_dict["additional_proxies"] = proxies
+                deploy_dict["webapp"] = WebappInfo(**webapp_dict)
+            recipe_copy["deploy"] = DeployInfo(**deploy_dict)
+
+        # Parse tests if present
+        if "tests" in recipe_copy and recipe_copy["tests"]:
+            tests_list = []
+            for test_dict in recipe_copy["tests"]:
+                test_obj = parse_test_from_dict(test_dict)
+                tests_list.append(test_obj)
+            recipe_copy["tests"] = tests_list
+
+        # Parse gui_apps if present
+        if "gui_apps" in recipe_copy and recipe_copy["gui_apps"]:
+            gui_apps_list = []
+            for gui_app_dict in recipe_copy["gui_apps"]:
+                gui_app_obj = GUIApp(**gui_app_dict)
+                gui_apps_list.append(gui_app_obj)
+            recipe_copy["gui_apps"] = gui_apps_list
+
+        # Create and return the container recipe
+        recipe = ContainerRecipe(**recipe_copy)
+        from builder.versioning import validate_container_version
+
+        validate_container_version(recipe_dict)
+        if strict_metadata:
+            validate_recipe_metadata(recipe_dict)
+        return recipe
+
+    except Exception as e:
+        raise ValueError(f"Recipe validation failed: {str(e)}")
+
+
+def validate_recipe_file(
+    file_path: str, *, strict_metadata: bool = True
+) -> ContainerRecipe:
+    """
+    Validate a YAML recipe file.
+
+    Args:
+        file_path: Path to the YAML file
+        strict_metadata: Require current UI categories and an inline base64 icon
+
+    Returns:
+        ContainerRecipe instance
+
+    Raises:
+        ValueError: If validation fails
+        FileNotFoundError: If file doesn't exist
+    """
+    try:
+        with open(file_path, "r") as f:
+            recipe_dict = yaml.safe_load(f)
+
+        if not recipe_dict:
+            raise ValueError("Recipe file is empty or invalid YAML")
+
+        recipe = validate_recipe_dict(recipe_dict, strict_metadata=strict_metadata)
+
+        recipe_path = Path(file_path)
+        from builder.fragments import validate_macro_tree
+
+        roots = (Path(__file__).resolve().parents[1],)
+        for parent in recipe_path.resolve().parents:
+            if (parent / "macros").is_dir():
+                roots = (parent,)
+                break
+        validate_macro_tree(recipe_dict["build"]["directives"], roots)
+        if recipe_path.name in {"build.yaml", "build.yml"}:
+            fulltest_path = recipe_path.with_name("fulltest.yaml")
+            if fulltest_path.is_file():
+                validate_fulltest_contract(
+                    fulltest_path,
+                    recipe_name=recipe.name,
+                    recipe_version=recipe.version,
+                )
+
+        return recipe
+
+    except yaml.YAMLError as e:
+        raise ValueError(f"Invalid YAML syntax: {str(e)}")
+    except FileNotFoundError as error:
+        raise FileNotFoundError(f"{file_path}: {error}") from error
+
+
+def get_validation_errors(
+    recipe_dict: Dict[str, Any], *, strict_metadata: bool = True
+) -> List[str]:
+    """
+    Get a list of validation errors for a recipe without raising exceptions.
+
+    Args:
+        recipe_dict: Dictionary loaded from YAML
+        strict_metadata: Require current UI categories and an inline base64 icon
+
+    Returns:
+        List of error messages (empty if valid)
+    """
+    try:
+        validate_recipe_dict(recipe_dict, strict_metadata=strict_metadata)
+        return []
+    except ValueError as e:
+        return [str(e)]
+    except Exception as e:
+        return [f"Unexpected validation error: {str(e)}"]
+
+
+if __name__ == "__main__":
+    import sys
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Validate neurocontainer YAML recipes")
+    parser.add_argument("file", help="Path to YAML recipe file to validate")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+
+    args = parser.parse_args()
+
+    try:
+        from builder.audit_updates import validate_update_policy
+
+        with open(args.file, encoding="utf-8") as handle:
+            validate_update_policy(yaml.safe_load(handle), recipe_path=Path(args.file))
+        recipe = validate_recipe_file(args.file)
+        print(f"✓ Recipe {recipe.name} v{recipe.version} is valid")
+        if args.verbose:
+            print(f"  - Name: {recipe.name}")
+            print(f"  - Version: {recipe.version}")
+            print(f"  - Architectures: {recipe.architectures}")
+            if recipe.categories:
+                print(f"  - Categories: {recipe.categories}")
+    except (ValueError, FileNotFoundError) as e:
+        print(f"✗ Validation failed: {e}")
+        sys.exit(1)

@@ -1,0 +1,443 @@
+from __future__ import annotations
+
+import io
+import shlex
+import subprocess
+import tarfile
+from pathlib import Path
+
+import pytest
+import yaml
+
+from builder.ir import Env, Run, RunWithMounts
+from builder.dockerfile import render_directive, render_dockerfile
+from builder.template import RenderContext, TemplateError, TemplateRenderer
+from builder.recipe import compile_recipe
+from builder.staging import DeclaredFile
+from builder.tests.template_helpers import apply_builtin_template
+
+
+def test_strict_context_rendering() -> None:
+    renderer = TemplateRenderer()
+    context = RenderContext(name="tool", version="1.2.3", arch="x86_64")
+    assert (
+        renderer.render_string("{{ context.version }} {{ arch }}", context)
+        == "1.2.3 x86_64"
+    )
+
+
+def test_get_file_requires_declared_file() -> None:
+    renderer = TemplateRenderer()
+    context = RenderContext(name="tool", version="1.2.3", arch="x86_64")
+    with pytest.raises(TemplateError):
+        renderer.render_string('{{ get_file("missing") }}', context)
+
+
+def test_get_local_mounts_requested_context_once() -> None:
+    renderer = TemplateRenderer()
+    context = RenderContext(
+        name="tool",
+        version="1.2.3",
+        arch="x86_64",
+        local_keys={"src"},
+    )
+    with context.mount_scope("local-inputs") as scope:
+        assert (
+            renderer.render_string('{{ get_local("src") }}', context)
+            == "/.neurocontainer-local/src"
+        )
+        renderer.render_string('{{ get_local("src") }}', context)
+    assert scope.mounts == (
+        "--mount=type=bind,from=src,source=/,target=/.neurocontainer-local/src,readonly",
+    )
+
+
+def test_failed_render_restores_mount_scope() -> None:
+    renderer = TemplateRenderer()
+    context = RenderContext(
+        name="tool", version="1.2.3", arch="x86_64", local_keys={"src"}
+    )
+    context.staging_plan.add_file(DeclaredFile(name="payload", contents="payload"))
+    with context.mount_scope("outer") as outer:
+        with pytest.raises(TemplateError):
+            with context.mount_scope("failed"):
+                renderer.render_string(
+                    '{{ get_file("payload") }} {{ context.missing }}', context
+                )
+        assert (
+            renderer.render_string('{{ get_file("payload") }}', context)
+            == "/.neurocontainer-cache/outer/payload"
+        )
+    assert outer.mounts == (
+        "--mount=type=bind,from=neurocontainer-cache,source=/outer,"
+        "target=/.neurocontainer-cache/outer,readonly",
+    )
+    assert (
+        renderer.render_string('{{ get_file("payload") }}', context)
+        == "/.neurocontainer-cache/payload"
+    )
+    with context.mount_scope("next") as next_scope:
+        renderer.render_string('{{ get_local("src") }}', context)
+    assert next_scope.mounts == (
+        "--mount=type=bind,from=src,source=/,target=/.neurocontainer-local/src,readonly",
+    )
+
+
+def test_conditional_fixture_resolves_arch_variable() -> None:
+    fixture = Path(__file__).resolve().parent / "fixtures" / "conditional"
+    compiled = compile_recipe(fixture, architecture="x86_64")
+    assert any(
+        getattr(item, "values", {}).get("SELECTED_PACKAGE") == "curl"
+        for item in compiled.definition.directives
+    )
+
+
+def test_builtin_templates_are_native_directive_format() -> None:
+    template_dir = Path(__file__).resolve().parents[1] / "templates"
+    assert sorted(path.stem for path in template_dir.glob("*.yaml")) == [
+        "afni",
+        "ants",
+        "bids_validator",
+        "convert3d",
+        "dcm2niix",
+        "freesurfer",
+        "fsl",
+        "matlabmcr",
+        "minc",
+        "miniconda",
+        "mrtrix3",
+        "spm12",
+    ]
+    for path in template_dir.glob("*.yaml"):
+        data = yaml.safe_load(path.read_text())
+        for method in ("binaries", "source"):
+            method_data = data.get(method)
+            if not isinstance(method_data, dict):
+                continue
+            assert method_data.get("builder") == "neurodocker", (
+                f"{path.name}:{method} has no macro builder"
+            )
+            assert "env" not in method_data, (
+                f"{path.name}:{method} still uses legacy env"
+            )
+            assert "instructions" not in method_data, (
+                f"{path.name}:{method} still uses legacy instructions"
+            )
+            assert isinstance(method_data.get("directives"), list), (
+                f"{path.name}:{method} has no directives"
+            )
+
+
+def test_bids_validator_template_installs_setuptools_on_apt() -> None:
+    path = Path(__file__).resolve().parents[1] / "templates" / "bids_validator.yaml"
+    data = yaml.safe_load(path.read_text())
+    apt_dependencies = data["binaries"]["dependencies"]["apt"]
+    assert "python3-setuptools" in apt_dependencies
+
+
+@pytest.mark.parametrize("method", ["binaries", "source"])
+def test_mrtrix_template_preserves_existing_library_search_path(method) -> None:
+    directives = []
+    apply_builtin_template(
+        "mrtrix3", {"version": "3.0.4", "method": method}, "apt", directives.append
+    )
+    library_path = next(
+        item.values["LD_LIBRARY_PATH"]
+        for item in directives
+        if isinstance(item, Env) and "LD_LIBRARY_PATH" in item.values
+    )
+    result = subprocess.run(
+        [
+            "/bin/sh",
+            "-c",
+            f'export LD_LIBRARY_PATH="{library_path}"; printenv LD_LIBRARY_PATH',
+        ],
+        env={"PATH": "/usr/bin:/bin", "LD_LIBRARY_PATH": "/existing/libraries"},
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    assert result.stdout.strip() == "/opt/mrtrix3-3.0.4/lib:/existing/libraries"
+
+
+@pytest.mark.parametrize("options", [None, "", "-nogui -debug"])
+def test_mrtrix_source_template_configure_options(options) -> None:
+    directives = []
+    arguments = {"version": "3.0.4", "method": "source"}
+    if options is not None:
+        arguments["configure_options"] = options
+    apply_builtin_template("mrtrix3", arguments, "apt", directives.append)
+    command = "\n".join(item.command for item in directives if isinstance(item, Run))
+    configure = next(
+        line for line in command.splitlines() if "python3 configure" in line
+    )
+    expected = "-nogui" if options is None else options
+    assert shlex.split(configure) == ["python3", "configure", *shlex.split(expected)]
+
+
+@pytest.mark.parametrize("version", ["6.0.6", "6.0.7.99", "7.0.0"])
+def test_fsl_template_installs_new_versions_without_a_url_table_entry(version) -> None:
+    directives = []
+    apply_builtin_template("fsl", {"version": version}, "apt", directives.append)
+    command = "\n".join(item.command for item in directives if isinstance(item, Run))
+    installer = next(line for line in command.splitlines() if "curl -fsSL" in line)
+
+    assert shlex.split(installer) == [
+        "curl",
+        "-fsSL",
+        "https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fslinstaller.py",
+        "|",
+        "python3",
+        "-",
+        "-d",
+        f"/opt/fsl-{version}",
+        "-V",
+        version,
+    ]
+    assert "fslpython_install.sh" not in command
+
+
+def test_fsl_template_accepts_a_custom_installer_url() -> None:
+    directives = []
+    url = "https://mirror.example.org/fslinstaller.py?revision=1&format=python"
+    apply_builtin_template(
+        "fsl",
+        {"version": "6.0.7.99", "fslinstaller_url": url},
+        "apt",
+        directives.append,
+    )
+    command = "\n".join(item.command for item in directives if isinstance(item, Run))
+    installer = next(line for line in command.splitlines() if "curl -fsSL" in line)
+
+    assert shlex.split(installer)[2] == url
+    assert f'"{url}"' in installer
+
+
+def test_fsl_template_keeps_legacy_archive_installation() -> None:
+    directives = []
+    apply_builtin_template("fsl", {"version": "6.0.5.1"}, "apt", directives.append)
+    command = "\n".join(item.command for item in directives if isinstance(item, Run))
+
+    assert (
+        "curl -fL https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.5.1-centos7_64.tar.gz"
+    ) in command
+    assert "tar -xz -C /opt/fsl-6.0.5.1 --strip-components 1" in command
+    assert "bash /opt/fsl-6.0.5.1/etc/fslconf/fslpython_install.sh" in command
+    assert "python3 - -d" not in command
+
+
+def test_miniconda_template_bootstraps_python_and_pip_for_pip_install() -> None:
+    directives: list[Run] = []
+    apply_builtin_template(
+        "miniconda",
+        {
+            "version": "latest",
+            "env_name": "testenv",
+            "env_exists": "false",
+            "pip_install": "examplepkg",
+            "arch": "aarch64",
+        },
+        "apt",
+        directives.append,
+    )
+    command = "\n".join(item.command for item in directives if isinstance(item, Run))
+    assert 'bash -c "source activate testenv' in command
+    assert "if ! python -m pip --version >/dev/null 2>&1; then" in command
+    assert "conda install -y" in command
+    assert "--name testenv python pip" in command
+
+
+def test_miniconda_template_escapes_pip_packages_inside_bash_c() -> None:
+    compiled = compile_recipe(
+        Path(__file__).resolve().parent / "fixtures" / "miniconda_pip_install",
+        architecture="x86_64",
+    )
+    dockerfile = render_dockerfile(compiled.definition)
+
+    assert '\\"examplepkg==1.2.3\\"' in dockerfile
+    assert '"examplepkg==1.2.3""' not in dockerfile
+
+
+def test_miniconda_template_guards_conda_tos_for_older_installers() -> None:
+    directives: list[Run] = []
+    apply_builtin_template(
+        "miniconda",
+        {
+            "version": "py37_4.12.0",
+            "arch": "x86_64",
+        },
+        "apt",
+        directives.append,
+    )
+    command = "\n".join(item.command for item in directives if isinstance(item, Run))
+    assert "if conda tos --help >/dev/null 2>&1; then conda tos accept; fi;" in command
+    assert "\nconda tos accept\n" not in command
+
+
+def test_miniconda_template_latest_chains_update_after_tos_guard() -> None:
+    directives: list[Run] = []
+    apply_builtin_template(
+        "miniconda",
+        {
+            "version": "latest",
+            "arch": "x86_64",
+        },
+        "apt",
+        directives.append,
+    )
+    command = "\n".join(item.command for item in directives if isinstance(item, Run))
+    assert "if conda tos --help >/dev/null 2>&1; then conda tos accept; fi;" in command
+    assert "\nconda update -yq -nbase conda" in command
+    assert "\n&& conda update -yq -nbase conda" not in command
+    dockerfile_run = "\n".join(
+        render_directive(next(item for item in directives if isinstance(item, Run)))
+    )
+    assert "then conda tos accept; fi; \\\n       conda update" in dockerfile_run
+
+
+def test_miniconda_template_mamba_chains_after_tos_guard() -> None:
+    directives: list[Run] = []
+    apply_builtin_template(
+        "miniconda",
+        {
+            "version": "py39_24.7.1-0",
+            "mamba": "true",
+            "arch": "x86_64",
+        },
+        "apt",
+        directives.append,
+    )
+    command = "\n".join(item.command for item in directives if isinstance(item, Run))
+    assert "\nconda install -yq -nbase conda-libmamba-solver" in command
+    assert "\nconda config --set solver libmamba" in command
+    assert "\n&& conda install -yq -nbase conda-libmamba-solver" not in command
+    assert "\n&& conda config --set solver libmamba" not in command
+    dockerfile_run = "\n".join(
+        render_directive(next(item for item in directives if isinstance(item, Run)))
+    )
+    assert "then conda tos accept; fi; \\\n       conda install" in dockerfile_run
+    assert "\n    && conda config --set solver libmamba" in dockerfile_run
+
+
+def test_miniconda_template_pinned_default_chains_after_tos_guard() -> None:
+    directives: list[Run] = []
+    apply_builtin_template(
+        "miniconda",
+        {
+            "version": "py313_26.3.2-2",
+            "conda_install": "python=3.12",
+            "arch": "x86_64",
+        },
+        "apt",
+        directives.append,
+    )
+    dockerfile_run = "\n".join(
+        render_directive(next(item for item in directives if isinstance(item, Run)))
+    )
+    assert not any(line.strip().startswith("#") for line in dockerfile_run.splitlines())
+
+    shell_command = dockerfile_run.removeprefix("RUN ").replace("\\\n", " ")
+    result = subprocess.run(
+        ["/bin/sh", "-n", "-c", shell_command],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_matlabmcr_template_uses_release_named_runtime_dirs_for_r2023b() -> None:
+    directives = []
+    apply_builtin_template(
+        "matlabmcr",
+        {"version": "2023b", "install_path": "/opt/mcr"},
+        "apt",
+        directives.append,
+    )
+    env = next(item.values for item in directives if isinstance(item, Env))
+    assert "/opt/mcr/R2023b/runtime/glnxa64" in env["LD_LIBRARY_PATH"]
+    assert env["MATLABCMD"].strip() == "/opt/mcr/R2023b/toolbox/matlab"
+    assert env["MCRROOT"].strip() == "/opt/mcr/R2023b"
+    assert env["XAPPLRESDIR"].strip() == "/opt/mcr/R2023b/x11/app-defaults"
+
+
+def test_matlabmcr_template_allows_legacy_ncurses_package() -> None:
+    directives = []
+    apply_builtin_template(
+        "matlabmcr",
+        {
+            "version": "2019b",
+            "install_path": "/opt/mcr",
+            "ncurses_package": "libncurses5",
+        },
+        "apt",
+        directives.append,
+    )
+    command = "\n".join(item.command for item in directives if isinstance(item, Run))
+    assert "libncurses5" in command
+    assert "libncurses6" not in command
+
+
+def test_matlabmcr_rejects_unmapped_runtime_before_building() -> None:
+    with pytest.raises(ValueError, match="Unsupported MATLAB Runtime release"):
+        apply_builtin_template("matlabmcr", {"version": "2099a"}, "apt", lambda _: None)
+
+
+def test_freesurfer_extracts_cached_archive_without_downloading(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from builder.template_backend import TemplateMethod
+
+    archive = tmp_path / "freesurfer archive.tar.gz"
+    with tarfile.open(archive, "w:gz") as handle:
+        for name in ("bin/recon-all", "subjects/bert/omitted"):
+            payload = b"fixture data"
+            entry = tarfile.TarInfo(f"freesurfer/{name}")
+            entry.size = len(payload)
+            handle.addfile(entry, io.BytesIO(payload))
+    destination = tmp_path / "installed"
+    monkeypatch.setattr(TemplateMethod, "install_dependencies", lambda self: ":")
+    directives = []
+    apply_builtin_template(
+        "freesurfer",
+        {"version": "7.4.1", "install_path": str(destination), "archive": str(archive)},
+        "apt",
+        directives.append,
+    )
+    command = next(item.command for item in directives if isinstance(item, Run))
+    subprocess.run(
+        ["bash", "-e", "-c", "curl() { return 97; }; " + command], check=True
+    )
+    assert (destination / "bin/recon-all").read_bytes() == b"fixture data"
+    assert not (destination / "subjects/bert").exists()
+
+
+def test_template_file_parameter_mounts_declared_archive(tmp_path: Path) -> None:
+    recipe = yaml.safe_load(
+        (Path(__file__).parent / "fixtures/conditional/build.yaml").read_text()
+    )
+    recipe["files"] = [{"name": "archive", "filename": "archive.tar.gz"}]
+    recipe["build"]["directives"] = [
+        {
+            "template": {
+                "name": "freesurfer",
+                "version": "7.4.1",
+                "archive": '{{ get_file("archive") }}',
+            }
+        }
+    ]
+    (tmp_path / "build.yaml").write_text(yaml.safe_dump(recipe))
+    (tmp_path / "archive.tar.gz").write_bytes(b"archive fixture")
+    compiled = compile_recipe(tmp_path, architecture="x86_64")
+    extraction = next(
+        item
+        for item in compiled.definition.directives
+        if isinstance(item, (Run, RunWithMounts)) and "tar -xzf" in item.command
+    )
+    assert isinstance(extraction, RunWithMounts)
+    mount = extraction.mounts[0]
+    assert "from=neurocontainer-cache" in mount
+    target = mount.split("target=", 1)[1].split(",", 1)[0]
+    cache_id = target.rsplit("/", 1)[1]
+    guest = compiled.staging_plan.cache_mounts[cache_id]["archive"]
+    assert f"{target}/{guest}" in extraction.command
