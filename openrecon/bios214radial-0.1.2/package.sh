@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-NEUROCONTAINERS_ROOT="${1:?Usage: bash package.sh /path/to/neurocontainers}"
 command -v uv >/dev/null
 command -v 7z >/dev/null
-bash "${ROOT}/build.sh" "${NEUROCONTAINERS_ROOT}"
+bash "${ROOT}/build.sh"
 BUILD_DIR="${ROOT}/build/package"
 VENV="${ROOT}/build/package-venv"
 if [ ! -x "${VENV}/bin/python" ]; then
@@ -16,8 +15,8 @@ RECIPE="${BUILD_DIR}/recipes/bios214radial"
 mkdir -p "${RECIPE}" "${ROOT}/dist"
 cp "${ROOT}/vendor/openrecon/recipes/"*.py "${BUILD_DIR}/recipes/"
 cp "${ROOT}/vendor/openrecon/recipes/"{build.sh,OpenReconSchema_1.1.0.json} "${BUILD_DIR}/recipes/"
-cp "${NEUROCONTAINERS_ROOT}/recipes/bios214radial/OpenReconLabel.json" "${RECIPE}/"
-cp "${NEUROCONTAINERS_ROOT}/recipes/bios214radial/OpenReconREADME.md" "${RECIPE}/README.md"
+cp "${ROOT}/recipe/OpenReconLabel.json" "${RECIPE}/"
+cp "${ROOT}/recipe/OpenReconREADME.md" "${RECIPE}/README.md"
 cp "${ROOT}/packaging/params.sh" "${RECIPE}/"
 uv run --no-project --python "${VENV}/bin/python" "${ROOT}/packaging/make_docs.py" \
     "${RECIPE}/README.md" "${RECIPE}/docs.pdf"
