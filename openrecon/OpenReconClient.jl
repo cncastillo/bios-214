@@ -1,136 +1,131 @@
 module OpenReconClient
-
 using Sockets
 using KomaMRIFiles: MRIFiles
+export start, recon, stop
 
-export start, recon, stop, reconstruct, recon_docker
+const server = Ref{Any}(nothing)
+const MRD_MESSAGE_CONFIG_FILE = UInt16(1)
+const MRD_MESSAGE_METADATA_XML_TEXT = UInt16(3)
+const MRD_MESSAGE_CLOSE = UInt16(4)
+const MRD_MESSAGE_TEXT = UInt16(5)
+const MRD_MESSAGE_ISMRMRD_ACQUISITION = UInt16(1008)
+const MRD_MESSAGE_ISMRMRD_IMAGE = UInt16(1022)
+const MRD_CONFIG_NAME_LENGTH = 1024
+const ISMRMRD_IMAGE_HEADER_SIZE = 198
+const ISMRMRD_DATA_TYPES = (UInt16, Int16, UInt32, Int32, Float32, Float64, ComplexF32, ComplexF64)
+const ISMRMRD_IMAGE_HEADER = (
+    version=UInt16, data_type=UInt16, flags=UInt64, measurement_uid=UInt32,
+    matrix_size=NTuple{3,UInt16}, field_of_view=NTuple{3,Float32}, channels=UInt16,
+    position=NTuple{3,Float32}, read_dir=NTuple{3,Float32}, phase_dir=NTuple{3,Float32},
+    slice_dir=NTuple{3,Float32}, patient_table_position=NTuple{3,Float32},
+    average=UInt16, slice=UInt16, contrast=UInt16, phase=UInt16, repetition=UInt16, set=UInt16,
+    acquisition_time_stamp=UInt32, physiology_time_stamp=NTuple{3,UInt32},
+    image_type=UInt16, image_index=UInt16, image_series_index=UInt16,
+    user_int=NTuple{8,Int32}, user_float=NTuple{8,Float32}, attribute_string_len=UInt32,
+)
 
-struct Server
-    container::String
-    port::Int
-    image::String
-end
-
-const server = Ref{Union{Nothing,Server}}(nothing)
-
-function send_raw(socket, raw, config)
-    name = zeros(UInt8, 1024)
-    name[1:ncodeunits(config)] .= codeunits(config)
-    write(socket, UInt16(1), name)
-    xml = MRIFiles.GeneralParametersToXML(deepcopy(raw.params)) * '\0'
-    write(socket, UInt16(3), UInt32(ncodeunits(xml)), xml)
-    for profile in raw.profiles
-        header = IOBuffer()
-        write(header, profile.head)
-        write(socket, UInt16(1008), take!(header), profile.traj, profile.data)
-    end
-    write(socket, UInt16(4))
-end
-
-function receive_image(socket)
-    header = IOBuffer(read(socket, 198))
-    seek(header, 2)
-    read(header, UInt16) == 5 || error("Expected a Float32 image from this reconstruction")
-    seek(header, 16)
-    matrix = ntuple(_ -> Int(read(header, UInt16)), 3)
-    fov_mm = ntuple(_ -> read(header, Float32), 3)
-    channels = Int(read(header, UInt16))
-    matrix[3] == channels == 1 || error("Expected one 2D magnitude image")
-    metadata = String(read(socket, Int(read(socket, UInt64))))
-    pixels = Vector{Float32}(undef, prod(matrix) * channels)
-    read!(socket, pixels)
-    image = permutedims(reshape(pixels, matrix[1], matrix[2]))
-    return (; image, fov_mm, metadata)
-end
-
-"""Send Koma RawAcquisitionData unchanged and return the MRD images as Julia arrays."""
-function reconstruct(raw; host=ip"127.0.0.1", port=9002, config="bios214radial", timeout=180)
-    socket = connect(host, port)
-    timer = Timer(_ -> close(socket), timeout)
-    sender = @async try
-        send_raw(socket, raw, config)
-    catch
-        close(socket)
-        rethrow()
-    end
-    images = @NamedTuple{image::Matrix{Float32}, fov_mm::NTuple{3,Float32}, metadata::String}[]
+_running(container) = strip(read(pipeline(ignorestatus(`docker inspect --format "{{.State.Running}}" $container`); stderr=devnull), String)) == "true"
+function _ready(port)
+    socket = try connect(ip"127.0.0.1", port) catch; return false end
+    probe = @async try eof(socket) catch; true end
     try
-        while true
-            message = read(socket, UInt16)
-            message == 4 && break
-            if message == 1022
-                push!(images, receive_image(socket))
-            elseif message == 5
-                @info rstrip(String(read(socket, Int(read(socket, UInt32)))), '\0')
-            else
-                error("Unexpected MRD message: $message")
-            end
-        end
-        wait(sender)
-        isempty(images) && error("The MRD server returned no images")
-        return images
+        return timedwait(() -> istaskdone(probe), 0.1; pollint=0.01) == :timed_out || !fetch(probe)
     finally
-        close(timer)
         close(socket)
+        wait(probe)
     end
 end
 
-"""Start one OpenRecon container, or reuse it if already started. Accepts a local or GHCR image."""
-function start(; image=nothing)
+function start(; image=nothing, port=nothing)
     current = server[]
-    if current !== nothing
-        image === nothing || image == current.image ||
-            error("OpenRecon is already running; call OpenReconClient.stop() before changing images")
+    if current !== nothing && _running(current.container)
+        (image === nothing || image == current.image) && (port === nothing || port == current.port) ||
+            error("Call OpenReconClient.stop() before changing image or port")
+        _ready(current.port) || error("OpenRecon is not accepting TCP connections")
         return nothing
     end
-    image = something(image, "ghcr.io/mcgrathcm/bios214-radial:0.1.2-build-3")
-    container = strip(read(`docker run --rm -d --platform linux/amd64
-                            -p 127.0.0.1::9002 $image`, String))
+    image = something(image, current === nothing ? "ghcr.io/mcgrathcm/bios214-radial:0.1.2-build-3" : current.image)
+    server[] = nothing
+    container = strip(read(`docker run --rm -d --platform linux/amd64 -p 127.0.0.1:$(something(port, "")):9002 $image`, String))
     try
-        ready = timedwait(() -> occursin("Serving...", read(`docker logs $container`, String)),
-                          60; pollint=0.5)
-        ready == :ok || error("MRD server did not start")
-        address = strip(read(`docker port $container 9002/tcp`, String))
-        port = parse(Int, last(split(address, ':')))
-        server[] = Server(container, port, image)
+        port = parse(Int, last(split(strip(read(`docker port $container 9002/tcp`, String)), ':')))
+        ready = timedwait(60; pollint=0.5) do
+            _running(container) || error("OpenRecon container exited during startup")
+            _ready(port)
+        end
+        ready == :ok || error("OpenRecon did not start accepting TCP connections")
+        server[] = (; container, port, image)
     catch
-        @error "OpenRecon container output" log=read(ignorestatus(`docker logs $container`), String)
+        @error "OpenRecon" log=read(ignorestatus(`docker logs $container`), String)
         run(ignorestatus(`docker stop $container`))
         rethrow()
     end
     return nothing
 end
 
-"""Reconstruct raw data using the running server and return one Float32[y,x] matrix."""
-function recon(raw; timeout=180)
+function _image(socket)
+    io = IOBuffer(read(socket, ISMRMRD_IMAGE_HEADER_SIZE))
+    header = map(T -> read(io, T), ISMRMRD_IMAGE_HEADER)
+    1 <= header.data_type <= length(ISMRMRD_DATA_TYPES) || error("Unsupported MRD data type: $(header.data_type)")
+    T = ISMRMRD_DATA_TYPES[Int(header.data_type)]
+    metadata = rstrip(String(read(socket, Int(read(socket, UInt64)))), '\0')
+    pixels = Array{T}(undef, Int.(header.matrix_size)..., Int(header.channels))
+    read!(socket, pixels)
+    return (; image=permutedims(pixels, (4, 3, 2, 1)), header, metadata)
+end
+
+function recon(raw; config="bios214radial", config_additional=nothing, full=false, timeout=180)
     current = server[]
-    current === nothing && error("Call OpenReconClient.start() before OpenReconClient.recon(raw)")
-    try
-        return only(reconstruct(raw; port=current.port, timeout)).image
+    current === nothing && error("Call OpenReconClient.start() first")
+    socket = connect(ip"127.0.0.1", current.port)
+    timer = Timer(_ -> close(socket), timeout)
+    sender = @async try
+        name = zeros(UInt8, MRD_CONFIG_NAME_LENGTH)
+        name[1:ncodeunits(config)] .= codeunits(config)
+        write(socket, MRD_MESSAGE_CONFIG_FILE, name)
+        xml = MRIFiles.GeneralParametersToXML(deepcopy(raw.params)) * '\0'
+        write(socket, MRD_MESSAGE_METADATA_XML_TEXT, UInt32(ncodeunits(xml)), xml)
+        if config_additional !== nothing
+            text = config_additional * '\0'
+            write(socket, MRD_MESSAGE_TEXT, UInt32(ncodeunits(text)), text)
+        end
+        for profile in raw.profiles
+            header = IOBuffer()
+            write(header, profile.head)
+            write(socket, MRD_MESSAGE_ISMRMRD_ACQUISITION, take!(header), profile.traj, profile.data)
+        end
+        write(socket, MRD_MESSAGE_CLOSE)
     catch
-        @error "OpenRecon container output" log=read(ignorestatus(`docker logs $(current.container)`), String)
+        close(socket)
         rethrow()
+    end
+    images = NamedTuple[]
+    try
+        while (message = read(socket, UInt16)) != MRD_MESSAGE_CLOSE
+            if message == MRD_MESSAGE_ISMRMRD_IMAGE
+                push!(images, _image(socket))
+            elseif message == MRD_MESSAGE_TEXT
+                @info rstrip(String(read(socket, Int(read(socket, UInt32)))), '\0')
+            else
+                error("Unexpected MRD message: $message")
+            end
+        end
+        wait(sender)
+        isempty(images) && error("OpenRecon returned no images")
+        full && return images
+        image = only(images).image
+        return size(image, 1) == size(image, 2) == 1 ? dropdims(image; dims=(1, 2)) : image
+    finally
+        close(timer)
+        close(socket)
     end
 end
 
-"""Stop the container started by this client. Safe to call more than once."""
 function stop()
     current = server[]
     current === nothing && return nothing
-    run(`docker stop $(current.container)`)
+    _running(current.container) && run(`docker stop $(current.container)`)
     server[] = nothing
     return nothing
 end
-
-"""Reconstruct once, starting and stopping a container only if none is already running."""
-function recon_docker(raw; image=nothing)
-    temporary = server[] === nothing
-    start(; image)
-    try
-        return recon(raw)
-    finally
-        temporary && stop()
-    end
-end
-
 end
