@@ -1,6 +1,6 @@
 ---
 title: |
-  [Lecture 5]{.lecture-number}
+  [Lecture 5:]{.lecture-number}
   Nonuniform sampling and reconstruction
 subtitle: "BIOS 214: Open-Source MRI Sequence Development"
 author:
@@ -14,6 +14,7 @@ toc-title: Outline
 format:
   revealjs:
     date-format: "DD MMM YYYY"
+    html-math-method: mathml
     width: 1280
     height: 720
     margin: 0.04
@@ -40,9 +41,28 @@ brand:
       decoration: none
 code-line-numbers: false
 highlight-style: github-light
+engine: julia
+execute:
+  echo: false
+  warning: false
 footer: "BIOS 214 · Lecture 5 — Nonuniform sampling and reconstruction"
 include-in-header:
   text: |
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.js"></script>
+    <script>
+    // Static resource tags let Quarto embed KaTeX and its fonts in the HTML.
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!window.katex) return;
+      for (const math of document.querySelectorAll("math")) {
+        const tex = math.querySelector('annotation[encoding="application/x-tex"]');
+        if (!tex) continue;
+        const wrapper = document.createElement("span");
+        katex.render(tex.textContent, wrapper, {displayMode: math.getAttribute("display") === "block"});
+        math.replaceWith(wrapper);
+      }
+    });
+    </script>
     <style>
     .reveal {
       --r-heading1-size: 60px;
@@ -92,8 +112,2039 @@ include-in-header:
       font-size: 32px;
       color: var(--r-link-color);
     }
+    .reveal .slides section.compact { --r-heading1-size: 46px; }
+    .reveal .katex-display { margin: .25em 0; }
+    .reveal .figure-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 30px;
+    }
+    .reveal .figure-row.middle { align-items: center; }
+    .reveal .figure-row.three-panels { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .reveal .figure-row.open-recon-demo { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+    .reveal .open-recon-step { position: relative; }
+    .reveal .open-recon-step-number {
+      position: absolute;
+      inset: 0 auto auto 0;
+      font-size: 22px;
+      font-weight: 600;
+      color: #6c757d;
+    }
+    .reveal .chart { height: 440px; }
+    .reveal #spoke-gap { height: 560px; }
+    .reveal .short-figures .chart { height: 380px; }
+    .reveal .projection-equation { font-size: 30px; }
+    .reveal #filtered-backprojection .chart { height: 330px; }
+    .reveal :is(.psf-comparison, .off-resonance-panels) {
+      --comparison-panel-size: 222px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px 12px;
+    }
+    .reveal .psf-comparison {
+      display: grid;
+      grid-template-columns: 30px repeat(3, var(--comparison-panel-size));
+    }
+    .reveal :is(.psf-comparison, .off-resonance-panels) .chart { height: var(--comparison-panel-size); }
+    .reveal :is(.psf-comparison, .off-resonance-panels) .figure-label { margin: 0; }
+    .reveal .psf-comparison .sampling-count { font-size: 18px; color: #6c757d; }
+    .reveal :is(.psf-comparison, .off-resonance-panels) .row-label {
+      justify-self: end;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
+    .reveal .off-resonance-panels {
+      grid-template-columns: var(--comparison-panel-size) 30px repeat(3, var(--comparison-panel-size));
+    }
+    .reveal .off-resonance-panels .field-panel { grid-area: 1 / 1 / span 3; }
+    .reveal .off-resonance-panels .field-panel .chart { height: calc(var(--comparison-panel-size) + 44px); }
+    .reveal .off-resonance-panels .readout-duration { font-size: 18px; color: #6c757d; }
+    .reveal :is(.off-resonance-label, .gradient-delay-label) { width: 40%; margin: 14px auto 4px; font-size: 20px; }
+    .reveal .figure-label { font-size: 23px; text-align: center; margin-block: 8px; }
+    .reveal .slide-control { height: 76px; }
+    .reveal .slide-control.show-steps { height: 112px; }
+    .reveal #sampling-acceleration-control { height: 102px; }
+    .reveal :is(#off-resonance-control, #gradient-delay-control) { height: 68px; }
+    .reveal .slides section:has(> .slide-reference) { min-height: 100%; }
+    .reveal .slide-reference {
+      position: absolute;
+      inset: auto 0 4px;
+      font-size: 18px;
+      line-height: 1.2;
+      text-align: left;
+    }
+    .reveal .slide-reference p { margin: 0; }
+    .reveal .spoke-formulas { display: grid; row-gap: 12px; font-size: 27px; }
+    .reveal .gridding-formula { font-size: 23px; }
+    .reveal .dcf-figure .chart { height: 540px; }
+    .reveal .dcf-detail { font-size: 28px; }
+    .reveal .voronoi-detail { align-self: start; font-size: 46px; }
+    .reveal .dcf-figure .voronoi-detail .chart { height: 420px; }
+    .reveal .fourier-panels { grid-template-columns: minmax(0, 1fr) 100px minmax(0, 1fr); }
+    .reveal .fourier-panels .figure-panel { text-align: center; }
+    .reveal .fourier-panels img { image-rendering: pixelated; }
+    .reveal .culture-image { text-align: center; }
+    .reveal .culture-image img { object-fit: contain; }
+    .reveal .resolution-phantom {
+      position: relative;
+      width: min(100%, 405px);
+      aspect-ratio: 1;
+      overflow: hidden;
+      margin-inline: auto;
+    }
+    /* Display the 368 × 368 image region of the 540 × 540 source figure. */
+    .reveal .resolution-phantom img {
+      position: absolute;
+      width: calc(540 / 368 * 100%);
+      height: auto;
+      max-width: none;
+      max-height: none;
+      left: calc(-61 / 368 * 100%);
+      top: calc(-86 / 368 * 100%);
+      margin: 0;
+    }
+    .reveal #test-in-simulation-then-on-the-scanner .culture-image img { transform: scaleY(-1); }
+    .reveal .open-recon-list { font-size: 30px; }
+    .reveal .reconstruction-tool .figure-row { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+    .reveal .reconstruction-tool table { margin: 0 auto; border: 1px solid #adb5bd; font-size: 26px; }
+    .reveal .reconstruction-tool th,
+    .reveal .reconstruction-tool td { border: 1px solid #adb5bd; padding: .35em .65em; }
+    .reveal .reconstruction-tool th { font-weight: 600; }
+    .reveal .reconstruction-tool .tool-footnote { font-size: 21px; margin: 9px 0; }
+    .reveal .tool-examples { display: flex; justify-content: center; gap: 25px; }
+    .reveal #lab-activity .figure-row { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+    .reveal #lab-activity ul { font-size: 30px; line-height: 1.3; }
+    .reveal #lab-activity li + li { margin-top: 18px; }
+    .reveal #lab-activity iframe { display: block; width: 100%; height: 510px; border: 1px solid #cdd3d9; }
+    .reveal #bart > h1,
+    .reveal #pulse-sequence-workflow > h1 { display: none; }
+    .reveal #pulse-sequence-workflow svg { display: block; width: 100%; }
+    .reveal #questions { text-align: center; }
+    .reveal #questions h1 { margin-bottom: 30px; }
+    .reveal #rotate-gradients div.sourceCode { max-width: 620px; margin: 6px auto; }
 
     </style>
 ---
 
-# To be uploaded soon!
+```{julia}
+#| output: false
+using KomaMRI
+using KomaMRI.KomaMRIPlots.PlotlyBase
+using FFTW
+using Base64
+using Printf
+
+rows(a) = [collect(row) for row in eachrow(a)]
+
+# Actual KomaMRI trajectories on the Lecture 4 FOV.
+N, radial_samples, fov = 96, 64, 0.24
+scanner = Scanner(limits=HardwareLimits(B0=3.0, Gmax=30e-3, Smax=180.0, ADC_Δt=8e-6))
+cart_tr, radial_tr = 6e-3, 4e-3
+cart_sys = Scanner(limits=HardwareLimits(Gmax=20e-3, Smax=40.0,
+    RF_dead_time=0.0, RF_ring_down_time=0.0, ADC_dead_time=0.0))
+excitation(sys) = PulseDesigner.build_sinc_pulse(π/4; duration=1e-3, time_bw_product=4.0,
+    slice_thickness=10e-3, apodization=0.5, use=Excitation(), sys)
+
+function line_readout(ky, nx, dwell, sys; step=1/fov)
+    flat = (nx-1)*dwell
+    readout = PulseDesigner.make_trapezoid(; flat_area=(nx-1)*step, flat_time=flat, sys)
+    pre_area = -nx/2*step - γ*readout.A*readout.rise/2
+    pre_x = PulseDesigner.make_trapezoid(; area=pre_area, sys)
+    pre_y = PulseDesigner.make_trapezoid(; area=ky, sys)
+    duration = max(dur(pre_x), dur(pre_y)) + 0.25e-3
+    seq = Sequence(sys)
+    addblock!(seq; x=PulseDesigner.make_trapezoid(; area=pre_area, duration, sys),
+        y=PulseDesigner.make_trapezoid(; area=ky, duration, sys))
+    addblock!(seq, ADC(nx, flat, readout.rise); x=readout)
+    seq
+end
+
+function repetition_data(seq, tr)
+    padded = seq + Delay(tr-dur(seq))
+    step = MaxStepSizeRule(1, 20e-6)
+    sampled = discretize(padded; sampling_rule=KomaMRI.KomaMRIBase.MomentSamplingRule(step))
+    trajectory, adc = get_kspace(padded; sampling_rule=step)
+    Dict("t"=>1e3 .* sampled.t[2:end], "trajectory"=>rows(trajectory[:, 1:2]), "tr"=>1e3tr,
+        "adc"=>rows(adc[:, 1:2]), "adcTime"=>1e3 .* get_adc_sampling_times(padded),
+        "wave"=>plot_seq(padded; slider=false, show_rf_frame=false))
+end
+
+cartesian_dwell = 5e-6
+cartesian_trs = [repetition_data(excitation(cart_sys) + line_readout(ky/fov, N, cartesian_dwell, cart_sys), cart_tr)
+    for ky in [-48, -24, 0, 24, 47]]
+radial_excitation = excitation(scanner)
+radial_readout = line_readout(0.0, radial_samples, scanner.limits.ADC_Δt, scanner)
+
+function radial_shot(θ)
+    seq = Sequence(scanner)
+    @addblock seq += radial_excitation
+    @addblock seq += rotz(θ) * radial_readout
+    repetition_data(seq, radial_tr)
+end
+
+radial_angles = 0:180
+radial_shots = [radial_shot(deg2rad(angle)) for angle in radial_angles]
+spoke_angles = 0:36:144
+five_radial_shots = radial_shots[spoke_angles .+ 1]
+readout_colors = ["#636EFA", "#EF553B", "#00CC96", "#AB63FA", "#19D3F3"]
+
+function radial_waveforms(shot)
+    names = ("Gx", "Gy", "Gz", "|B1|_AM", "ADC")
+    traces = [deepcopy(only(filter(t -> t[:name] == name, shot["wave"].data))) for name in names]
+    for (i, trace) in enumerate(traces)
+        trace[:xaxis] = "x"
+        trace[:yaxis] = "y"
+        trace[:visible] = true
+        trace[:showlegend] = true
+        trace[:name] = i == 4 ? "B₁" : names[i]
+    end
+    traces
+end
+
+function radial_plot(traces, steps, prefix; height, cursor=false)
+    axis = attr(showgrid=true, gridcolor="#e8ebed", zeroline=true, zerolinecolor="#89939c",
+        showline=true, linecolor="#89939c", mirror=true, ticks="outside")
+    tr_ms = 1e3radial_tr
+    slider_x, slider_y, slider_length = .28, -.27, .44
+    shapes, annotations = PlotlyBase.PlotlyAttribute[], PlotlyBase.PlotlyAttribute[]
+    if cursor
+        push!(shapes, attr(type="line", xref="x", yref="y domain", x0=0, x1=0,
+            y0=0, y1=1, line=attr(color="#d84657",width=2)))
+        n_tr = length(five_radial_shots)
+        for repetition in 0:n_tr
+            fraction = repetition/n_tr
+            anchor = slider_x + slider_length*fraction
+            # The native slider centers its thumb 10 px inside either end of the control.
+            inset = 10*(1-2fraction)
+            push!(shapes, attr(type="line", xref="paper", yref="paper",
+                xsizemode="pixel", ysizemode="pixel", xanchor=anchor, yanchor=slider_y,
+                x0=inset, x1=inset, y0=-58, y1=-64, line=attr(color="#89939c",width=1)))
+            push!(annotations, attr(xref="paper", yref="paper", x=anchor, y=slider_y,
+                xshift=inset, yshift=-66, xanchor="center", yanchor="top", showarrow=false,
+                text=@sprintf("%g ms", repetition*tr_ms), font=attr(size=16,color="#343a40")))
+        end
+    end
+    layout = Layout(; width=1280, height, font=attr(size=20, color="#343a40"),
+        paper_bgcolor="white", plot_bgcolor="white", margin=attr(l=62,r=30,t=56,b=131),
+        xaxis=attr(axis; domain=[0,.44], range=[0,tr_ms], title="Time (ms)"),
+        yaxis=attr(axis; range=[-32,32]),
+        xaxis2=attr(axis; domain=[.56,1], range=[-149,149], title="kₓ (1/m)", anchor="y2", constrain="domain"),
+        yaxis2=attr(axis; range=[-149,149], title="kᵧ (1/m)", anchor="x2", scaleanchor="x2", constrain="domain"),
+        legend=attr(orientation="h", x=0, y=1.07, yanchor="bottom", font=attr(size=16)),
+        sliders=[attr(x=slider_x, len=slider_length, y=slider_y, pad=attr(t=0), ticklen=0, minorticklen=0,
+            font=attr(color="rgba(0,0,0,0)"),
+            currentvalue=attr(visible=true,prefix=prefix,font=attr(size=20,color="#343a40")),
+            bordercolor="#2a7fb8", activebgcolor="#2a7fb8", transition=attr(duration=0), steps=steps)],
+        shapes, annotations)
+    Plot(traces, layout; config=PlotConfig(displayModeBar=false, responsive=false))
+end
+
+radial_adc_trace(color) = scatter(x=Float64[], y=Float64[], xaxis="x2", yaxis="y2",
+    mode="markers", marker=attr(color=color, size=4), showlegend=false, hoverinfo="skip")
+
+function angle_slider_plot()
+    traces = GenericTrace[radial_waveforms(first(radial_shots))...; radial_adc_trace("#e9782d")]
+    indices = [0, 1, length(traces)-1]
+    steps = map(radial_angles, radial_shots) do angle, shot
+        wave = radial_waveforms(shot)
+        adc = shot["adc"]
+        attr(label=string(angle, "°"), method="restyle",
+            args=Any[Dict("x"=>[wave[1][:x], wave[2][:x], first.(adc)],
+                "y"=>[wave[1][:y], wave[2][:y], last.(adc)]), indices])
+    end
+    initial_adc = first(radial_shots)["adc"]
+    traces[end][:x], traces[end][:y] = first.(initial_adc), last.(initial_adc)
+    radial_plot(traces, steps, "Readout angle: "; height=544)
+end
+
+function radial_time_plot()
+    tr_ms = 1e3radial_tr
+    waves = radial_waveforms.(five_radial_shots)
+    traces = GenericTrace[deepcopy.(first(waves))...]
+    for (i, trace) in enumerate(traces)
+        times, values = Any[], Any[]
+        for (j, wave) in enumerate(waves)
+            append!(times, [isnothing(t) ? nothing : t+(j-1)*tr_ms for t in wave[i][:x]])
+            append!(values, wave[i][:y])
+            push!(times, nothing)
+            push!(values, nothing)
+        end
+        trace[:x], trace[:y] = times, values
+    end
+    first_k_trace = length(traces)
+    push!(traces, scatter(x=[0.0], y=[0.0], xaxis="x2", yaxis="y2", mode="lines",
+        line=attr(color="#89939c", width=2), showlegend=false, hoverinfo="skip"))
+    append!(traces, radial_adc_trace.(readout_colors))
+    cursor = radial_adc_trace("#d84657")
+    cursor[:x], cursor[:y] = [0.0], [0.0]
+    cursor[:marker] = attr(color="#d84657", size=9)
+    push!(traces, cursor)
+
+    steps = map(0:0.05:tr_ms*length(five_radial_shots)) do time
+        index = min(floor(Int, time/tr_ms)+1, length(five_radial_shots))
+        start = (index-1)*tr_ms
+        elapsed = time-start
+        shot = five_radial_shots[index]
+        stop = searchsortedlast(shot["t"], elapsed)
+        path = vcat([[0.0,0.0]], shot["trajectory"][1:stop])
+        acquired = searchsortedlast(shot["adcTime"], elapsed+1e-9)
+        samples = [j < index ? rep["adc"] : rep["adc"][1:(j == index ? acquired : 0)]
+            for (j,rep) in enumerate(five_radial_shots)]
+        paths = [path, samples..., [last(path)]]
+        attr(label=@sprintf("%.2f ms", time), method="update",
+            args=Any[Dict("x"=>[first.(p) for p in paths], "y"=>[last.(p) for p in paths]),
+                Dict("xaxis.range"=>[start,start+tr_ms], "shapes[0].x0"=>time, "shapes[0].x1"=>time),
+                collect(first_k_trace:length(traces)-1)])
+    end
+    radial_plot(traces, steps, "Time: "; height=518, cursor=true)
+end
+
+function embed_radial_plot(plot; load_library=false)
+    println("```{=html}")
+    if load_library
+        println("<script>", read(KomaMRI.KomaMRIPlots.TIME_PLOTLY.local_path, String), "</script>")
+    end
+    PlotlyBase.to_html(stdout, plot; include_plotlyjs=missing, include_mathjax=missing, full_html=false)
+    println("\n```")
+end
+
+spiral_fov = 0.30
+spiral_matrix = round(Int, N * spiral_fov/fov)
+spiral_interleaves = 4
+spiral_design = PulseDesigner.spiral_base(spiral_fov, spiral_matrix, scanner; Nint=spiral_interleaves, BW=400e3)
+spirals = spiral_design.(0:spiral_interleaves-1)
+sp = radial_excitation + first(spirals)
+spiral_shots = [get_kspace(seq)[2][:,1:2] for seq in spirals]
+spiral_adc = reduce(vcat, spiral_shots)
+kx, ky = spiral_adc[:, 1], spiral_adc[:, 2]
+
+brain_pixels = raw"""
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQAAAAAAAAAA
+AAAAAAAAAAAAAAAAAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAEBAQEBAQECAQECAQICAgEAAAAAAAAAAAABAAAAAAEBAgEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAQECAgMDBAMDAwMCAQEAAQEAAQICAgEAAAAAAAAAAAAAAAECAgIBAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQACBAQEAwAAAgECAwcMDg4OFBIPDAQAAAQDAQAAAAAAAAAA
+AAABAgECAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQIDBAMCAAEHEBwoLi4yNjw/
+ODE0Njk4OzotFAAAAwMBAAAAAAAAAAABAgICAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AQIDAwIAAggYJjQ8PDc6Ozo/NTlASEtKQjw5NikvOzYUAQABAgIAAAAAAAAAAQEBAgEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAIDBAEABRAhNj08PDdGWkpSY25fTVhOWFpXXGZtc2ZNOTA4MyAJAAECAQAAAAAAAAAAAQEBAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAECAwQAAhEpPkA8Lz5KXG9jVzoqIxoTFxUUGBMMDgsOEilUdl4x
+LDhALQsAAwIBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAgUCAAgeN0A5Mj9UU2pNNyYT
+DxggJy1AODxCPDU2Py0fGwsDFD5tYzUnNkchAAEDAQAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AQIFBAAIKEFCMT5hfVtBHA8PECU5NScrLyotJioqLztDS0xJQEIvGwQMQn14SC9CNQgAAwEAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAABAwMABilIOzVBa25JIwUMKC8pLisnHg8cMhoXDwwWKzEpMDRAS05TPS8bBRJijGE8PEYQAAIB
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEDAQEiQzwwVmxaKxIBHVJROykkHxkjLicZHw4XEwwPGC8q
+EBgcMzxGS0c3MRsGLnR1MDJGHQADAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAQAAAAAAAAABAwMAEDxFPGV5XxsEFh4K
+Q1EwIRMoO0JQVE5KHihaShcYSlhYIQ0TEBogLEFBODgnBiOAkkkxSyAAAwIBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAQEBAQAA
+AAAAAAEDAgMqRD5bfGAgBxo+PiAUHCANBxtKUlpeUlNfMzhjXEYhSmBmT0ZKHQ87PzYtNjksJwwofopbL0oqAgICAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAEAAQAAAAAAAQQBCDlFP3p1HgcbOkpRSC0cGRclMDhQW2RUP19jNzloYlhDM1ZiY1NTPS1PV042JzIz
+NzMYFmqdYjNMJgACAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAEBAAAAAAABAwARRUJcgTcDHE9aWUcuJjY/REZOS0hgbV1ES25g
+PUFoaVpeQEFcaWtZRyhDYGFVOxsmMSwzEwlYhmA6ShMAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAIEABZDT4R5FQw6
+VFdTQCgcOk9RU1NRUGd0cVhLanNkRUdtcGpeTDRZbHNwUjQ+ZXBdQhcuJCQ0Mg0KVpRcQzsDAwIAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAQQAGUlNklUEI0hMSjgtIRgZP1plaWJmcHZ1dGNreHltTEluc3BlXERedW14bF1icmpUPkJMQC0pKy8MFWmWR0sZ
+AAMBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAwAWRU6HOQkySEg1KiQcJUNIRGB1cm9xcnN5end1dnRuWlJxc3NzaWVtdV5S
+bnJvdGlJO1hrV0o1JzUrAi6OXTo6BAIBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIDABFFaJUuEDA2NCslKDk/QEdda2J6bV5y
+c25yd3ZzdXZycHV1cXRxcXN3aktCYXh1clE2OVxwUU5NPCQyHQhQiktCFwACAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQIBDUFe
+jC0TNBYTIBcjRVxiWFhtdHV6a01idHBzdXV2dHJ2c3h1dXV2d3N5XzJEX3Z1a1ZEQmNlR1NYUzolMhQNcIBBOgQDAgAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAgMGOWOcKhgiJiEXHhAZOVhxcXJ4dHd5clBPc3dsc3R1cHF3cXd3c3h5eW1nWCg0UnJzcXpoZnltW2Vx
+Z1MtLioFH4NUQSkBAwEAAAAAAAAAAAAAAAAAAAAAAAAAAAACAwEqWbE7FysNGB42LS89Nz9jdXR2dXR4cFFKb3drZGRydG5xfHp4
+dHV0cFFKRkJCTXN4dm5zfXZ1dXRzYkwhHi4fBEGCRkMVAAIBAAAAAAAAAAAAAAAAAAAAAAAAAAADABdMr0oRSR4CETxWUEVMVlpw
+eXlzVklVVUhTaHx6dHF3fHd6dGliXV1aVktGTl5lcn96emNPdHp4eHdrUUc4LSwrExZldkY5AwICAAAAAAAAAAAAAAAAAAAAAAAA
+AAICCDqbhAxbOxoUNklbb2JvdXd4bnlmR1JNRldzen97fYB6enpmU0c7Ok5NTUpWa3h/hG9ZbnZOa3x3dG5nVF1gNzQlKBsqd2g/
+GgACAAAAAAAAAAAAAAAAAAAAAAAAAQMCKnKiFkZFFBw7R1Bud3prdXl5cHZeSV1qbH93Zl1lb3x7d3tkVEZGPEJLSld0f312YEdH
+aHlYbHp0aG10cW1WJC0xFRYRQG5BMwMCAQAAAAAAAAAAAAAAAAAAAAABAgASTKM6RV8sFClRY3N7d3JUa3pzdXtgS0lwfWNPTWNu
+eHt4dnt+e3VvW1Bda3uBcG9oSEZOcXhtdnxqVml3dF45OUtDLQ8bDU5mQhEBAgAAAAAAAAAAAAAAAAAAAAABAwUvjXQkdEMXFRxO
+XV9pdndxcHx5dmNUSUdya1NjdYB6e3p2dnp8f318fX2Agn1/e2FPU1hHX3t4eXlRTGR2dGBGVGJHNhgsExpyVCIAAgAAAAAAAAAA
+AAAAAAAAAAEDARVZoy9jWCIiOCw1PUNLZHmAe3VnVlFJRmJ9c3iEfHl3eXl8eoOAhIKBhoSAfXt9g4JqdGpJUW57emxCQlxvdm1h
+bG1dPis4JgU+VDkFAgEAAAAAAAAAAAAAAAAAAAEDAyuWZTFzPRA5VV5SV2dtbHhuX1VLSEVBWnh7gn53eICAgHZtZVlKP0lLU3WH
+fH58e3+BgHpSP1Fzfl48O1RpdXZ2c3RwUR04ORIbaEsRAQIAAAABAAAAAAAAAAAAAQICDE+vN1txMRg6Vm14fXZ1e3pKOElJRU9i
+fn2Bfn2BhHptaFxTUkswGhYHAxlGdYN/gnx/gHx0aXSAfm1XSU5hc3Z1cGFVPCQrMywNUlokAgIBAAABAAAAAAAAAAABAQIBHXeL
+NW1lHx0gQE54cUdDWWxLQE9XYXmBgHp+foV6al1ZWFlfVmBbYmZYRCEXG02Eg39/g3uBf35uZWBbUEtfcnZ0WklHTFJbPC0ROXQx
+BAIBAAABAAAAAAAAAAAAAQMDMZFZQ3xTGChBRVl6elhDOkxLSmF3eYKAf35/hXFbXVxgYl5YZHl2dG9xdmxONBZIiX+BgYF8dlVD
+O1BSRVFmc3RtTkhWZmVwVjAaGm9FCAEBAQAAAAAAAAAAAAAAAQIJOalIZokyFzZcaXNydX1gQURJQmJ+eH+AgoWBaF1iXmNeZHB0
+enRxc21sZm1vblxYhn9/fn9+bUk1OlZpcXJ1cXN1WUJadHJtUzMqEltXCgECAQAAAAAAAAAAAAEBAgMMSJk3angjJztKRUdISGBf
+OEpfYnN5en+GhId3V11dXGBvfYN/dG9vbmxwamtrb250gHl6fHh9d2lRPURXeXp0c3N1cWhvdHFgQhwtEEdeDwIDAAAAAAAAAAAA
+AAEBAwEUV3swPjIeKFFhVlNRUmBbP0tugXt9f4KFhXxTV1phZHCJf3qAd3BucHFybGlhaWJxgnt5d3tpV2dnUDc9ZnJlXmpxcnZ5
+dHRlSCwsEDtmFAECAQAAAAAAAAAAAAEBAgIcaHEUBwUNGkh0c2ZqdnNPQEtaU3B+gIeDgnlOWF1cYnaGhYB+fHl4d3NvcGppZWNm
+X2Ftd3FYQDhVYlAuUWc9JElnc2pfYFpKRWQ0DTJ4HQACAAAAAAAAAAAAAAECAwIrg2YNBQQFJU1lUkJAO1NuRThJSFV9e4GJgX1f
+WVheaICHfICAgIB5dXd4bm5sZWtgUF9pWlBJJj5US0QuT2M6REVXcGA8Qjc7YGk0ESxuIQACAQAAAAAAAAAAAAACAwU3iVMJAwMJ
+MVJmbHJsUjRXalhpVkljgH2DhIN0U1tgbYV7cnyBgX9+fn97cnFscGhDTFE/Q1NTWnl6bGpfTUtSZ15daHJjW19oXl0xCzeJIAAD
+AAAAAAAAAAAAAAECAQpIizoRAwQFL1hseod/el87RlpqbExLanuAgn6BXlVcYWp/fnp5fHp/g3tzdnRnTzFDV1hYYmt4eWZZXHh5
+bGpsb2tca291cmlMTUIlETVhIgADAAAAAAAAAAAAAAEBAgxRii4aAgMBG0tXUWN8enZrUD5CWl5NTE1ie4F+cFdYYGNqeH57d35/
+enx5bmtkOUtUTVRRVlZfVEZUa3Z4dnZwcHJzbXB0bWhgYkUpEC5mJgADAAAAAAAAAAEAAAACAhBabisQAgIBCCtJRkl1XExabnRc
+R05VSkhFTVxxfHhkVlpcaWx2eoB7eHNvcGstNlVOP0ZCQkhLPk1fc3RkWGh2cllicGdKVmNuXkYkCDWAJAADAQAAAAAAAAEAAAED
+Aw9ZVigRBAICBRMiPVh7aVxbaYGEdl5UXWliYGFweWxzbVdVSGB7S3Z8dHNpdHE0PTdDR1tbPU9UTThHSlddUVpmcFNGdGI6WmBs
+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
+"""
+
+# The same 96 × 96 brain and spatial grid as Lecture 4.
+pixels = permutedims(reshape(Float64.(base64decode(join(split(brain_pixels)))) ./ 255, N, N))
+brain = reverse(pixels; dims=1)
+pixel_spacing = fov/N
+x = (-N÷2:N÷2-1) .* pixel_spacing
+
+# Cross-section of Lauterbur's two water capillaries.
+tube_radius, tube_half_spacing = 0.5e-3, 1.5e-3
+tube_pixel_spacing = 6e-3/N
+tube_axis = (-N÷2:N÷2-1) .* tube_pixel_spacing
+tubes = [Float64((abs(xpos)-tube_half_spacing)^2 + ypos^2 <= tube_radius^2)
+    for ypos in tube_axis, xpos in tube_axis]
+positions = (-N:N-1) .* tube_pixel_spacing
+views = [3, 6, 12, 24, 48, 90]
+view_angles(n) = n == 3 ? [0, 45, 90] : (0:n-1) .* (180/n)
+ramp = abs.(fftfreq(length(positions), inv(tube_pixel_spacing)))
+
+function projection_index(xpos, ypos, c, s)
+    u = (xpos*c + ypos*s - first(positions)) / tube_pixel_spacing + 1
+    k = floor(Int, u)
+    k, u-k
+end
+
+function tube_projection(angle)
+    center = tube_half_spacing * cosd(angle)
+    [sum(2sqrt(max(0, tube_radius^2-(position-offset)^2)) for offset in (-center,center))
+        for position in positions]
+end
+
+function backprojection(angles; filtered=false)
+    image = zeros(size(tubes))
+    for angle in angles
+        projection = tube_projection(angle)
+        filtered && (projection = real.(ifft(fft(projection) .* ramp)))
+        c, s = cosd(angle), sind(angle)
+        for (j,ypos) in enumerate(tube_axis), (i,xpos) in enumerate(tube_axis)
+            k, fraction = projection_index(xpos, ypos, c, s)
+            image[j,i] += projection[k] + fraction*(projection[k+1]-projection[k])
+        end
+    end
+    image .* (π/length(angles))
+end
+
+function axial_phantom(n, fov)
+    dx = fov/n
+    axial = brain_phantom2D(; axis="axial", ss=1)
+    phantom = zeros(n, n)
+    # Bin the 0.5 mm spin densities on an integer half-spin grid.
+    half_spin_spacing = 0.25e-3
+    binsize = round(Int, dx/half_spin_spacing)
+    pixel_index(position) = fld(round(Int, position/half_spin_spacing) + binsize÷2, binsize) + n÷2 + 1
+    for (x, y, ρ) in zip(axial.x, axial.y, axial.ρ)
+        phantom[pixel_index(y), pixel_index(x)] += ρ * (0.5e-3/dx)^2
+    end
+    phantom ./ maximum(phantom)
+end
+
+# Ideal single-coil, on-resonance Fourier encoding on the two image planes.
+axial_brain = axial_phantom(N, fov)
+ex = cis.(-2π .* (x * kx'))
+ey = cis.(-2π .* (x * ky'))
+signal = vec(sum(ey .* (brain * ex); dims=1))
+axial_signal = vec(sum(ey .* (axial_brain * ex); dims=1))
+
+# For rotated Archimedean interleaves, the polar area element is proportional
+# to r dr dθ. Use the measured radial increments along the ADC path.
+function spiral_weights(adc)
+    radius = hypot.(adc[:,1], adc[:,2])
+    increments = diff(radius)
+    dr = ([increments; last(increments)] .+ [first(increments); increments]) ./ 2
+    weights = max.(radius .* dr, 0.0)
+    weights[1] = radius[2]^2/8
+    weights
+end
+weights = reduce(vcat, spiral_weights.(spiral_shots))
+
+# Oversampled Cartesian gridding with a separable Kaiser–Bessel kernel.
+grid_n = 2N
+grid_step = 1/(2fov)
+kernel_width, beta = 4.0, 8.6
+half_width = kernel_width/2
+i0(z) = sum((z/2)^(2j) / Float64(factorial(j))^2 for j in 0:16)
+kernel(d) = abs(d) <= half_width ? i0(beta*sqrt(max(0.0, 1-(d/half_width)^2)))/i0(beta) : 0.0
+
+function grid_samples(kx, ky, values; n=grid_n, step=grid_step)
+    grid = zeros(ComplexF64, n, n)
+    for (kx₁, ky₁, value) in zip(kx, ky, values)
+        u, v = kx₁/step+n÷2+1, ky₁/step+n÷2+1
+        for j in ceil(Int, v-half_width):floor(Int, v+half_width),
+            i in ceil(Int, u-half_width):floor(Int, u+half_width)
+            grid[mod1(j, n), mod1(i, n)] += value * kernel(i-u) * kernel(j-v)
+        end
+    end
+    grid
+end
+
+function kernel_transform(t)
+    z = sqrt(beta^2 - (π*kernel_width*t)^2)
+    sinh(z)/z
+end
+
+weighted_signal = signal .* weights
+weighted_axial = axial_signal .* weights
+first_interleaf = axes(first(spiral_shots), 1)
+interleaf_grid = grid_samples(kx[first_interleaf], ky[first_interleaf], weighted_axial[first_interleaf])
+grid = grid_samples(kx, ky, weighted_signal)
+crop = (grid_n÷2-N÷2+1):(grid_n÷2+N÷2)
+deapod = kernel_transform.((-N÷2:N÷2-1) ./ grid_n)
+deapodized_spiral_image(grid) = abs.(fftshift(ifft(ifftshift(grid)))[crop, crop] ./ (deapod * deapod'))
+spiral_image = deapodized_spiral_image(grid)
+gridding_image = deapodized_spiral_image(grid_samples(kx, ky, weighted_axial))
+
+log_magnitude(a) = log10.(1 .+ 1000 .* abs.(a) ./ maximum(abs, a))
+
+function sample_phantom(adc, phantom, axis)
+    # Ideal Fourier encoding evaluated directly at the ADC positions.
+    samples = zeros(ComplexF64, size(adc, 1))
+    for batch in Iterators.partition(axes(adc, 1), 4096)
+        ex = cis.(-2π .* (axis * adc[batch, 1]'))
+        ey = cis.(-2π .* (axis * adc[batch, 2]'))
+        samples[batch] = vec(sum(ey .* (phantom * ex); dims=1))
+    end
+    samples
+end
+
+function off_resonance_signal(adc, phantom, axis, field_hz, readout_times)
+    signal = zeros(ComplexF64, size(adc, 1))
+    # All shots share the ADC timing, so encode the spins at each time across shots.
+    for (sample, time) in enumerate(readout_times)
+        indices = sample:length(readout_times):size(adc, 1)
+        phased_phantom = phantom .* cis.((-2π*time) .* field_hz)
+        signal[indices] = sample_phantom(view(adc, indices, :), phased_phantom, axis)
+    end
+    signal
+end
+
+function gradient_delay_offsets(seq, delays_us)
+    # A shared gradient delay evaluates the trajectory at an earlier time than the ADC.
+    rule = KomaMRI.KomaMRIBase.MomentSamplingRule(MaxStepSizeRule(1, 1e-6))
+    sampled = discretize(seq; sampling_rule=rule)
+    k, nominal = get_kspace(sampled)
+    times = sampled.t[2:end]
+    adc_times = get_adc_sampling_times(seq)
+    map(delays_us) do delay
+        acquisition_times = adc_times .- delay*1e-6
+        delayed = hcat([KomaMRI.KomaMRIBase.linear_interpolate_samples((t=times, A=view(k, :, axis)), acquisition_times)
+            for axis in 1:2]...)
+        delayed .- nominal[:, 1:2]
+    end
+end
+
+function sampling_comparison(sys, phantom, fov)
+    n = size(phantom, 1)
+    dx, dk = fov/n, 1/fov
+    axis = (-n÷2:n÷2-1) .* dx
+
+    # Use the same full-coverage trajectories as the acceleration comparison.
+    n_spokes = 6ceil(Int, π*n/12)
+    radial = line_readout(0.0, n, sys.limits.ADC_Δt, sys; step=dk)
+    radial_sequences = [rotz(π*j/n_spokes) * radial for j in 0:n_spokes-1]
+    spokes = [get_kspace(seq)[2][:, 1:2] for seq in radial_sequences]
+    n_interleaves = 24
+    spiral = PulseDesigner.spiral_base(fov, n, sys; Nint=n_interleaves, BW=400e3)
+    spiral_sequences = spiral.(0:n_interleaves-1)
+    interleaves = [get_kspace(seq)[2][:, 1:2] for seq in spiral_sequences]
+    radial_adc_times = get_adc_sampling_times(radial)
+    spiral_adc_times = get_adc_sampling_times(first(spiral_sequences))
+    native_times = (((0:n-1) .- n÷2) .* cartesian_dwell,
+        radial_adc_times .- radial_adc_times[n÷2+1], spiral_adc_times .- first(spiral_adc_times))
+    readout_times = map(native_times) do times
+        times .* (6e-3 / (last(times) - first(times)))
+    end
+
+    delays_us = [2, 4]
+    k_axis = (-n÷2:n÷2-1) .* dk
+    cartesian_sequences = [line_readout(ky, n, cartesian_dwell, cart_sys; step=dk) for ky in k_axis]
+    delay_offsets = map((cartesian_sequences, radial_sequences, spiral_sequences)) do sequences
+        offsets = gradient_delay_offsets.(sequences, Ref(delays_us))
+        [reduce(vcat, getindex.(offsets, i)) for i in eachindex(delays_us)]
+    end
+    shot_indices(shots, samples) = [((shot-1)*samples+1):(shot*samples) for shot in shots]
+    delay_guides = (shot_indices((n÷2-5, n÷2+1, n÷2+7), n),
+        shot_indices(1:(n_spokes÷6):n_spokes, n),
+        shot_indices(1:(n_interleaves÷3):n_interleaves, size(first(interleaves), 1)))
+
+    # Broad shim residual, a frontal offset, and smaller spots near the head boundary.
+    # Each Gaussian gives a relative amplitude, center, and widths in millimeters.
+    gaussian(x, y, cx, cy, sx, sy) = exp(-0.5 * (((x-cx)/sx)^2 + ((y-cy)/sy)^2))
+    offsets = ((-0.31, 5, -25, 44, 46), (0.48, 4, 51, 20, 19),
+        (0.86, -14, 100, 9, 6), (0.66, 17, 96, 8, 6), (-0.30, -32, 86, 8, 6),
+        (0.57, -69, 49, 6, 14), (-0.43, 68, 48, 6, 12),
+        (-0.50, 67, -57, 6, 9), (0.32, -56, -75, 8, 8), (0.26, 20, -92, 10, 6))
+    axis_mm = 1e3 .* axis
+    field = [sum(amplitude * gaussian(x, y, cx, cy, sx, sy) for (amplitude, cx, cy, sx, sy) in offsets) +
+        0.17 * gaussian(x, y, -2, 95, 34, 10) * sin((x + y)/4) * cos((x - y)/5)
+        for y in axis_mm, x in axis_mm]
+    field_mask = phantom .> 0
+    for row in eachrow(field_mask)
+        left = findfirst(row)
+        isnothing(left) && continue
+        row[left:findlast(row)] .= true
+    end
+    field ./= maximum(abs, field[field_mask])
+    off_resonance_levels = [0, 100, 200, 300]
+
+    # Every panel uses the same 2× oversampled Kaiser–Bessel adjoint NUFFT.
+    crop = (n÷2+1):(n÷2+n)
+    correction = kernel_transform.((-n÷2:n÷2-1) ./ (2n))
+    deapodization = correction * correction'
+    function adjoint_magnitude(adc, values)
+        kx, ky = adc[:, 1], adc[:, 2]
+        grid = grid_samples(kx, ky, values; n=2n, step=dk/2)
+        abs.(fftshift(ifft(ifftshift(grid)))[crop, crop] ./ deapodization)
+    end
+
+    trajectories = map(1:3) do factor
+        ky = k_axis[1:factor:end]
+        cart_adc = hcat(repeat(k_axis; outer=length(ky)), repeat(ky; inner=n))
+        cartesian = (cart_adc, fill(factor*dk^2, size(cart_adc, 1)), "$(length(ky)) lines")
+
+        kept_spokes = spokes[1:factor:end]
+        adc = reduce(vcat, kept_spokes)
+        r = hypot.(adc[:, 1], adc[:, 2])
+        # Radial sample weights are annular sector areas, split between half-spokes.
+        inner_radius = max.(r .- dk/2, 0)
+        outer_radius = min.(r .+ dk/2, n*dk/2)
+        area = (π/(2length(kept_spokes))) .* (outer_radius.^2 .- inner_radius.^2)
+        area[r .< 1e-7] .*= 2 # The center sample covers both half-spokes.
+        radial_sampling = (adc, area, "$(length(kept_spokes)) spokes")
+
+        kept_interleaves = interleaves[1:factor:end]
+        weights = (2π/length(kept_interleaves)) .* reduce(vcat, spiral_weights.(kept_interleaves))
+        spiral_sampling = (reduce(vcat, kept_interleaves), weights, "$(length(kept_interleaves)) interleaves")
+        (cartesian, radial_sampling, spiral_sampling)
+    end
+
+    off_resonance_images = []
+    off_resonance_psfs = []
+    gradient_delay_panels = []
+    comparison = map(enumerate(trajectories)) do (factor, samplings)
+        map(samplings, readout_times, delay_offsets, delay_guides) do (adc, weights, count), times, offsets, guides
+            psf = adjoint_magnitude(adc, weights)
+            peak = psf[n÷2+1, n÷2+1]
+            # Calibrate the common image scale from the response to a unit point.
+            scale = sum(weights) * dx^2 / peak
+            image = adjoint_magnitude(adc, weights .* sample_phantom(adc, phantom, axis)) .* scale
+            if factor == 1
+                push!(off_resonance_images, map(off_resonance_levels[2:end]) do hz
+                    samples = off_resonance_signal(adc, phantom, axis, hz .* field, times)
+                    magnitude = adjoint_magnitude(adc, weights .* samples) .* scale
+                    rows(round.(magnitude; digits=5))
+                end)
+                # Encode a unit point at the origin with the selected frequency offset.
+                adc_times = repeat(times; outer=size(adc, 1) ÷ length(times))
+                point_phase_per_hz = (-2π) .* adc_times
+                responses = map(off_resonance_levels) do hz
+                    adjoint_magnitude(adc, weights .* cis.(hz .* point_phase_per_hz))
+                end
+                push!(off_resonance_psfs, [rows(round.(response ./ peak; digits=5))
+                    for response in responses])
+                nominal_paths = [rows(round.(adc[indices, :]; digits=4)) for indices in guides]
+                delayed = map(offsets) do offset
+                    actual_adc = adc .+ offset
+                    signal = sample_phantom(actual_adc, phantom, axis)
+                    magnitude = adjoint_magnitude(adc, weights .* signal) .* scale
+                    (paths=[rows(round.(actual_adc[indices, :]; digits=4)) for indices in guides],
+                        image=rows(round.(magnitude; digits=5)))
+                end
+                push!(gradient_delay_panels, (paths=nominal_paths, delayed=delayed))
+            end
+            (psf=rows(round.(psf ./ peak; digits=5)), image=rows(round.(image; digits=5)), count=count)
+        end
+    end
+    off_resonance = (levels=off_resonance_levels, psfs=off_resonance_psfs,
+        field=rows(ifelse.(field_mask, round.(field; digits=4), nothing)), images=off_resonance_images,
+        readoutMs=[1e3*(last(times)-first(times)) for times in readout_times])
+    comparison, off_resonance, (levels=[0; delays_us], panels=gradient_delay_panels)
+end
+
+complex_coordinates(points) = [[real(z), imag(z)] for z in points]
+
+function voronoi_density(samples, k_radius)
+    sites = unique(samples)
+    boundary = k_radius .* cis.(range(0, 2π; length=129)[1:end-1])
+
+    cells = map(sites) do sample
+        # Clip the disk against each perpendicular bisector, retaining the nearer side.
+        polygon = boundary
+        for neighbor in sites
+            neighbor == sample && continue
+            normal = conj(neighbor - sample)
+            midpoint = (sample + neighbor) / 2
+            clipped = ComplexF64[]
+            a = last(polygon)
+            da = real(normal * (a - midpoint))
+            for b in polygon
+                db = real(normal * (b - midpoint))
+                if (da <= 0) != (db <= 0)
+                    push!(clipped, a + (b - a) * (da / (da - db)))
+                end
+                db <= 0 && push!(clipped, b)
+                a, da = b, db
+            end
+            polygon = clipped
+        end
+        polygon
+    end
+    polygon_area(cell) = abs(sum(imag(conj(a) * b) for (a, b) in zip(cell, circshift(cell, -1)))) / 2
+    area = polygon_area.(cells)
+    # A cell touches the cutoff when one of its vertices lies on a support edge.
+    edge_angle = 2π / length(boundary)
+    normals = cis.(-edge_angle .* (0.5:1:length(boundary)-0.5))
+    apothem = k_radius * cos(edge_angle/2)
+    on_boundary(z) = any(normal -> real(normal*z) >= apothem - 1e-8*k_radius, normals)
+    boundary_cells = findall(cell -> any(on_boundary, cell), cells)
+    site_lookup = Dict(site => i for (i, site) in enumerate(sites))
+    sample_cells = [site_lookup[sample] for sample in samples]
+    visits = [count(==(i), sample_cells) for i in eachindex(sites)]
+    weights = area[sample_cells] ./ visits[sample_cells]
+    (radius=k_radius, samples=complex_coordinates(samples),
+        boundary=complex_coordinates([boundary; first(boundary)]), cells=complex_coordinates.(cells),
+        area=area, boundaryCells=boundary_cells, sampleCells=sample_cells, weights=weights)
+end
+
+function spiral_density_demo()
+    k_radius = 200.0
+    turns = 4
+    spiral(t) = k_radius * (0.3t + 0.7t^2) * cis(2π*turns*t)
+    path = spiral.(range(0, 1; length=641))
+    samples = path[1:4:end]
+    # Extrapolate one turn for cell geometry and retain weights only for acquired sites.
+    intervals = length(samples) - 1
+    guards = spiral.(1 .+ (1:(intervals ÷ turns)) ./ intervals)
+    extended = voronoi_density([samples; guards], abs(last(guards)))
+    examples = [41, 120]
+    patches = [30.5 - 13.5im, samples[last(examples)]]
+    half_width = 15
+    patch_samples = [findall(z -> abs(real(z - center)) <= half_width &&
+                                 abs(imag(z - center)) <= half_width, samples) for center in patches]
+    (; voronoi_density(samples, k_radius)..., path=complex_coordinates(path), examples,
+        guardedWeights=extended.weights[eachindex(samples)],
+        patches=complex_coordinates(patches), halfWidth=half_width, patchSamples=patch_samples)
+end
+
+function radial_density_demo()
+    k_radius = 200.0
+    spokes = 8
+    positions = range(-k_radius, k_radius; length=21)
+    # The signed readout positions give full spokes. Store a single coordinate for k=0.
+    samples = [iszero(r) ? 0.0 + 0.0im : r * cis(π*j/spokes)
+        for j in 0:spokes-1 for r in positions]
+    # Scale the ideal ramp by the radial and angular steps to express it as a k-space area.
+    ram_lak = abs.(positions) .* (step(positions) * π/spokes)
+    (; voronoi_density(samples, k_radius)..., examples=[12, 20], samplesPerSpoke=length(positions),
+        ramLak=ram_lak)
+end
+
+sampling_results, off_resonance_results, gradient_delay_results = sampling_comparison(scanner, axial_brain, fov)
+lecture_data = Dict(
+    "positions"=>1e3 .* positions, "tubeAxis"=>1e3 .* tube_axis, "tubes"=>rows(tubes),
+    "tubeHalfSpacing"=>1e3*tube_half_spacing,
+    "profiles"=>[1e3 .* tube_projection(angle) for angle in (0, 45, 90)],
+    "views"=>views,
+    "backprojection"=>[rows(backprojection(view_angles(n))) for n in views],
+    "filtered"=>[rows(backprojection(view_angles(n); filtered=true)) for n in views],
+    "cartesianTRs"=>cartesian_trs, "radialSpokes"=>[shot["adc"] for shot in five_radial_shots],
+    "readoutColors"=>readout_colors,
+    "spiral"=>rows(first(spiral_shots)), "spiralWave"=>plot_seq(sp; slider=false, show_rf_frame=false),
+    "spiralKspace"=>plot_kspace(sp; view_2d=true),
+    "spiralExtent"=>N/(2fov),
+    "signal"=>log_magnitude(axial_signal[first_interleaf]), "interleafGrid"=>rows(log_magnitude(interleaf_grid)),
+    "spiralImage"=>rows(spiral_image ./ maximum(spiral_image)),
+    "griddingImage"=>rows(gridding_image ./ maximum(gridding_image)),
+    "samplingComparison"=>sampling_results, "offResonance"=>off_resonance_results,
+    "gradientDelay"=>gradient_delay_results,
+    "spiralDensity"=>spiral_density_demo(),
+    "radialDensity"=>radial_density_demo()
+)
+
+# Load the artwork as data URLs for the self-contained HTML deck.
+lecture_figure(file) = base64encode(read(joinpath(@__DIR__, "figures", file)))
+lauterbur_projections = lecture_figure("lauterbur-projections.webp")
+
+open_magnetom = lecture_figure("open-magnetom.webp")
+
+bartio_figure = lecture_figure("bartio-figure.webp")
+
+resolution_phantom = lecture_figure("resolution-phantom.webp")
+
+questions_droplet = lecture_figure("questions-droplet.webp")
+
+lecture4_spectrum = lecture_figure("lecture4-spectrum.webp")
+
+lecture4_reconstruction = lecture_figure("lecture4-reconstruction.webp")
+
+function embedded_image(data, media_type, alt, height)
+    println("```{=html}")
+    println("<img src=\"data:", media_type, ";base64,", join(split(data)), "\" alt=\"", alt, "\" height=\"", height, "\">")
+    println("```")
+end
+```
+
+# Cartesian imaging acquires parallel lines in k-space {#cartesian-lines .compact}
+
+$$\boldsymbol{k}(t)=\frac{\gamma}{2\pi}\int_0^t\boldsymbol{G}(\tau)\,\mathrm d\tau$$
+
+```{=html}
+<div class="figure-row short-figures">
+  <div id="cartesian-wave" class="chart"></div>
+  <div id="cartesian-trajectory" class="chart"></div>
+</div>
+<div id="cartesian-time" class="slide-control half-slider"></div>
+```
+
+::: {.slide-reference}
+[Pauly, Nishimura, and Macovski, *A k-space analysis of small-tip-angle excitation* (1989)](https://doi.org/10.1016/0022-2364(89)90265-5)
+:::
+
+::: notes
+The phase-encoding gradient selects the line's vertical position. Advance the slider to the next TR and watch the acquired lines accumulate.
+
+Pause at the negative $G_z$ lobe after the sinc pulse. In the small-tip model, each increment of excitation accrues slice-direction phase from the gradient area that follows it. For this symmetric pulse on a symmetric slice-select gradient, the RF center is the effective excitation time. The negative lobe cancels the area from that center through the end of the slice-select lobe, approximately half the total slice-select area. This is the conventional pulse in Figure 1 of Pauly et al. An asymmetric RF waveform can shift the effective center or give phase that a single rewinder only partly compensates.
+
+:::
+
+# Acquired data can be reconstructed by using the inv. FT {#inverse-transform .compact}
+
+$$S(t)=\int_V m(\boldsymbol{x})\,\mathrm e^{-\mathrm i2\pi\boldsymbol{k}(t)\cdot\boldsymbol{x}}\,\mathrm d\boldsymbol{x}$$
+
+:::: {.figure-row .fourier-panels .short-figures .middle}
+
+::: {.figure-panel}
+```{julia}
+#| output: asis
+embedded_image(lecture4_spectrum, "image/webp", "Magnitude of Cartesian k-space from Lecture 4", 380)
+```
+
+:::
+::: {.figure-panel}
+$$\mathcal F^{-1}$$
+
+$$\longrightarrow$$
+
+:::
+::: {.figure-panel}
+```{julia}
+#| output: asis
+embedded_image(lecture4_reconstruction, "image/webp", "Brain reconstructed by inverse FFT in Lecture 4", 380)
+```
+
+:::
+::::
+
+::: notes
+This is the same brain image and Fourier transform demonstration used in Lecture 4. The left panel shows the log magnitude of k-space. The inverse Fourier transform uses the complex data, including phase.
+
+:::
+
+# Paul Lauterbur (1973) {.compact}
+
+::: {.culture-image}
+```{julia}
+#| output: asis
+embedded_image(lauterbur_projections, "image/webp", "Lauterbur's projections of two tubes", 510)
+```
+
+:::
+
+::: {.slide-reference}
+[Lauterbur, *Image Formation by Induced Local Interactions* (1973)](https://doi.org/10.1038/242190a0)
+:::
+
+# Radial imaging requires us to “rotate” the gradients {#rotate-gradients .compact}
+
+```{julia}
+#| output: asis
+embed_radial_plot(angle_slider_plot(); load_library=true)
+```
+
+::: {.fragment}
+
+```julia
+seq = Sequence(sys)
+@addblock seq += excitation
+@addblock seq += rotz(θ) * readout
+```
+
+:::
+
+::: notes
+Start with the full spoke on the horizontal axis at $k_y = 0$. Sweep the angle to rotate both the readout waveform and the spoke. The excitation stays fixed. In the Koma code, $\theta$ is in radians.
+
+:::
+
+# Instead of multiple phase enc., we use multiple spokes {#multiple-spokes .compact}
+
+```{julia}
+#| output: asis
+embed_radial_plot(radial_time_plot())
+```
+
+::: notes
+Each TR acquires one rotated spoke. The k-space panel retains the spokes from completed TRs.
+
+:::
+
+# How many spokes do we need? {#how-many-spokes}
+
+:::: {.figure-row .middle}
+
+::: {.figure-panel}
+<div id="spoke-gap" class="chart"></div>
+
+:::
+::: {.figure-panel .spoke-formulas}
+$$\underbrace{\color{e9782d}k_{\max}\Delta\theta}_{\text{arc length}}\leq\Delta k$$
+
+$$k_{\max}=\frac{N}{2}\Delta k$$
+
+$$\Delta\theta=\frac{\pi}{N_{\mathrm{sp}}}$$
+
+$$\boxed{N_{\mathrm{sp}}\geq\frac{\pi N}{2}}$$
+
+:::
+::::
+
+::: notes
+The diagram marks every fifth ADC sample along each spoke and uses that same spacing for the illustrative Cartesian grid. Compare this spacing with the largest gap between spokes at the edge. The estimate assumes uniformly spaced full spokes with $N$ samples per spoke.
+
+:::
+
+# Projection-slice theorem: One spoke gives one projection {#projection-slice .compact}
+
+::: {.projection-equation}
+$$
+S(k_x,k_y)\,[1(k_x)\delta(k_y)]
+\;\xrightarrow{\;\mathcal F^{-1}\;}\;
+m(x,y)*[\delta(x)1(y)]
+$$
+:::
+
+:::: {.figure-row .short-figures}
+
+::: {.figure-panel}
+<div id="projection-tubes" class="chart"></div>
+
+:::
+::: {.figure-panel}
+<div id="projection-profile" class="chart"></div>
+
+:::
+::::
+
+```{=html}
+<div id="projection-angle" class="slide-control half-slider show-steps"></div>
+```
+
+::: notes
+At 0°, the mask selects the horizontal spoke. Multiplication by the mask becomes convolution with $\delta(x)1(y)$ after the inverse FT. In the convolution, $\delta(x)$ holds $x$ fixed and $1(y)$ sums along $y$, giving $p_{\theta=0}(x)=\int m(x,y')\,\mathrm{d}y'$ repeated across $y$. Each circle represents a cross-section of one of Lauterbur’s water tubes. The arrows show the direction of integration as the spoke rotates. The two peaks move closer at 45° and overlap at 90°.
+
+:::
+
+# If we take the projections, smear them in 2D and add them {#backprojection .compact}
+
+<div id="backprojection-image" class="chart"></div>
+
+```{=html}
+<div id="backprojection-views" class="slide-control"></div>
+```
+
+::: notes
+Spread each projection value back along its integration line. Start with 0°, 45°, and 90°. Increase the count and look for the halos around the two tubes.
+
+:::
+
+# Filtered backprojection {#filtered-backprojection}
+
+:::: {.figure-row .short-figures}
+
+::: {.figure-panel}
+<div class="figure-label">Unfiltered</div>
+
+<div id="filtered-backprojection-unfiltered" class="chart"></div>
+
+:::
+::: {.figure-panel}
+<div class="figure-label">Ram–Lak filtered</div>
+
+<div id="filtered-backprojection-image" class="chart"></div>
+
+:::
+::::
+
+```{=html}
+<div id="filtered-backprojection-views" class="slide-control"></div>
+```
+
+::: {.figure-label}
+$$S_{\mathrm{filtered}}(k_r,\theta)
+= \underbrace{|k_r|}_{\text{Ram–Lak ramp}}\,S(k_r\cos\theta,\;k_r\sin\theta)$$
+:::
+
+::: notes
+Apply the Ram–Lak ramp $|k_r|$ to each spoke before the 1D inverse Fourier transform. The ramp accounts for the larger k-space area represented by samples farther from the center.
+
+:::
+
+
+
+# Spiral acquisitions can be used for SNR efficiency {#spiral-acquisition .compact}
+
+:::: {.figure-row}
+
+::: {.figure-panel}
+<div id="spiral-wave" class="chart"></div>
+
+:::
+::: {.figure-panel}
+<div id="spiral-path" class="chart"></div>
+
+:::
+::::
+
+::: {.slide-reference}
+[Gary H. Glover, *Simple analytic spiral K-space algorithm* (1999)](https://pubmed.ncbi.nlm.nih.gov/10440968/)
+:::
+
+::: notes
+The waveform starts with the same slice-selective excitation as the radial example. The in-plane trajectory shows one shot of a four-interleaf spiral designed for a 300 mm acquisition FOV and 2.5 mm resolution.
+
+:::
+
+# How do we reconstruct from this arbitrary k-space trajectory? {#spiral-image .compact}
+
+:::: {.figure-row .fourier-panels .middle}
+
+::: {.figure-panel}
+<div id="spiral-samples" class="chart"></div>
+
+:::
+::: {.figure-panel}
+$$?$$
+
+$$\longrightarrow$$
+
+:::
+::: {.figure-panel}
+<div id="spiral-reconstruction" class="chart"></div>
+
+:::
+::::
+
+::: notes
+The trajectory shows one shot. The image uses all four interleaves and the original 240 mm, 96 × 96 grid.
+
+:::
+
+# Density compensation function (DCF) {#density-compensation .compact}
+
+:::: {.figure-row .middle .dcf-figure}
+::: {.figure-panel}
+<div id="density-spiral" class="chart" role="img" aria-label="Variable-density spiral with two equal-area k-space patches"></div>
+:::
+
+::: {.figure-panel .dcf-detail}
+$$\omega_j \approx \text{k-space area per sample}$$
+:::
+::::
+
+::: notes
+The diagram is a schematic variable-density spiral. Equal weights would give the densely sampled patch more influence simply because it contains more samples. Using the patch average, the inner samples each represent about $A/5$, while the outer sample represents $A$. The inverse Fourier integral is approximated by $\sum_j \omega_j S_j e^{i2\pi\boldsymbol{k}_j\cdot\boldsymbol{x}}$, so the weights approximate the area elements of that integral.
+:::
+
+# Estimating the DCF with a Voronoi diagram {#voronoi-density-compensation .compact}
+
+:::: {.figure-row .middle .dcf-figure}
+::: {.figure-panel}
+<div id="density-voronoi" class="chart" role="group" aria-label="Spiral Voronoi diagram with cells at the disk boundary shaded"></div>
+:::
+
+::: {.figure-panel .dcf-detail .voronoi-detail}
+$$\omega_j \approx \frac{\operatorname{area}(V_j)}{\text{visits to }\boldsymbol{k}_j}$$
+
+<div id="voronoi-weights" class="chart" role="img" aria-label="Voronoi density compensation weights by sample index"></div>
+:::
+::::
+
+::: {.slide-reference}
+[Rasche et al., *Resampling of Data Between Arbitrary Grids Using Convolution Interpolation* (1999)](https://doi.org/10.1109/42.774166)<br>
+Guard samples · [Tanase and Boada, *Voronoi Based Sampling Density Correction* (ISMRM 2006, abstract 2950)](https://archive.ismrm.org/2006/2950.html)
+:::
+
+::: notes
+$V_j$ is the Voronoi cell associated with $\boldsymbol{k}_j$. The diagram uses the same sample coordinates as the previous slide. Interior edges lie on perpendicular bisectors between samples. The purple cells touch the chosen disk cutoff, so their areas depend on where that cutoff is placed. The dashed curve shows a second estimate obtained by extrapolating the spiral one turn with guard samples. Those extra sites define cell boundaries. Only acquired samples receive weights for reconstruction. This spiral visits each acquired location once, so the denominator is one for every sample.
+:::
+
+# Estimating the DCF for radial sampling {#radial-density-compensation .compact}
+
+:::: {.figure-row .middle .dcf-figure}
+::: {.figure-panel}
+<div id="radial-voronoi" class="chart" role="group" aria-label="Voronoi diagram of eight radial spokes with cells at the disk boundary shaded"></div>
+:::
+
+::: {.figure-panel .voronoi-detail}
+$$\omega_j \approx \frac{\operatorname{area}(V_j)}{\text{visits to }\boldsymbol{k}_j}$$
+
+<div id="radial-voronoi-weights" class="chart" role="img" aria-label="Voronoi weights and the Ram–Lak ramp along the first radial spoke"></div>
+:::
+::::
+
+::: notes
+The schematic uses eight full spokes with 21 samples each. The graph shows the first spoke from one end through the origin to the other. The dashed Ram–Lak ramp is $|k_r|\,\Delta k_r\,\Delta\theta$, with $\Delta k_r=20\,\mathrm{m}^{-1}$ and $\Delta\theta=\pi/8$. These factors put the ramp on the same area scale as the Voronoi weights. The ideal ramp is zero at the origin. Each of the eight center samples gets one eighth of the finite Voronoi cell's area. The purple endpoint cells are cut off by the disk. With samples at 180 and 200 $\mathrm{m}^{-1}$, the last cell begins near 190 and ends at the cutoff, leaving roughly half of a full 20 $\mathrm{m}^{-1}$ radial bin.
+:::
+
+# Nonuniform Fourier transform and gridding {#nonuniform-fourier-transform-and-gridding .compact}
+
+:::: {.figure-row .three-panels .short-figures .gridding-panels}
+
+::: {.figure-panel}
+<div class="figure-label">Acquired nonuniform k-space</div>
+
+<div id="gridding-input" class="chart"></div>
+
+::: {.gridding-formula}
+$$S_j=S(\boldsymbol{k}_j)$$
+:::
+
+:::
+::: {.figure-panel}
+<div class="figure-label">Gridded k-space</div>
+
+<div id="gridding-grid" class="chart"></div>
+
+::: {.gridding-formula}
+$$S_g(\boldsymbol{k})=\sum_j \omega_j S_j C(\boldsymbol{k}-\boldsymbol{k}_j)$$
+:::
+
+::: {.figure-label}
+$\omega_j$ is the density compensation weight.<br>
+$C$ is the Kaiser–Bessel gridding kernel.
+:::
+
+:::
+::: {.figure-panel}
+<div class="figure-label">Inverse FT</div>
+
+<div id="gridding-image" class="chart"></div>
+
+::: {.gridding-formula}
+$$\hat{m}(\boldsymbol{x})=\frac{\mathcal{F}^{-1}\{S_g\}(\boldsymbol{x})}{\mathcal{F}^{-1}\{C\}(\boldsymbol{x})}$$
+:::
+
+:::
+::::
+
+
+::: notes
+The example uses the same axial brain phantom as the aliasing comparison. The first two panels show one interleaf before and after gridding. Zero is black and larger log magnitudes are brighter. Magnify one sample and describe how its value is added to the nearby grid points with the Kaiser–Bessel kernel. Combine the grids from all four interleaves for the inverse FFT, divide out the kernel response in image space, and crop the oversampled image. The adjoint NUFFT applies this kind of off-grid Fourier operation efficiently.
+
+:::
+
+# What do aliasing artifacts look like? {#sampling-psf .compact}
+
+```{=html}
+<div class="psf-comparison">
+  <div></div>
+  <div class="figure-label">Cartesian<div class="sampling-count" id="cartesian-count"></div></div>
+  <div class="figure-label">Radial<div class="sampling-count" id="radial-count"></div></div>
+  <div class="figure-label">Spiral<div class="sampling-count" id="spiral-count"></div></div>
+  <div class="figure-label row-label">PSF</div>
+  <div id="cartesian-psf" class="chart" role="img" aria-label="Cartesian point spread function"></div>
+  <div id="radial-psf" class="chart" role="img" aria-label="Radial point spread function"></div>
+  <div id="spiral-psf" class="chart" role="img" aria-label="Spiral point spread function"></div>
+  <div class="figure-label row-label">Reconstruction</div>
+  <div id="cartesian-axial" class="chart" role="img" aria-label="Cartesian axial reconstruction"></div>
+  <div id="radial-axial" class="chart" role="img" aria-label="Radial axial reconstruction"></div>
+  <div id="spiral-axial" class="chart" role="img" aria-label="Spiral axial reconstruction"></div>
+</div>
+<div id="sampling-acceleration-control" class="slide-control half-slider show-steps"></div>
+```
+
+::: notes
+The reference is the proton density of KomaMRI's axial brain phantom. All panels use a 240 mm FOV and 2.5 mm pixels. The ideal single-coil, on-resonance model isolates undersampling. For all three trajectories, reconstruct with the adjoint NUFFT using density weights, 2× oversampled Kaiser–Bessel gridding, an inverse FFT, and deapodization. The PSF is the reconstruction of a point at the origin. Each PSF is normalized to its own peak and displayed on a linear scale that clips at 5%. The reconstructions share one grayscale window. At acceleration R, keep every Rth phase-encode line, spoke, or interleaf from its 1× trajectory.
+:::
+
+# What does off-resonance look like? {#off-resonance .compact}
+
+```{=html}
+<div class="figure-row off-resonance-panels">
+  <div class="figure-panel field-panel">
+    <div class="figure-label">B₀ map (Hz)</div>
+    <div id="off-resonance-field" class="chart" role="img" aria-label="Simulated B0 offset map in hertz"></div>
+  </div>
+  <div></div>
+  <div class="figure-label">Cartesian<div class="readout-duration" id="off-resonance-cartesian-duration"></div></div>
+  <div class="figure-label">Radial<div class="readout-duration" id="off-resonance-radial-duration"></div></div>
+  <div class="figure-label">Spiral<div class="readout-duration" id="off-resonance-spiral-duration"></div></div>
+  <div class="figure-label row-label">PSF</div>
+  <div id="off-resonance-cartesian-psf" class="chart" role="img" aria-label="Cartesian point spread function with off-resonance"></div>
+  <div id="off-resonance-radial-psf" class="chart" role="img" aria-label="Radial point spread function with off-resonance"></div>
+  <div id="off-resonance-spiral-psf" class="chart" role="img" aria-label="Spiral point spread function with off-resonance"></div>
+  <div class="figure-label row-label">Reconstruction</div>
+  <div id="off-resonance-cartesian" class="chart" role="img" aria-label="Cartesian reconstruction with off-resonance"></div>
+  <div id="off-resonance-radial" class="chart" role="img" aria-label="Radial reconstruction with off-resonance"></div>
+  <div id="off-resonance-spiral" class="chart" role="img" aria-label="Spiral reconstruction with off-resonance"></div>
+</div>
+<div class="off-resonance-label">Off-resonance</div>
+<div id="off-resonance-control" class="slide-control half-slider show-steps"></div>
+```
+
+::: {.slide-reference}
+[Time-segmented off-resonance correction · Noll et al. (1991)](https://doi.org/10.1109/42.108599)
+:::
+
+::: notes
+The synthetic map shows the frequency offset $\Delta f$ relative to the receiver frequency. The slider scales its peak absolute offset. The ADC timing of each 1× trajectory is stretched to a 6 ms readout while retaining the original sample coordinates. The forward model multiplies the phantom by $\exp(-\mathrm{i}2\pi\Delta f\,t)$ at each ADC sample. Time is relative to the center sample for Cartesian and radial readouts and the initial sample for the center-out spiral. The reconstruction assumes on-resonance encoding and uses the same weights, gridding, and image window across slider settings.
+
+Each PSF uses a single pixel at the image center with its frequency offset set directly by the slider. The PSFs use a fixed linear display range from 0 to 25% of the on-resonance peak.
+
+[Noll et al., *A homogeneity correction method for magnetic resonance imaging with time-varying gradients* (1991)](https://doi.org/10.1109/42.108599)
+:::
+
+# What do gradient delays look like? {#gradient-delay .compact}
+
+```{=html}
+<div class="psf-comparison">
+  <div></div>
+  <div class="figure-label">Cartesian</div>
+  <div class="figure-label">Radial</div>
+  <div class="figure-label">Spiral</div>
+  <div class="figure-label row-label">K-space</div>
+  <div id="gradient-delay-cartesian-path" class="chart" role="img" aria-label="Nominal and delayed Cartesian readouts near the center of k-space"></div>
+  <div id="gradient-delay-radial-path" class="chart" role="img" aria-label="Nominal and delayed radial spokes near the center of k-space"></div>
+  <div id="gradient-delay-spiral-path" class="chart" role="img" aria-label="Nominal and delayed spiral interleaves near the center of k-space"></div>
+  <div class="figure-label row-label">Reconstruction</div>
+  <div id="gradient-delay-cartesian-image" class="chart" role="img" aria-label="Cartesian reconstruction with gradient delay"></div>
+  <div id="gradient-delay-radial-image" class="chart" role="img" aria-label="Radial reconstruction with gradient delay"></div>
+  <div id="gradient-delay-spiral-image" class="chart" role="img" aria-label="Spiral reconstruction with gradient delay"></div>
+</div>
+<div class="gradient-delay-label">Gradient delay</div>
+<div id="gradient-delay-control" class="slide-control half-slider show-steps"></div>
+```
+
+::: {.slide-reference}
+[Gradient-delay and trajectory correction · Brodsky et al. (2009), Fig. 4](https://pmc.ncbi.nlm.nih.gov/articles/PMC2857383/)
+:::
+
+::: notes
+Use the 1× trajectories and their native readout timings from the aliasing comparison. The top row shows representative readouts near the center of k-space. Gray circles mark the nominal samples and the blue dots mark the delayed samples. Both in-plane gradients are delayed by the same amount relative to the ADC, giving acquisition coordinates $\boldsymbol{k}(t-\tau)$. Reconstruct using the nominal coordinates, density weights, and image window. In the flat part of a Cartesian readout, the shift in $k_x$ mainly adds an image phase ramp. With a common delay, radial samples slide along each spoke and spiral samples move earlier along each interleaf. Differential delays can also shift radial spokes perpendicular to their readout direction.
+
+The slider spans 0–4 µs. At this demo's spiral dwell of about 2.5 µs, a 4 µs delay spans about 1.6 ADC dwell intervals. Brodsky et al. measured timing advances of 5.6–7.1 µs, and a 3 T spiral spectroscopy study measured 8 µs on both in-plane axes. The reconstructions share a fixed linear grayscale window from 0 to 1.8. Brightening can occur when strong low-frequency samples are gridded at their nominal coordinates with the nominal density weights.
+
+[Brodsky et al., *Characterizing and Correcting Gradient Errors in Non-Cartesian Imaging* (2009)](https://pmc.ncbi.nlm.nih.gov/articles/PMC2857383/) · [3 T spiral study](https://pmc.ncbi.nlm.nih.gov/articles/PMC4010560/)
+
+[Rosenzweig et al., *Simple Auto-Calibrated Gradient Delay Estimation From Few Spokes Using Radial Intersections (RING)* (2019)](https://doi.org/10.1002/mrm.27506)
+:::
+
+# Open-source MRI reconstruction {#open-source-mri-reconstruction .center}
+
+# BART {#bart .compact .reconstruction-tool}
+
+```{julia}
+#| output: asis
+embedded_image(lecture_figure("bart-banner.webp"), "image/webp", "BART banner", 138)
+```
+
+:::: {.figure-row .middle}
+
+::: {.figure-panel .culture-image}
+<table aria-label="BART project details">
+<tbody>
+<tr><th scope="row">Frontend</th><td>MATLAB, Python, <a href="https://github.com/MagneticResonanceImaging/BartIO.jl">Julia</a></td></tr>
+<tr><th scope="row">Backend</th><td>C</td></tr>
+<tr><th scope="row">Stars</th><td><a href="https://codeberg.org/mrirecon/bart">14 (Codeberg)</a><br><a href="https://github.com/mrirecon/bart">370 (GitHub archive)</a></td></tr>
+<tr><th scope="row">License</th><td>BSD-3-Clause</td></tr>
+</tbody>
+</table>
+
+```{julia}
+#| output: asis
+embedded_image(lecture_figure("bart-qr.webp"), "image/webp", "QR code for the BART toolbox website", 180)
+```
+
+::: {.figure-label}
+[mrirecon.codeberg.page](https://mrirecon.codeberg.page/)
+:::
+
+:::
+
+::: {.figure-panel .culture-image}
+```{julia}
+#| output: asis
+embedded_image(lecture_figure("bart-logo-reconstructions.webp"), "image/webp", "BART logo reconstructions from simulated MRI data", 316)
+```
+
+:::
+::::
+
+::: {.slide-reference}
+[Uecker et al. Berkeley Advanced Reconstruction Toolbox. ISMRM 2015, abstract 2486.](https://archive.ismrm.org/2015/2486.html)
+:::
+
+# ![MRIReco.jl](../1/figures/mrireco-logo.png){height=114} {#mrireco .compact .reconstruction-tool data-menu-title="MRIReco.jl"}
+
+:::: {.figure-row .middle}
+
+::: {.figure-panel .culture-image}
+<table aria-label="MRIReco.jl project details">
+<tbody>
+<tr><th scope="row">Frontend</th><td>Julia</td></tr>
+<tr><th scope="row">Backend</th><td>Julia*</td></tr>
+<tr><th scope="row">Stars</th><td><a href="https://github.com/MagneticResonanceImaging/MRIReco.jl">98 (GitHub)</a></td></tr>
+<tr><th scope="row">License</th><td>MIT</td></tr>
+</tbody>
+</table>
+
+::: {.tool-footnote}
+*CPU, CUDA, and AMDGPU.
+:::
+
+```{julia}
+#| output: asis
+embedded_image(lecture_figure("mrireco-qr.webp"), "image/webp", "QR code for the MRIReco.jl repository", 180)
+```
+
+::: {.figure-label}
+[MRIReco.jl on GitHub](https://github.com/MagneticResonanceImaging/MRIReco.jl)
+:::
+
+:::
+
+::: {.figure-panel .culture-image}
+```{julia}
+#| output: asis
+embedded_image(lecture_figure("sparse-image-patches.webp"), "image/webp", "Sparse representation of image patches from a phantom", 160)
+```
+
+::: {.tool-examples}
+```{julia}
+#| output: asis
+embedded_image(lecture_figure("variable-density-mask.webp"), "image/webp", "Variable-density k-space sampling mask", 220)
+```
+
+```{julia}
+#| output: asis
+embedded_image(lecture_figure("sagittal-knee.webp"), "image/webp", "Reconstructed sagittal knee image", 220)
+```
+:::
+
+:::
+::::
+
+::: {.slide-reference}
+[Knopp and Grosser. MRIReco.jl: An MRI Reconstruction Framework written in Julia. Magnetic Resonance in Medicine, 2021.](https://doi.org/10.1002/mrm.28792)
+:::
+
+# Laboratory 5 {#lab-activity .compact}
+
+:::: {.figure-row .middle}
+::: {.figure-panel}
+- Design a radial MRI pulse sequence.
+- Simulate it in KomaMRI and reconstruct the data with an OpenRecon Docker container.
+- Acquire data on the scanner and reconstruct it with the same container.
+:::
+
+::: {.figure-panel}
+```{=html}
+<iframe data-external="1" data-src="../../lab/5/activity5.html" title="Activity 5: Design and simulate a radial acquisition"></iframe>
+```
+:::
+::::
+
+# OpenRecon let’s you deploy custom reconstructions {#open-recon-lets-you-deploy-custom-reconstructions .compact}
+
+:::: {.figure-row .middle}
+
+::: {.figure-panel .culture-image}
+```{julia}
+#| output: asis
+embedded_image(open_magnetom, "image/webp", "Open MAGNETOM Community graphic", 390)
+```
+
+[Open Recon documentation](https://doclib.siemens-healthineers.com/rest/v1/view?document-id=1033256)
+:::
+::: {.figure-panel .open-recon-list}
+
+- Compatible Siemens MAGNETOM scanners only
+- Docker-based reconstruction
+- Runs on MARS (CPU/GPU)
+- Uses `.mrd` for raw data and image output
+- It allows you to add UI parameters
+    - Reconstruction parameters
+    - Display parameters
+
+:::
+::::
+
+::: notes
+Point out where the custom container runs and how scanner protocol parameters are passed to it.
+
+:::
+
+# Radial OpenRecon container will reconstruct your data {#radial-open-recon-container-reconstructs-your-data .compact}
+
+:::::: {.figure-row .middle .open-recon-demo}
+
+::::: {.figure-panel .culture-image}
+:::: {.fragment .open-recon-step}
+<div class="open-recon-step-number">(1)</div>
+
+```{julia}
+#| output: asis
+embedded_image(bartio_figure, "image/webp", "BartIO.jl project and package description", 185)
+```
+::::
+
+:::: {.fragment .open-recon-step}
+<div class="open-recon-step-number">(2)</div>
+
+```{julia}
+#| output: asis
+embedded_image(lecture_figure("openrecon-release.webp"), "image/webp", "GitHub release for bios214radial 0.1.3", 100)
+```
+
+```bash
+docker run ghcr.io/mcgrathcm/bios214-radial:0.1.3
+```
+::::
+
+:::: {.fragment .open-recon-step}
+<div class="open-recon-step-number">(3)</div>
+
+::: {.figure-label}
+[`/opt/recon/julia/recon.jl`](https://github.com/mcgrathcm/OpenReconContainers/blob/openrecon-bios214radial-v0.1.3/containers/bios214-radial/recon.jl#L38)
+:::
+
+```julia
+coil_images = BartIO.bart(
+    1, "nufft -i -x128:128:1 -l0.1 -m100",
+    info.trajectory, data)
+```
+::::
+
+:::::
+::: {.figure-panel .culture-image .resolution-phantom}
+```{julia}
+#| output: asis
+embedded_image(resolution_phantom, "image/webp", "Resolution phantom reconstructed with Open Recon 0.1.2", 405)
+```
+
+:::
+::::::
+
+::: notes
+The course container pairs the radial sequence with its ADC coordinates. The figure shows the reconstructed resolution phantom.
+The [0.1.3 release](https://github.com/mcgrathcm/OpenReconContainers/releases/tag/openrecon-bios214radial-v0.1.3) provides the scanner ZIP and the Docker image.
+
+:::
+
+# You will test in simulation, then on the scanner {#test-in-simulation-then-on-the-scanner .compact}
+
+:::: {.figure-row .middle .open-recon-demo}
+
+::: {.figure-panel}
+```julia
+# MRI simulation
+raw = simulate(obj, seq, sys)
+
+# Download the Docker image and start the container
+container = "ghcr.io/mcgrathcm/bios214-radial:0.1.3"
+OpenReconClient.start(; image=container)
+
+# Send MRD acquisition data over TCP
+image = OpenReconClient.recon(raw)
+```
+
+::: {.figure-label}
+[OpenReconClient.jl in BIOS 214](https://github.com/cncastillo/bios-214/blob/master/openrecon/OpenReconClient.jl)
+:::
+
+:::
+
+::: {.figure-panel .culture-image}
+
+```{julia}
+#| output: asis
+embedded_image(lecture_figure("axial-brain-openrecon.webp"), "image/webp", "Axial brain phantom reconstructed with OpenRecon 0.1.3", 405)
+```
+:::
+::::
+
+::: notes
+Use the course [OpenReconClient.jl](https://github.com/cncastillo/bios-214/blob/cb51655faac038a3652102c34f57cb50c8311587/openrecon/OpenReconClient.jl) with the release’s `radial_bssfp.seq`. Inside Docker, KomaMRI simulated the on-resonance axial BrainWeb phantom using the bundled radial bSSFP sequence (TR 3.66 ms, TE 1.83 ms, 202 spokes, 256 samples per spoke). The OpenRecon 0.1.3 container reconstructed a 128 × 128 image over a 256 × 256 mm field of view.
+:::
+
+# Pulse sequence design {#pulse-sequence-workflow}
+
+```{=html}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 660" role="img"
+     aria-label="Pulse sequence design feeds acquisition and simulation. Both paths feed reconstruction.">
+  <defs>
+    <marker id="acquisition-arrow" viewBox="0 0 12 10" refX="12" refY="5" markerWidth="22"
+            markerHeight="20" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M0 0L12 5L0 10Z" fill="#555555"/>
+    </marker>
+    <marker id="simulation-arrow" viewBox="0 0 12 10" refX="12" refY="5" markerWidth="24"
+            markerHeight="20" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M0 0L12 5L0 10Z" fill="#a2bff0"/>
+    </marker>
+  </defs>
+  <g fill="#eeeeee" stroke="#555555" stroke-width="1.5">
+    <rect x="80" y="250" width="300" height="110"/>
+    <rect x="490" y="250" width="300" height="110"/>
+    <rect x="490" y="380" width="300" height="110" stroke="#a2bff0"/>
+    <rect x="900" y="250" width="300" height="110" stroke="#e00000" stroke-width="5"/>
+  </g>
+  <g fill="none" stroke="#555555" stroke-width="4" marker-end="url(#acquisition-arrow)">
+    <path d="M380 305H490"/>
+    <path d="M790 305H900"/>
+  </g>
+  <g fill="none" stroke="#a2bff0" stroke-width="5" marker-end="url(#simulation-arrow)">
+    <path d="M420 307V435H490"/>
+    <path d="M790 435H830V307"/>
+  </g>
+  <g font-family="inherit" font-size="26" fill="#343a40" text-anchor="middle" dominant-baseline="central">
+    <text x="230" y="305">Pulse sequence design</text>
+    <text x="640" y="305">Acquisition</text>
+    <text x="640" y="435">Simulation</text>
+    <text x="1050" y="305" fill="#e00000">Reconstruction</text>
+  </g>
+  <image x="597" y="128" width="86" height="94" href="data:image/webp;base64,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"/>
+  <image x="583" y="520" width="114" height="100" href="data:image/webp;base64,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"/>
+</svg>
+```
+
+# Questions? {#questions .center}
+
+```{julia}
+#| output: asis
+embedded_image(questions_droplet, "image/webp", "Water-drop character with spiral eyes", 280)
+```
+
+```{julia}
+#| output: asis
+println("```{=html}")
+println("<script id=\"lecture5-data\" type=\"application/json\">", PlotlyBase.JSON.json(lecture_data), "</script>")
+println("```")
+```
+
+```{=html}
+<script>
+window.addEventListener('load', () => {
+  const Plotly = window.Plotly;
+  const d = JSON.parse(document.getElementById('lecture5-data').textContent);
+  const blue = '#2a7fb8', orange = '#e9782d', gray = '#89939c', ink = '#343a40';
+  const gradientRange = [-32,32];
+  const axis = {
+    showgrid:true,gridcolor:'#e8ebed',zeroline:true,zerolinecolor:gray,
+    showline:true,linecolor:gray,mirror:true,ticks:'outside',automargin:true
+  };
+  const kMax = 145;
+  const split = (pairs, axis) => pairs.map(p => p[axis]);
+  const line = (x, y, color, extra = {}) => ({
+    x, y, type: 'scatter', mode: 'lines', line: {color, width: 2}, hoverinfo: 'skip', ...extra
+  });
+  const points = (x, y, color, size = 4) => ({
+    x, y, type: 'scatter', mode: 'markers', marker: {color, size}, hoverinfo: 'skip'
+  });
+  const heat = (z, props = {}) => ({
+    z, type: 'heatmap', colorscale: [[0,'#000000'],[1,'#ffffff']], showscale: false,
+    hoverinfo: 'skip', zsmooth: false, ...props
+  });
+  const axes = (xTitle, yTitle, xRange, yRange) => ({
+    xaxis: {...axis,title:xTitle,range:xRange}, yaxis: {...axis,title:yTitle,range:yRange}
+  });
+  const kAxes = (extent = kMax) => ({
+    xaxis:{...axis,title:'kₓ (1/m)',range:[-extent,extent],constrain:'domain'},
+    yaxis:{...axis,title:'kᵧ (1/m)',range:[-extent,extent],constrain:'domain',scaleanchor:'x'}
+  });
+  const picture = {
+    xaxis: {visible: false}, yaxis: {visible: false, scaleanchor: 'x'},
+    margin: {l: 10, r: 10, t: 6, b: 10}
+  };
+  const plot = (id, data, layout = {}, config = {}) => {
+    const el = document.getElementById(id);
+    return Plotly.react(el, data, {
+      margin:{l:68,r:20,t:8,b:64}, showlegend:false,font:{size:20,color:ink},
+      paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)', ...layout
+    }, {displayModeBar: false, responsive: true, ...config});
+  };
+  const wave = (id, data, traces = data.data, options = {}) => {
+    const {xaxis, yaxis, shapes, annotations} = data.layout;
+    return plot(id, traces, {
+      xaxis:{...xaxis,...axis},yaxis:{...yaxis,...axis},shapes,annotations,showlegend:true,
+      margin:{l:55,r:10,t:52,b:65}, ...options,
+      legend:{orientation:'h',xref:'paper',yref:'paper',x:0,y:1.07,yanchor:'bottom',font:{size:16}}
+    });
+  };
+  const schedule = new Map();
+  const onSlide = (id, draw) => schedule.set(id, draw);
+  async function slider(id, values, prefix, label, draw) {
+    draw(values[0]);
+    const control = document.getElementById(id);
+    const hidden = {visible:false,fixedrange:true};
+    const halfWidth=control.classList.contains('half-slider');
+    const showSteps=control.classList.contains('show-steps');
+    const options = {
+      active:0,x:halfWidth ? .28 : .06,len:halfWidth ? .44 : .88,y:1,pad:{t:0},
+      ticklen:showSteps ? 6 : 0,minorticklen:0,font:{color:showSteps ? ink : 'rgba(0,0,0,0)',size:17},
+      currentvalue:{visible:Boolean(prefix),prefix,font:{size:20,color:ink}},transition:{duration:0},
+      bordercolor:blue,activebgcolor:blue,
+      steps:values.map((value,i)=>({label:label(value),value:String(i),method:'skip',args:[]}))
+    };
+    await plot(id,[{type:'scatter',x:[null],y:[null]}], {
+      xaxis:hidden,yaxis:hidden,margin:{l:68,r:68,t:8,b:0},sliders:[options]
+    });
+    control.on('plotly_sliderchange',e=>draw(values[Number(e.step.value)]));
+  }
+  const rotate = (pairs, angle) => {
+    const r = angle*Math.PI/180;
+    const c = Math.cos(r), s = Math.sin(r);
+    return pairs.map(([x,y]) => [x*c-y*s,x*s+y*c]);
+  };
+  const waveformNames = ['Gx', 'Gy', 'Gz', '|B1|_AM', 'ADC'];
+  function waveformTraces(waveform, offset = 0) {
+    const traces = waveform.data.filter(t => waveformNames.includes(t.name));
+    return traces.map(trace => ({...trace, name:trace.name==='|B1|_AM'?'B₁':trace.name,
+      x:trace.x.map(t=>t===null?null:t+offset), xaxis:'x', yaxis:'y', visible:true, showlegend:true}));
+  }
+  function repetitionDemo(inputId, waveId, pathId, repetitions, extent) {
+    const tr = repetitions[0].tr;
+    const times = Array.from({length:1+tr*repetitions.length*20}, (_, i)=>i/20);
+    const slot = t=>Math.min(Math.floor(t/tr), repetitions.length-1);
+    const acquired = repetitions.map((data,i)=>points(split(data.adc,0),split(data.adc,1),d.readoutColors[i]));
+    slider(inputId,times,'Time: ',t=>t.toFixed(2)+' ms',t=>{
+      const i=slot(t), offset=i*tr, local=t-offset;
+      const data=repetitions[i], traces=waveformTraces(data.wave,offset);
+      wave(waveId, data.wave, traces, {
+        xaxis:{...axis,title:'Time (ms)',range:[offset,offset+tr]}, yaxis:{...axis,range:gradientRange},
+        shapes:[{type:'line',xref:'x',yref:'paper',x0:t,x1:t,y0:0,y1:1,line:{color:'#d84657',width:2}}]
+      });
+      const end = data.t.findLastIndex(sampleTime=>sampleTime<=local);
+      const path=[[0,0],...data.trajectory.slice(0,end+1)];
+      const current=path.at(-1);
+      const count=data.adcTime.findLastIndex(sampleTime=>sampleTime<=local+1e-9)+1;
+      const active=acquired[i];
+      plot(pathId, [
+        line(split(path,0),split(path,1),gray),
+        ...acquired.slice(0,i),
+        {...active,x:active.x.slice(0,count),y:active.y.slice(0,count)},
+        points([current[0]],[current[1]],'#d84657',9)
+      ], kAxes(extent));
+    });
+  }
+  onSlide('cartesian-lines', () => repetitionDemo('cartesian-time','cartesian-wave',
+    'cartesian-trajectory',d.cartesianTRs,215));
+  onSlide('how-many-spokes', () => {
+    const stride=5;
+    const horizontal=d.radialSpokes[0];
+    const gridStep=stride*(horizontal[1][0]-horizontal[0][0]);
+    const extent=171;
+    const radius = Math.abs(horizontal[0][0]);
+    const spokes = d.radialSpokes.map(samples=>
+      line(split(samples,0),split(samples,1),blue,{mode:'lines+markers',
+        marker:{size:samples.map((_,i)=>(i-samples.length/2)%stride===0 ? 5 : 0)}}));
+    const gridX=[], gridY=[];
+    const limit=Math.floor(extent/gridStep);
+    for (let i=-limit;i<=limit;i++) for (let j=-limit;j<=limit;j++) {
+      gridX.push(i*gridStep);
+      gridY.push(j*gridStep);
+    }
+    const angle = Math.PI/spokes.length;
+    const arc = Array.from({length:50},(_,i)=>angle*i/49);
+    const spacingY=-.47*gridStep;
+    plot('spoke-gap', [
+      points(gridX,gridY,'#bec7ce',4),...spokes,
+      line(arc.map(a=>radius*Math.cos(a)),arc.map(a=>radius*Math.sin(a)),orange)
+    ], {
+      ...kAxes(extent),
+      annotations:[
+        {x:radius*Math.cos(angle/2),y:radius*Math.sin(angle/2),text:'kₘₐₓ Δθ',
+          ax:24,ay:-56,arrowcolor:orange,font:{color:orange}},
+        {x:-3*gridStep,y:spacingY,ax:-4*gridStep,ay:spacingY,xref:'x',yref:'y',axref:'x',ayref:'y',
+          text:'',showarrow:true,arrowside:'end+start',arrowhead:2,startarrowhead:2,arrowcolor:blue,arrowwidth:1.4},
+        {x:-3.5*gridStep,y:spacingY,text:'Δk',yshift:-7,yanchor:'top',showarrow:false,font:{size:16,color:blue}}
+      ]
+    }, {scrollZoom:true});
+  });
+  const projectionLayout = {
+    xaxis:{...axis,title:'x (mm)',range:[-3.6,3.6],constrain:'domain'},
+    yaxis:{...axis,title:'y (mm)',range:[-3.6,3.6],constrain:'domain',scaleanchor:'x'}
+  };
+  function directionArrow(angle, offset, from, to) {
+    const [[x0,y0],[x1,y1]]=rotate([[offset,from],[offset,to]],angle);
+    return {x:x1,y:y1,ax:x0,ay:y0,xref:'x',yref:'y',axref:'x',ayref:'y',
+      text:'',showarrow:true,arrowhead:3,arrowcolor:orange,arrowwidth:2};
+  }
+  onSlide('projection-slice', () => {
+    const angles=[0,45,90];
+    const ymax=Math.max(...d.profiles.flat())*1.05;
+    slider('projection-angle',angles,'θ = ',value=>value+'°',angle=>{
+      const projectionAxis=rotate([[-2.4,2.4],[2.4,2.4]],angle);
+      const center=d.tubeHalfSpacing*Math.cos(angle*Math.PI/180);
+      const offsets=angle===90 ? [0] : [-center,center];
+      const section=heat(d.tubes,{x:d.tubeAxis,y:d.tubeAxis,zmin:0,zmax:1});
+      plot('projection-tubes',[section,line(split(projectionAxis,0),split(projectionAxis,1),orange)],{
+        ...projectionLayout,annotations:offsets.map(offset=>directionArrow(angle,offset,-2.4,2.4))
+      });
+      const profileAxes=axes('Position along projection (mm)','Projection',[-3.6,3.6],[0,ymax]);
+      profileAxes.xaxis.constrain='domain';
+      Object.assign(profileAxes.yaxis,{scaleanchor:'x',scaleratio:7.2/ymax,constrain:'domain'});
+      plot('projection-profile',[line(d.positions,d.profiles[angles.indexOf(angle)],blue)],profileAxes);
+    });
+  });
+  const backprojectionMax=Math.max(...d.backprojection.at(-1).flat());
+  const viewIndices=d.views.map((_,i)=>i);
+  const viewLabel=index=>String(d.views[index]);
+  function backprojectionImage(id,frame,zmax) {
+    plot(id,[heat(frame,{x:d.tubeAxis,y:d.tubeAxis,zmin:0,zmax})],picture);
+  }
+  onSlide('backprojection', () => {
+    slider('backprojection-views',viewIndices,'Number of views: ',viewLabel,index=>{
+      backprojectionImage('backprojection-image',d.backprojection[index],backprojectionMax);
+    });
+  });
+  onSlide('filtered-backprojection', () => {
+    slider('filtered-backprojection-views',viewIndices,'Number of views: ',viewLabel,index=>{
+      backprojectionImage('filtered-backprojection-unfiltered',d.backprojection[index],backprojectionMax);
+      backprojectionImage('filtered-backprojection-image',d.filtered[index],1);
+    });
+  });
+  function spiralKspace(id, showGuides = true) {
+    const {xaxis,yaxis}=d.spiralKspace.layout;
+    const traces=d.spiralKspace.data.map(trace=>trace.name==='ADC'
+      ? {...trace,marker:{...trace.marker,size:1.5,showscale:showGuides}}
+      : trace);
+    const extent=d.spiralExtent*1.12;
+    plot(id,traces,{
+      ...d.spiralKspace.layout,showlegend:showGuides,paper_bgcolor:'#ffffff',plot_bgcolor:'#ffffff',
+      xaxis:{...xaxis,...axis,range:[-extent,extent],constrain:'domain'},
+      yaxis:{...yaxis,...axis,range:[-extent,extent],constrain:'domain'},
+      margin:{l:65,r:showGuides?55:10,t:showGuides?52:10,b:65},
+      legend:{orientation:'h',xref:'paper',yref:'paper',x:0,y:1.07,yanchor:'bottom',font:{size:16}}
+    });
+  }
+  onSlide('spiral-acquisition', () => {
+    wave('spiral-wave',d.spiralWave,waveformTraces(d.spiralWave));
+    spiralKspace('spiral-path');
+  });
+  onSlide('spiral-image', () => {
+    spiralKspace('spiral-samples',false);
+    plot('spiral-reconstruction',[heat(d.spiralImage)],picture);
+  });
+  const density = d.spiralDensity;
+  const densityColors = [blue,'#b65318'];
+  const densityAxes = kAxes(density.radius * 1.07);
+  const densityLayout = {
+    xaxis:{...densityAxes.xaxis,showgrid:false,zeroline:false},
+    yaxis:{...densityAxes.yaxis,showgrid:false,zeroline:false},
+  };
+  onSlide('density-compensation', () => {
+    const patches = density.patches.map(([x,y],i) => ({
+      type:'rect', x0:x-density.halfWidth, x1:x+density.halfWidth,
+      y0:y-density.halfWidth, y1:y+density.halfWidth,
+      line:{color:densityColors[i],width:2}, fillcolor:densityColors[i]+'18', layer:'below'
+    }));
+    const colors = density.samples.map(() => ink);
+    density.patchSamples.forEach((indices,i) => indices.forEach(j => { colors[j-1] = densityColors[i]; }));
+    plot('density-spiral',[
+      line(split(density.path,0),split(density.path,1),gray,{line:{color:gray,width:1}}),
+      points(split(density.samples,0),split(density.samples,1),colors,5),
+    ],{...densityLayout,shapes:patches});
+  });
+  function drawVoronoi(density, diagramId, weightsId, sampleCount = density.weights.length) {
+    const edges = [[],[]];
+    const clipped = [[],[]];
+    const boundaryColor = '#77549b';
+    const boundaryCells = new Set(density.boundaryCells);
+    density.cells.forEach((cell,i) => {
+      const closed = [...cell,cell[0]];
+      const xs = split(closed,0), ys = split(closed,1);
+      edges[0].push(...xs,null);
+      edges[1].push(...ys,null);
+      if (boundaryCells.has(i+1)) {
+        clipped[0].push(...xs,null);
+        clipped[1].push(...ys,null);
+      }
+    });
+    const highlights = density.examples.map((example,i) => {
+      const cell = density.cells[density.sampleCells[example-1]-1];
+      const color = densityColors[i];
+      return line(split([...cell,cell[0]],0),split([...cell,cell[0]],1),color,
+        {fill:'toself',fillcolor:color+'45'});
+    });
+    plot(diagramId,[
+      line(...clipped,boundaryColor,{fill:'toself',fillcolor:boundaryColor+'29',line:{width:0}}),
+      line(...edges,gray,{line:{color:'#adb5bd',width:1}}),
+      ...highlights,
+      line(split(density.boundary,0),split(density.boundary,1),gray),
+      {...points(split(density.samples,0),split(density.samples,1),ink,4),
+        customdata:density.sampleCells.map(i => density.area[i-1]),
+        hoverinfo:'all',hovertemplate:'Cell area %{customdata:.1f} m⁻²<extra></extra>'},
+    ],{...densityLayout,hovermode:'closest'});
+    const weights = density.weights.slice(0,sampleCount);
+    const indices = weights.map((_,i) => i+1);
+    const exampleWeights = density.examples.map(j => density.weights[j-1]);
+    const traces = [
+      line(indices,weights,ink,{
+        name:'Voronoi',
+        hoverinfo:'all',hovertemplate:'Sample %{x}<br>Weight %{y:.1f} m⁻²<extra></extra>'
+      }),
+      {...points(density.examples,exampleWeights,densityColors,10),showlegend:false},
+    ];
+    const reference = density.ramLak ?? density.guardedWeights;
+    if (reference) {
+      traces.push(line(indices,reference,blue,{
+        name:density.ramLak?'Ram–Lak ramp':'With guard samples',line:{color:blue,width:2,dash:'dash'},
+        hoverinfo:'all',hovertemplate:'Sample %{x}<br>Weight %{y:.1f} m⁻²<extra>%{fullData.name}</extra>'
+      }));
+    }
+    const boundaryIndices = indices.filter(j => boundaryCells.has(density.sampleCells[j-1]));
+    traces.push({
+      ...points(boundaryIndices,boundaryIndices.map(j => weights[j-1]),boundaryColor,8),
+      marker:{color:boundaryColor,size:8,symbol:'circle-open'},name:'Boundary-clipped',
+    });
+    plot(weightsId,traces,{
+      xaxis:{...axis,title:'Sample index j',range:[0,indices.length+1],zeroline:false},
+      yaxis:{...axis,title:'ωⱼ',rangemode:'tozero',separatethousands:true},
+      margin:{l:95,r:20,t:45,b:68},hovermode:'closest',showlegend:true,
+      legend:{orientation:'h',x:0,y:1.06,yanchor:'bottom',font:{size:17}}
+    });
+  }
+  onSlide('voronoi-density-compensation', () => {
+    drawVoronoi(density,'density-voronoi','voronoi-weights');
+  });
+  onSlide('radial-density-compensation', () => {
+    drawVoronoi(d.radialDensity,'radial-voronoi','radial-voronoi-weights',d.radialDensity.samplesPerSpoke);
+  });
+  onSlide('nonuniform-fourier-transform-and-gridding', () => {
+    const extent=d.spiralExtent, grid=d.interleafGrid;
+    const halfGrid=grid.length/2, step=extent/halfGrid;
+    // Group segments by magnitude color while retaining the ADC order within each segment.
+    const palette=['#000000','#444444','#676767','#818181','#9b9b9b','#b1b1b1','#c6c6c6','#dadada','#ededed','#ffffff'];
+    const segments=palette.map(()=>[[],[]]);
+    const maxSignal=Math.max(...d.signal);
+    for (let j=1;j<d.spiral.length;j++) {
+      const bin=Math.round((palette.length-1)*(d.signal[j-1]+d.signal[j])/(2*maxSignal));
+      const [xs,ys]=segments[bin];
+      const [a,b]=[d.spiral[j-1],d.spiral[j]];
+      xs.push(a[0],b[0],null);
+      ys.push(a[1],b[1],null);
+    }
+    const traces=segments.map(([xs,ys],i)=>line(xs,ys,palette[i],{line:{color:palette[i],width:1.45}}));
+    const gridAxes=kAxes(extent*1.07);
+    const panel={
+      xaxis:{...gridAxes.xaxis,visible:false},yaxis:{...gridAxes.yaxis,visible:false},
+      margin:picture.margin,plot_bgcolor:'#000000'
+    };
+    const zoomConfig={doubleClick:'reset',showTips:false};
+    const inputPlot=plot('gridding-input',traces,panel,zoomConfig);
+    const gridAxis=grid.map((_,i)=>(i-halfGrid)*step);
+    const colorscale=palette.map((shade,i)=>[i/(palette.length-1),shade]);
+    const gridPlot=plot('gridding-grid',[heat(grid,{x:gridAxis,y:gridAxis,colorscale})],panel,zoomConfig);
+    Promise.all([inputPlot,gridPlot]).then(([input,gridded])=>{
+      let syncing=false;
+      const link=(source,target)=>source.on('plotly_relayout',change=>{
+        if (syncing || !Object.keys(change).some(key=>/^[xy]axis\.(range|autorange)/.test(key))) return;
+        syncing=true;
+        Plotly.relayout(target,{'xaxis.range':source.layout.xaxis.range.slice(),
+          'yaxis.range':source.layout.yaxis.range.slice()}).finally(()=>{ syncing=false; });
+      });
+      link(input,gridded);
+      link(gridded,input);
+    });
+    plot('gridding-image',[heat(d.griddingImage)],picture);
+  });
+
+  function linkComparisonZoom(plots) {
+    Promise.all(plots).then(panels => {
+      let syncing = false;
+      panels.forEach(panel => panel.on('plotly_relayout', change => {
+        if (syncing || !Object.keys(change).some(key => /^[xy]axis\.(range|autorange)/.test(key))) return;
+        const {xaxis,yaxis} = panel._fullLayout;
+        const view = {'xaxis.range':xaxis.range.slice(),'yaxis.range':yaxis.range.slice()};
+        syncing = true;
+        Promise.all(panels.filter(other => other !== panel).map(other => Plotly.relayout(other,view)))
+          .finally(() => { syncing = false; });
+      }));
+    });
+  }
+
+  function plotComparisonImage(id, trace, layout) {
+    const panel = document.getElementById(id);
+    if (panel.data) return Plotly.restyle(panel,{z:[trace.z]});
+    return plot(id,[trace],{
+      ...layout,
+      xaxis:{...layout.xaxis,range:layout.xaxis.range.slice()},
+      yaxis:{...layout.yaxis,range:layout.yaxis.range.slice()}
+    },{doubleClick:'reset'});
+  }
+
+  const imageWindow = {zmin:0,zmax:3,colorscale:[[0,'#000000'],[1/3,'#bfbfbf'],[1,'#ffffff']]};
+  onSlide('sampling-psf', () => {
+    const range = [-0.5,d.samplingComparison[0][0].image.length-0.5];
+    const layout = {
+      ...picture,uirevision:'sampling-psf',margin:{l:0,r:0,t:0,b:0},
+      xaxis:{...picture.xaxis,range:range.slice(),constrain:'domain'},
+      yaxis:{...picture.yaxis,range:range.slice(),constrain:'domain'}
+    };
+    let linked = false;
+    slider('sampling-acceleration-control', [1,2,3], 'Acceleration: ', r => r+'×', r => {
+      const reconPlots = ['cartesian','radial','spiral'].map((kind,i) => {
+        const {psf,image,count} = d.samplingComparison[r-1][i];
+        document.getElementById(kind+'-count').textContent = count;
+        plotComparisonImage(kind+'-psf',heat(psf,{zmin:0,zmax:.05}),layout);
+        return plotComparisonImage(kind+'-axial',heat(image,imageWindow),layout);
+      });
+      if (linked) return;
+      linked = true;
+      linkComparisonZoom(reconPlots);
+    });
+  });
+
+  onSlide('off-resonance', () => {
+    const {levels,field,images,psfs,readoutMs} = d.offResonance;
+    const kinds = ['cartesian','radial','spiral'];
+    const maxHz = levels.at(-1);
+    const range = [-0.5,field.length-0.5];
+    const layout = {
+      ...picture,uirevision:'off-resonance',plot_bgcolor:'#000000',margin:{l:0,r:0,t:0,b:0,autoexpand:false},
+      xaxis:{...picture.xaxis,range:range.slice(),constrain:'domain'},
+      yaxis:{...picture.yaxis,range:range.slice(),constrain:'domain'}
+    };
+    kinds.forEach((kind,i) => {
+      document.getElementById('off-resonance-'+kind+'-duration').textContent = Number(readoutMs[i].toFixed(2))+' ms readout';
+    });
+    let linked = false;
+    slider('off-resonance-control',levels,'',hz=>hz+' Hz',hz=>{
+      const map = field.map(row => row.map(value => value === null ? null : hz*value));
+      const fieldPlot = plotComparisonImage('off-resonance-field',heat(map,{
+        zmin:-maxHz,zmax:maxHz,colorscale:'RdBu',showscale:true,
+        hoverongaps:false,hoverinfo:'z',hovertemplate:'%{z:.1f} Hz<extra></extra>',
+        colorbar:{orientation:'h',x:0.5,xanchor:'center',y:-0.035,yanchor:'top',
+          len:0.82,thickness:10,ypad:0,outlinewidth:0,tickvals:[-maxHz,0,maxHz],tickfont:{size:16}}
+      }),{...layout,plot_bgcolor:'#dcebf3',margin:{...layout.margin,b:44}});
+      const level = levels.indexOf(hz);
+      const psfPlots = kinds.map((kind,i) =>
+        plotComparisonImage('off-resonance-'+kind+'-psf',heat(psfs[i][level],{zmin:0,zmax:0.25}),layout));
+      const reconPlots = kinds.map((kind,i) => {
+        const image = level === 0 ? d.samplingComparison[0][i].image : images[i][level-1];
+        return plotComparisonImage('off-resonance-'+kind,heat(image,imageWindow),layout);
+      });
+      if (linked) return;
+      linked = true;
+      linkComparisonZoom(psfPlots);
+      linkComparisonZoom([fieldPlot,...reconPlots]);
+    });
+  });
+
+  onSlide('gradient-delay', () => {
+    const {levels,panels} = d.gradientDelay;
+    const kinds = ['cartesian','radial','spiral'];
+    const axes = kAxes(70);
+    const guideAxis = {dtick:35,title:{text:''},ticks:'',showticklabels:false,automargin:false};
+    const pathLayout = {
+      uirevision:'gradient-delay',margin:{l:0,r:0,t:0,b:0},
+      xaxis:{...axes.xaxis,...guideAxis},yaxis:{...axes.yaxis,...guideAxis}
+    };
+    const imageLayout = {...picture,uirevision:'gradient-delay',margin:{l:0,r:0,t:0,b:0}};
+    slider('gradient-delay-control',levels,'',delay=>delay+' µs',delay=>{
+      const level = levels.indexOf(delay);
+      kinds.forEach((kind,i) => {
+        const {paths,delayed} = panels[i];
+        const frame = delayed[level-1];
+        const sampleMarkers = path => {
+          const stride = Math.round(path.length / 8);
+          return path.map((_,index)=>index%stride === 0 ? 5 : 0);
+        };
+        const nominal = paths.map(path => line(split(path,0),split(path,1),gray,{
+          mode:'markers',marker:{color:gray,size:sampleMarkers(path),symbol:'circle-open'}
+        }));
+        const actual = (frame?.paths ?? paths).map(path => line(split(path,0),split(path,1),blue,{
+          mode:'lines+markers',marker:{size:sampleMarkers(path)}
+        }));
+        plot('gradient-delay-'+kind+'-path',[...actual,...nominal],pathLayout);
+        const image = frame ? frame.image : d.samplingComparison[0][i].image;
+        plot('gradient-delay-'+kind+'-image',[heat(image,{zmin:0,zmax:1.8})],imageLayout);
+      });
+    });
+  });
+
+  const draw = slide => {
+    if (!slide || slide.dataset.figuresDrawn) return;
+    const render = schedule.get(slide.id);
+    if (render) {
+      slide.dataset.figuresDrawn = 'true';
+      render();
+    }
+  };
+  Reveal.on('slidechanged', e => draw(e.currentSlide));
+  draw(Reveal.getCurrentSlide());
+});
+</script>
+```
