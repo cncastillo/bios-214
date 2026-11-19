@@ -485,7 +485,7 @@ md"""
 #     recon_result = OpenReconClient.recon(raw; full=true) |> only
 #     recon_fov_mm = recon_result.header.field_of_view[1:2]
 #     recon_image = dropdims(recon_result.image; dims=(1, 2))
-#     plot_image(recon_image)
+#     plot_image(permutedims(recon_image))
 # end
 
 # ╔═╡ 325d7097-51f1-4828-be06-c6a9802cee31
