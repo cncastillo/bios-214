@@ -40,7 +40,7 @@ brand:
       decoration: none
 code-line-numbers: false
 highlight-style: github-light
-footer: "BIOS 214 · Lecture 7 — Fast MRI sequences"
+footer: "[BIOS 214](https://cncastillo.github.io/teaching/bios-214/) · Lecture 7 — Fast MRI sequences"
 include-in-header:
   text: |
     <style>

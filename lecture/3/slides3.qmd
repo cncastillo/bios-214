@@ -46,7 +46,7 @@ brand:
       decoration: none
 code-line-numbers: false
 highlight-style: github-light
-footer: "BIOS 214 · Lecture 3 — Echo formation and relaxation"
+footer: "[BIOS 214](https://cncastillo.github.io/teaching/bios-214/) · Lecture 3 — Echo formation and relaxation"
 include-in-header:
   text: |
     <style>

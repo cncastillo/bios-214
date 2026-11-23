@@ -5,7 +5,8 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 25bdbb70-dbd6-11f1-a8a1-5b411ca021eb
-HTML("""
+let
+    header = HTML("""
 <style>
     .bios214-header {
         display: flex;
@@ -64,12 +65,19 @@ HTML("""
     </div>
 </header>
 """)
+    introduction = md"""
+# Activity 9: Test a 2× accelerated 2D sequence using regularized reconstruction
 
-
-# ╔═╡ 25bdbbca-dbd6-11f1-a8a1-5b411ca021eb
-md"""
-# Activity 9: Test accelerated EPI using regularized reconstruction
+**Scanner laboratory · December 4, 2026 · Cima.X (3T3), Lucas Center**
 """
+    PlutoUI.@htl("$(header)$(introduction)")
+end
+
+# ╔═╡ 5e312366-df97-4e6f-b52a-81c904cd77f6
+begin
+    using PlutoUI
+    TableOfContents(aside=false, depth=2)
+end
 
 # ╔═╡ 25bdbc10-dbd6-11f1-a8a1-5b411ca021eb
 md"""
@@ -78,5 +86,5 @@ To be uploaded soon!
 
 # ╔═╡ Cell order:
 # ╟─25bdbb70-dbd6-11f1-a8a1-5b411ca021eb
-# ╟─25bdbbca-dbd6-11f1-a8a1-5b411ca021eb
+# ╟─5e312366-df97-4e6f-b52a-81c904cd77f6
 # ╟─25bdbc10-dbd6-11f1-a8a1-5b411ca021eb

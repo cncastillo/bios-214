@@ -267,6 +267,9 @@ md"""
 Design a slice-selective radial balanced steady-state free precession (bSSFP) sequence to acquire data from an ACR-style grid phantom with off-resonance. Simulate it in KomaMRI, reconstruct with the designated OpenRecon container, and export your best design as a Pulseq `.seq` file for the scanner.
 """
 
+# ╔═╡ d09460be-c728-4563-a553-a620c02b2689
+TableOfContents(aside=false, depth=2)
+
 # ╔═╡ 6157085a-f5f4-481b-844c-a646757f18a1
 function resolution_phantom(; spacing_mm=1.0, off_resonance_hz=50, T1=1.0, T2=0.1)
     fov_mm, radius_mm, grid_span_mm, wall_mm = 256.0, 95.0, 144.0, 1.5
@@ -2404,6 +2407,7 @@ version = "1.7.12+0"
 # ╔═╡ Cell order:
 # ╟─a762c10a-ec64-470b-b21c-da08a6340466
 # ╟─7aaa8572-f356-4a6f-807c-a43fd0141516
+# ╟─d09460be-c728-4563-a553-a620c02b2689
 # ╟─d41bc066-c7e7-4d32-8060-76d7343d2ba3
 # ╟─6157085a-f5f4-481b-844c-a646757f18a1
 # ╟─95aa0fa6-a4a3-4b1a-b298-8e3ea25edfe1

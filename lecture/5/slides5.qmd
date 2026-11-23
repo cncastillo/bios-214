@@ -45,7 +45,7 @@ engine: julia
 execute:
   echo: false
   warning: false
-footer: "BIOS 214 · Lecture 5 — Nonuniform sampling and reconstruction"
+footer: "[BIOS 214](https://cncastillo.github.io/teaching/bios-214/) · Lecture 5 — Nonuniform sampling and reconstruction"
 include-in-header:
   text: |
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css">
