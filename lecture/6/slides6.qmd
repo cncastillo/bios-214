@@ -20,7 +20,6 @@ format:
     margin: 0.04
     center: false
     center-title-slide: false
-    logo: "figures/stanford-medicine.svg"
     menu: true
     slide-number: c/t
     slide-level: 1
@@ -47,6 +46,9 @@ execute:
 code-line-numbers: false
 highlight-style: github-light
 footer: "[BIOS 214](https://cncastillo.github.io/teaching/bios-214/) · Lecture 6 — Steady-state signal and image contrast"
+include-after-body:
+  text: |
+    <img src="figures/stanford-medicine.svg" class="slide-logo" alt="Stanford Medicine">
 include-in-header:
   text: |
     <style>
