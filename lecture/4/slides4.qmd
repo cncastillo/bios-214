@@ -3,115 +3,19 @@ title: |
   [Lecture 4]{.lecture-number}
   Spatial encoding and\
   Cartesian imaging
-subtitle: "BIOS 214: Open-Source MRI Sequence Development"
-author:
-  name: Carlos Castillo-Passi
-  email: cacp@stanford.edu
 date: 2026-11-16
 output-file: slides4.html
-toc: false
-toc-depth: 1
-toc-title: Outline
-format:
-  revealjs:
-    date-format: "DD MMM YYYY"
-    html-math-method: katex
-    width: 1280
-    height: 720
-    margin: 0.04
-    center: false
-    center-title-slide: false
-    logo: "data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMiIgZGF0YS1uYW1lPSJMYXllciAyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5Mi4yMSAxMzkuMTEiPjxkZWZzPjxzdHlsZT4uY2xzLTF7ZmlsbDojZmZmO30uY2xzLTJ7ZmlsbDojOGMxNTE1O308L3N0eWxlPjwvZGVmcz48dGl0bGU+c2FmYXJpLXBpbm5lZC10YWI8L3RpdGxlPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTM0Ni4zOCwzNDYuNTRsLTE4LjUtMTcuOEgyNzcuNDNsLTE4LjUsMTcuNzd2NDkuNGwxNS45MiwxNS45NGgxMC4yN2E1LjcyLDUuNzIsMCwwLDAtMS42OSwyLjU5Yy0uNCwxLjEyLS44MSwxLjQ0LDIuNzksMWExMi44MiwxMi44MiwwLDAsMCw0LjItMS41M2MxLS42NCwyLjg1LS4xMiwyLjY4LDEuMjdhNi42OCw2LjY4LDAsMCwxLTUuMzQsMy43NGMtNSwuNjItMi44NCwyLjQ1LTIuODQsMi40NWE2LjIsNi4yLDAsMCwxLDEuMjMsMS4wNWgtMjcuMnYyMi44OGwxOC41LDE3LjgzaDUwLjQ2bDE4LjUtMTcuOFYzOThsLTE1LjkzLTE1LjkySDMxNy41OWMtMS0uNjctMi40MS0xLjQyLTMuNjctMi4yM2gwYTkuNTUsOS41NSwwLDAsMS0xLjQxLTEsOC4yLDguMiwwLDAsMS0xLS45MywxMS42MSwxMS42MSwwLDAsMS0yLjE3LTIuODdjLS40MS0xLS4zMi0yLjI4LjYyLTEuNzUsMi4zOCwxLjM1LDYuMjksMS42LDcuNzQsMS42NWExMS44NiwxMS44NiwwLDAsMSwxLjYxLjIxYy4yOS4xMS43NC4zMy43NC4zMy41OC4yNSwxLjY1LS41NS40Mi0yYTExLjQ5LDExLjQ5LDAsMCwwLTEuMzctMS42N2gyNy4zWm0tNDcuNTUsODQuODF2MS4xNWgwdjguODVjMCwzLjQ2LS4yOSw2LjY0LTEuNjksOHMtMy40MSwyLjg4LTQuNiw0LjcyYy0xLjU3LDIuNDItMy40OSw2LjM0LTguNjYsNi41OWgtNS40OUwyNjEuMyw0NDQuMjV2LTE5LjVIMjg2LjJhMi44OSwyLjg5LDAsMCwxLS43NC41MXMtMy44NSwxLjUyLTQuODgsNC4xM2EzMy4zNywzMy4zNywwLDAsMC0xLjQ1LDQuMzRoMGMtLjUzLDIuMzMuNzcsMy4zMSwxLjcsMi4xMiwxLjQ5LTEuOTEsNi42OS00LjU2LDguNDktNC43M3M0Ljk0LDAsNi44LTIsMi43MS0xLjkxLDIuNzEtMS4xOXYzLjExQzI5OC44Myw0MzEuMiwyOTguODMsNDMxLjMsMjk4LjgzLDQzMS4zNVpNMzA5LjU0LDM5NmMxLjc5LjQ3LDIuNzEsMS43Miw1Ljc4Ljg5YTMuODIsMy44MiwwLDAsMSwyLC4xNWMuNzguNCwyLjgxLS4xNS0xLTIuODItMi43Ny0xLjk0LTUuMjgtMS43OC02LjY1LTQuODEsMCwwLS41LS45MS0uMjYtMS4zNmgwYTEuNDksMS40OSwwLDAsMSwxLjc5LS42MmMuOTUuMzQsNC40MywxLjgzLDUuODgsMi4xOGE1LjM5LDUuMzksMCwwLDEsMS44My43N2MuNjUuMzksMi42NSwxLjExLDIuNjQtLjM4YTEzLjg3LDEzLjg3LDAsMCwwLTEuNi01LjQ2aDkuNDZMMzQ0LDM5OXY0NS4yNWwtMTcuMDgsMTYuNDRoLTQuOGMtMi41LDAtNi4yNi0xLjUxLTcuNDEtMi44OS0yLjUtMy0zLjg0LTIuNjUtNS42MS00LjQyLTIuMTYtMi4xNi0yLjY2LTQuNy0yLjc3LTcuMzZ2LTExLjlzLS4xOS0yLjQxLDEuNzItLjkyLDMsMS4zMiw2LjIsMS4wNyw2Ljc1LDIuNjQsOC42LDMuNzgsNS42Miw0LDEuNzMtNS45Yy0uNzUtMS45MS0zLTMuMjMtNC4xNi0zLjgtLjcxLS4zOC0xLjc2LTEuNjgtLjc5LTIuNzcsMCwwLDEuOTMtMS43MS44OC0yLjg3LS4zNC0uNDItMS4yMS0uODMtMy4xMS0xLjA2YTYuNjgsNi42OCwwLDAsMS01LjM1LTMuNzRjLS4xNy0xLjM5LDEuNzMtMS45MSwyLjY4LTEuMjdhMTIuODcsMTIuODcsMCwwLDAsNC4yLDEuNTNjMy42LjQ5LDMuMTkuMTcsMi43OS0xYTYsNiwwLDAsMC0zLjE1LTMuNThjLTQuOTUtMi41OS01LjUzLTEuODktNi4zOS0zLjU5LS4yNC0uNDktLjQ4LTMuNDQuNzEtMi41NmwwLDBhNi43Nyw2Ljc3LDAsMCwwLC44MS43Nyw1LjI5LDUuMjksMCwwLDAsNCwxYzEuNzMsMCwxLjkzLjY3LDIuNjMsMXMxLjYzLjkuNzctMS43MWE5LjY5LDkuNjksMCwwLDAtNS4zNi02LjI3LDMzLjcyLDMzLjcyLDAsMCwxLTUuOS0zLjkyQzMwOS4yMSwzOTcuNjgsMzA3Ljc1LDM5NS41LDMwOS41NCwzOTZaTTM0NCwzNjkuNDdsLTI3LjU3LDBhMTguNjIsMTguNjIsMCwwLDAtNS4zNy0zYy0zLjM2LTEtMy0yLTIuODEtMi4yNGE1Ljc4LDUuNzgsMCwwLDEsMS40Ni0uNDQsNy42NSw3LjY1LDAsMCwxLDIuNjMuMTdjMi40MS40MiwzLjQ0LS43NywxLjUxLTIuMTgtMS0uNzYtMS42OS0xLTQuNjItMi4yNy0xLjkyLS44NS0xLjY1LTMtLjkxLTMuMDcsMS4xNi0uMTIsNC4yOS44NiwyLjA5LTEuNmExMS43OCwxMS43OCwwLDAsMC0yLjk0LTIuMTVjLTEuMjMtLjQ3LDAtMS4yMS40NC0xLjQ0czItLjY2LS4xOC0yLjMyYzAsMC0zLjg0LTIuMzMtMi4zMy0zLjQzczIuMTUtMiwuNzEtMi4xMWMtMS0uMDctMi0uNDQtMS43NS0xLjQ3LjA2LS4zNi45My0xLDEuMjMtMS4zMnMuMDUtLjY1LS4xNi0uN2ExLjgxLDEuODEsMCwwLDAtLjQxLDBjLS43NiwwLTEuMi0uNDQtMS41OS0xLjQ2LS40Ny0xLjg3LS43OS0zLjU0LS43OS0zLjU0aC0uMDdjLS4zMywwLS4zNS4yMS0uNTcsMS4yMS0uNzUsMy4zLTEuMTIsNC41Ni0yLjQxLDQuNTZhMi4xNywyLjE3LDAsMCwwLS40MSwwYy0uMjEuMDYtLjU0LjIzLS4xNS43LjUzLjY2LDEuNzgsMS4yNSwxLjgsMS43MnMtLjMyLjc5LS44MiwxLjI1YTE2LjE3LDE2LjE3LDAsMCwxLTEuNzcsMS4zNSw3LjYxLDcuNjEsMCwwLDAtMS44NCwxLjVjLS4zNS44LDEuNDQuNzYsMS40NC43NiwzLjE4LjEyLDEuODUsMS4yOSwxLjMzLDEuNDdhMTIuOTEsMTIuOTEsMCwwLDAtMi4zNC45NSwxNS40NywxNS40NywwLDAsMC0yLjEsMS43Yy0yLjIsMi40Ny45MiwxLjQ5LDIuMDksMS42MS43NS4wOCwxLDIuMjMtLjkxLDMuMDdsLTIuNjgsMS4xOGE2LjM2LDYuMzYsMCwwLDAtMi4xMiwxLjc4Yy0uNzMsMS4wNSwxLjQ4LjcxLDMsLjgzLDEsLjA4LDIuMTUtLjczLDIuODYtLjY2Ljg5LjA5LDEuMTYuMjgsMS4zLjg0cy0uMjksMS4yMi0xLDEuNzZhMi4xMSwyLjExLDAsMCwxLS43Ni41NWwtLjA1LDBhMTYuNDcsMTYuNDcsMCwwLDEtMi4zNSwxLjE4Yy0zLDEuNjItNy41MSw0LjMzLTkuMzYsNi40MS0xLjM4LDEuNTUtLjI1LDIuNC4zNSwyLjEzYTQuNzIsNC43MiwwLDAsMSwzLjIzLS41NSwxMC42OSwxMC42OSwwLDAsMCw0LjMyLS41MmgwYzEuMTctLjI1LDIuMzEtMi4yMSwyLjc3LTEuNDYsMS4xLDEuODEtLjc5LDMuOTMtMS41NSw0LjY2LTEuNDcsMi01LjU1LDMuNzQtNy4xOSw1LjA3LTEuOTEsMS41NC0yLjY5LDMuNTYtMy4yMSw3LjUzczEuNTUsMS4xMywxLjU1LDEuMTNhNS41MSw1LjUxLDAsMCwxLDQuNzQtMiw2LjY1LDYuNjUsMCwwLDAsNC42OS0xLjQ4YzEuOTQtMS4xLjkzLDEuNDguOTMsMS40OC0xLjI5LDIuODctMy42LDIuODktNi4xOCw0LjUxYTkuMzEsOS4zMSwwLDAsMC0uOTMuODdjLTEuMDksMS4wNy0uNzQsMS41MS0uMTUsMS40MnMxLjUzLjI4LDIuNTIuMjVhNy44LDcuOCwwLDAsMCwzLS43NGMxLjE1LS41LDEuNzQtMS40NCwyLjQ3LTEsLjQ5LjMxLjQsMS4xMS4yOCwxLjYxYTUsNSwwLDAsMS0xLjE4LDIuMDksMzMuNTQsMzMuNTQsMCwwLDEtNS45LDMuOTNsLS41NC4yNi0uMTcuMTFhMTEuMTMsMTEuMTMsMCwwLDAtMywyLjU0Yy0uMzEuNDUtMS45MiwzLC4yOCwxLjkyczUuMTUuNzgsNi42MS4wNWMuODYtLjQyLjU2LDEuMzEuNTMsMS40N2E0LjI2LDQuMjYsMCwwLDEtLjIsMS4zNmMtLjY1LDEuMjgtMS4xNCwxLjItMy40OCwyLjJIMjc1LjgzTDI2MS4zLDM5NC45M1YzNDcuNTJsMTcuMDgtMTYuNDFoNDguNTVMMzQ0LDM0Ny41NVoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yNTYuNTUgLTMyNi4zNikiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0zMDkuODYsMzk4LjQyYTMzLjcyLDMzLjcyLDAsMCwwLDUuOSwzLjkyLDkuNjksOS42OSwwLDAsMSw1LjM2LDYuMjdjLjg2LDIuNjEtLjA4LDItLjc3LDEuNzFzLS45LTEtMi42My0xYTUuMjksNS4yOSwwLDAsMS00LTEsNi43Nyw2Ljc3LDAsMCwxLS44MS0uNzdsMCwwYy0xLjE5LS44OS0xLDIuMDctLjcxLDIuNTYuODYsMS43LDEuNDQsMSw2LjM5LDMuNTlhNiw2LDAsMCwxLDMuMTUsMy41OGMuNCwxLjEyLjgxLDEuNDQtMi43OSwxYTEyLjg3LDEyLjg3LDAsMCwxLTQuMi0xLjUzYy0uOTUtLjY0LTIuODUtLjEyLTIuNjgsMS4yN2E2LjY4LDYuNjgsMCwwLDAsNS4zNSwzLjc0YzEuOS4yNCwyLjc3LjY0LDMuMTEsMS4wNiwxLDEuMTctLjg4LDIuODctLjg4LDIuODctMSwxLjEuMDgsMi4zOS43OSwyLjc3LDEuMTYuNTgsMy40MSwxLjksNC4xNiwzLjgsMy45LDkuODYuMTMsNy0xLjczLDUuOXMtNS4zOC00LTguNi0zLjc4LTQuMjkuNDItNi4yLTEuMDctMS43Mi45Mi0xLjcyLjkyVjQ0NmMuMTEsMi42Ny42MSw1LjIxLDIuNzcsNy4zNiwxLjc3LDEuNzcsMy4xMSwxLjQ0LDUuNjEsNC40MiwxLjE1LDEuMzgsNC45LDIuODYsNy40MSwyLjg5aDQuOEwzNDQsNDQ0LjI4VjM5OWwtMTQuNTMtMTQuNTNIMzIwYTEzLjg3LDEzLjg3LDAsMCwxLDEuNiw1LjQ2YzAsMS40OS0yLC43Ni0yLjY0LjM4YTUuMzksNS4zOSwwLDAsMC0xLjgzLS43N2MtMS40NS0uMzUtNC45My0xLjg0LTUuODgtMi4xOGExLjQ5LDEuNDksMCwwLDAtMS43OS42MmgwYy0uMjQuNDUuMjYsMS4zNi4yNiwxLjM2LDEuMzcsMywzLjg4LDIuODgsNi42NSw0LjgxLDMuOCwyLjY2LDEuNzYsMy4yMiwxLDIuODJhMy44MiwzLjgyLDAsMCwwLTItLjE1Yy0zLjA3LjgzLTQtLjQyLTUuNzgtLjg5UzMwOS4yMSwzOTcuNjgsMzA5Ljg2LDM5OC40MloiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yNTYuNTUgLTMyNi4zNikiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yOTIuNTMsNDU0LjFjMS4xOC0xLjgzLDMuMjctMy4zOSw0LjYtNC43MnMxLjY1LTQuNTgsMS42OS04VjQzMi41aDB2LTEuMTVzMC0uMTUsMC0uMjdWNDI4YzAtLjcyLS44NS0uNzctMi43MSwxLjE5cy01LDEuODEtNi44LDItNywyLjgyLTguNDksNC43M2MtLjkyLDEuMTktMi4yMy4yMS0xLjctMi4xMmgwYTMzLjM3LDMzLjM3LDAsMCwxLDEuNDUtNC4zNGMxLTIuNjEsNC44OC00LjEzLDQuODgtNC4xM2EyLjg5LDIuODksMCwwLDAsLjc0LS41MUgyNjEuMzF2MTkuNWwxNy4wOCwxNi40NGg1LjQ5QzI4OSw0NjAuNDQsMjkxLDQ1Ni41MiwyOTIuNTMsNDU0LjFaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMjU2LjU1IC0zMjYuMzYpIi8+PHBhdGggY2xhc3M9ImNscy0yIiBkPSJNMjc4LjM4LDMzMS4xMSwyNjEuMywzNDcuNTJ2NDcuNDFsMTQuNTMsMTQuNTVoMTMuNjVjMi4zNC0xLDIuODMtLjkyLDMuNDgtMi4yYTQuMjYsNC4yNiwwLDAsMCwuMi0xLjM2YzAtLjE2LjMyLTEuODktLjUzLTEuNDctMS40Ni43Mi00LjQtMS4xNy02LjYxLS4wNXMtLjU5LTEuNDctLjI4LTEuOTJhMTEuMTMsMTEuMTMsMCwwLDEsMy0yLjU0bC4xNy0uMTEuNTQtLjI2YTMzLjU0LDMzLjU0LDAsMCwwLDUuOS0zLjkzLDUsNSwwLDAsMCwxLjE4LTIuMDljLjEyLS41LjIyLTEuMy0uMjgtMS42MS0uNzQtLjQ3LTEuMzIuNDYtMi40NywxYTcuOCw3LjgsMCwwLDEtMywuNzRjLTEsMC0xLjkzLS4zMy0yLjUyLS4yNXMtLjk0LS4zNS4xNS0xLjQyYTkuMzEsOS4zMSwwLDAsMSwuOTMtLjg3YzIuNTgtMS42Miw0Ljg5LTEuNjQsNi4xOC00LjUxLDAsMCwxLTIuNTgtLjkzLTEuNDhhNi42NSw2LjY1LDAsMCwxLTQuNjksMS40OCw1LjUxLDUuNTEsMCwwLDAtNC43NCwycy0yLjA2LDIuODQtMS41NS0xLjEzLDEuMy02LDMuMjEtNy41M2MxLjY0LTEuMzMsNS43Mi0zLjExLDcuMTktNS4wNy43Ni0uNzQsMi42NS0yLjg2LDEuNTUtNC42Ni0uNDYtLjc1LTEuNTksMS4yMS0yLjc3LDEuNDZoMGExMC42OSwxMC42OSwwLDAsMS00LjMyLjUyLDQuNzIsNC43MiwwLDAsMC0zLjIzLjU1Yy0uNi4yNy0xLjczLS41OC0uMzUtMi4xMywxLjg2LTIuMDgsNi4zNC00Ljc5LDkuMzYtNi40MWExNi40NywxNi40NywwLDAsMCwyLjM1LTEuMThsLjA1LDBhMi4xMSwyLjExLDAsMCwwLC43Ni0uNTVjLjY2LS41NCwxLjExLTEuMTUsMS0xLjc2cy0uNDItLjc1LTEuMy0uODRjLS43MS0uMDctMS44Ny43NC0yLjg2LjY2LTEuNTEtLjEyLTMuNzIuMjItMy0uODNhNi4zNiw2LjM2LDAsMCwxLDIuMTItMS43OGwyLjY4LTEuMThjMS45Mi0uODUsMS42NS0zLC45MS0zLjA3LTEuMTYtLjEyLTQuMjkuODYtMi4wOS0xLjYxYTE1LjQ3LDE1LjQ3LDAsMCwxLDIuMS0xLjcsMTIuOTEsMTIuOTEsMCwwLDEsMi4zNC0uOTVjLjUyLS4xOCwxLjg1LTEuMzUtMS4zMy0xLjQ3LDAsMC0xLjc5LDAtMS40NC0uNzZhNy42MSw3LjYxLDAsMCwxLDEuODQtMS41LDE2LjE3LDE2LjE3LDAsMCwwLDEuNzctMS4zNWMuNDktLjQ2Ljg0LS44My44Mi0xLjI1cy0xLjI3LTEuMDYtMS44LTEuNzJjLS4zOC0uNDgtLjA2LS42NC4xNS0uN2EyLjE3LDIuMTcsMCwwLDEsLjQxLDBjMS4yOSwwLDEuNjYtMS4yNiwyLjQxLTQuNTYuMjMtMSwuMjQtMS4yLjU3LTEuMjFoLjA3cy4zMiwxLjY4Ljc5LDMuNTRjLjM5LDEsLjgzLDEuNDcsMS41OSwxLjQ2YTEuODEsMS44MSwwLDAsMSwuNDEsMGMuMjEuMDYuNTQuMjIuMTYuN3MtMS4xNiwxLTEuMjMsMS4zMmMtLjI2LDEsLjc0LDEuNCwxLjc1LDEuNDcsMS40NC4xLjg0LDEtLjcxLDIuMTFzMi4zMywzLjQzLDIuMzMsMy40M2MyLjE5LDEuNjYuNjMsMi4wOS4xOCwyLjMycy0xLjY3LDEtLjQ0LDEuNDRhMTEuNzgsMTEuNzgsMCwwLDEsMi45NCwyLjE1YzIuMiwyLjQ2LS45MywxLjQ4LTIuMDksMS42LS43NS4wOC0xLDIuMjMuOTEsMy4wNywyLjkzLDEuMywzLjU4LDEuNTIsNC42MiwyLjI3LDEuOTMsMS40MS45MSwyLjYtMS41MSwyLjE4YTcuNjUsNy42NSwwLDAsMC0yLjYzLS4xNyw1Ljc4LDUuNzgsMCwwLDAtMS40Ni40NGMtLjE3LjI1LS41NSwxLjIzLDIuODEsMi4yNGExOC42MiwxOC42MiwwLDAsMSw1LjM3LDNsMjcuNTcsMFYzNDcuNTVsLTE3LjA4LTE2LjQ0WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTI1Ni41NSAtMzI2LjM2KSIvPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTM0OC43NiwzNDUuNTNsLTE5LjkyLTE5LjE3SDI3Ni40N0wyNTYuNTUsMzQ1LjV2NTEuNGwxNy4zMSwxNy4zM2g3Ljk0YTIuMTgsMi4xOCwwLDAsMCwuMSwyLjEyLDIuMzQsMi4zNCwwLDAsMCwyLC44NywxNy40MSwxNy40MSwwLDAsMCwyLjEyLS4xOWgwcy40MS4zNS0uODUuNzZoMGEzLjI1LDMuMjUsMCwwLDAtMi4yNiwyLDIuMTUsMi4xNSwwLDAsMCwwLC4yMkgyNTYuNTZ2MjYuMjdsMTkuOTEsMTkuMmg1Mi4zOGwxOS45Mi0xOS4xN1YzOTcuMDdsLTE3LjMyLTE3LjMxSDMxNi43M2MtLjY1LS4zOC0xLjMxLS43Ny0xLjkyLTEuMTdsLS4yMi0uMTRoMGE5LjQsOS40LDAsMCwxLTEuMDUtLjc3LDYuMzQsNi4zNCwwLDAsMS0uOC0uNzRsLS4wNi0uMDZhMTQuMjcsMTQuMjcsMCwwLDEtMS0xLjExLDI2LjMsMjYuMywwLDAsMCw2LC44NWguNDhhMy4yOCwzLjI4LDAsMCwxLC42NS4xMWwuNDEuMTguNjIuMjNhMi4xNSwyLjE1LDAsMCwwLC40NiwwLDIuMzYsMi4zNiwwLDAsMCwyLjEzLTEuMzcsMi42LDIuNiwwLDAsMCwuMTctMS42aDI2LjE5Wm0tMi4zNywyNi4zMmgtMjcuM2ExMS40OSwxMS40OSwwLDAsMSwxLjM4LDEuNjdjMS4yMiwxLjQ3LjE2LDIuMjctLjQyLDIsMCwwLS40NS0uMjEtLjc0LS4zM2ExMS44NiwxMS44NiwwLDAsMC0xLjYxLS4yMWMtMS40NSwwLTUuMzYtLjMtNy43NC0xLjY1LS45My0uNTMtMSwuNzUtLjYyLDEuNzVBMTEuNjEsMTEuNjEsMCwwLDAsMzExLjUsMzc4YTguMiw4LjIsMCwwLDAsMSwuOTMsOS41NSw5LjU1LDAsMCwwLDEuNDEsMWgwYzEuMjYuODEsMi42NCwxLjU2LDMuNjcsMi4yM2gxMi44NkwzNDYuMzgsMzk4djQ3LjI0bC0xOC41LDE3LjhIMjc3LjQybC0xOC41LTE3LjgzVjQyMi4zOGgyNy4yYTYuMiw2LjIsMCwwLDAtMS4yMy0xLjA1cy0yLjE2LTEuODMsMi44NC0yLjQ1YTYuNjgsNi42OCwwLDAsMCw1LjM0LTMuNzRjLjE3LTEuNC0xLjczLTEuOTItMi42OC0xLjI3YTEyLjgyLDEyLjgyLDAsMCwxLTQuMiwxLjUzYy0zLjYuNDktMy4xOS4xNy0yLjc5LTFhNS43Miw1LjcyLDAsMCwxLDEuNjktMi41OUgyNzQuODVsLTE1LjkyLTE1Ljk0di00OS40bDE4LjUtMTcuNzdoNTAuNDVsMTguNSwxNy44WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTI1Ni41NSAtMzI2LjM2KSIvPjwvc3ZnPgo="
-    menu: true
-    slide-number: c/t
-    slide-level: 1
-    auto-play-media: true
-    controls: true
-    embed-resources: true
-    theme: default
-brand:
-  color:
-    foreground: "#343a40"
-    background: "#ffffff"
-    primary: "#2a7fb8"
-    secondary: "#6c757d"
-  typography:
-    headings:
-      color: foreground
-    link:
-      color: primary
-      decoration: none
 engine: julia
-execute:
-  echo: false
-  warning: false
-  daemon: 86400
-code-line-numbers: false
-highlight-style: github-light
 footer: "[BIOS 214](https://cncastillo.github.io/teaching/bios-214/) · Lecture 4 — Spatial encoding and Cartesian imaging"
 include-in-header:
   text: |
     <style>
-    .reveal {
-      --r-heading1-size: 60px;
-      --r-heading2-size: 60px;
-    }
-    .reveal .slides section:not(#title-slide) > h1 { font-size: var(--r-heading1-size); }
-    .reveal .title {
-      font-size: 84px;
-    }
-    .reveal .controls[data-controls-layout=edges] .navigate-left,
-    .reveal .controls[data-controls-layout=edges] .navigate-right { top: 12px; margin-top: 0; }
-    .reveal .controls .controls-arrow {
-      scale: 0.6;
-    }
-    #title-slide {
-      text-align: left;
-    }
-    #title-slide .subtitle {
-      color: #6c757d;
-    }
-    #title-slide .quarto-title-authors {
-      justify-content: flex-start;
-    }
-    #title-slide .quarto-title-author {
-      padding: 0;
-    }
-    .reveal .title .lecture-number {
-      display: block;
-      margin-bottom: 0.35em;
-      font-size: 32px;
-      font-weight: normal;
-      color: #6c757d;
-    }
-    .reveal .slide-logo {
-      height: 6vh;
-      max-width: unset;
-      max-height: unset;
-    }
-    .reveal.has-logo .slide-number {
-      top: auto;
-      bottom: 12px;
-      right: calc(4vh + 20px);
-      font-size: 12px;
-      color: #6c757d;
-    }
-    #title-slide .quarto-title-author-email a {
-      font-size: 32px;
-      color: var(--r-link-color);
-    }
-
-    .reveal .slides section { box-sizing: border-box; }
-    .reveal .slides section.compact > h1 { font-size: 46px; }
     .reveal .slides section > h1 { margin-bottom: 20px; }
     .reveal .slides p { margin: 12px 0; }
     .reveal .slides .columns { align-items: center; gap: 30px; }
     .reveal .slides img { object-fit: contain; margin: 0 auto; display: block; }
-    .demo { width: 100%; height: 565px; }
-    .reveal .slides section.compact .demo { height: 535px; }
     .ift-operator { position: absolute; top: 210px; left: 49%; width: 100px; z-index: 2; }
     .ift-operator .math.display { font-size: 38px; }
-    .maze-demo { height: 550px; }
     .reveal .slides .art-columns { height: 510px; font-size: 30px; }
     .reveal .slides .field-columns { display: flex; }
     .art-columns .math.display { font-size: 28px; }
@@ -127,8 +31,7 @@ include-in-header:
     #paul-lauterbur-1973 .history-columns { height: 405px; }
     #paul-lauterbur-1973 .history-columns .column { text-align: center; }
     #paul-lauterbur-1973 .history-photo, #paul-lauterbur-1973 .history-diagram { height: 300px; }
-    .history-photo { height: 340px; max-width: 100%; }
-    .history-diagram { height: 340px; max-width: 100%; }
+    .history-photo, .history-diagram { height: 340px; max-width: 100%; }
     .mansfield-photo { height: 400px; width: 100%; }
     .mansfield-footer { display: flex; justify-content: space-between; gap: 30px; font-size: 18px; color: #6c757d; }
     .nobel-columns .column { text-align: center; }
@@ -140,10 +43,8 @@ include-in-header:
     .reveal .slides .complex-circle { width: 300px; height: 240px; overflow: hidden; margin: 0 auto !important; }
     .reveal .slides .complex-formula .math.display { font-size: 55px; }
     .complex-formula .katex-display { margin: .3em 0; }
-    .phase-diagram { text-align: center; }
-    .phase-equation { text-align: center; }
+    .phase-diagram, .phase-equation { text-align: center; }
     .reveal .slides .phase-equation .math.display { font-size: 36px; }
-    .reveal .slides section.sizing-slide .demo { height: 470px; }
     .reveal .slides section.trajectory-slide .demo { height: 510px; }
     .reveal .slides section.pattern-slide .demo { height: 480px; }
     .sizing-slide .math.display, .trajectory-slide .math.display { font-size: 34px; }
@@ -160,23 +61,17 @@ include-in-header:
     .reveal .slides .archive-card { height: 335px; width: 100%; max-width: none; max-height: none; }
     .archive-link { text-align: center; font-size: 28px; }
     .maze-columns { height: 500px; }
-    .reveal .slides section.compact .maze-demo { height: 500px; }
     .maze-figure { max-height: 370px; max-width: 100%; }
     .reveal .slides .nyquist-columns { align-items: flex-start; height: 470px; padding-top: 35px; }
     .nyquist-columns .math.display { margin-top: 100px; font-size: 42px; }
-    .reveal .slides section.compact .scan-demo { height: 390px; }
     #higher-phase-encoding-resolution-takes-more-repetitions .math.display { font-size: 32px; }
-    .transition-slide { text-align: center; }
-    .reveal .slide-number { z-index: 10; }
     .reveal .footer { font-size: 16px; }
     </style>
 ---
 
-
 ```{julia}
 #| output: false
-using KomaMRI
-using KomaMRI.KomaMRIPlots.PlotlyBase
+include("../common.jl")
 using FFTW
 
 scanner = Scanner(limits=HardwareLimits(Gmax=20e-3, Smax=40.0, RF_dead_time=0.0, RF_ring_down_time=0.0, ADC_dead_time=0.0))
@@ -185,160 +80,140 @@ rf_block(angle; phase=0.0) = PulseDesigner.build_block_pulse(angle; duration=rf_
 
 function gradient_block(amplitude, duration)
     seq = Sequence(scanner)
-    gradient = iszero(amplitude) ? Grad(0.0, duration) :
-        PulseDesigner.make_trapezoid(; amplitude=γ*amplitude, duration, sys=scanner)
-    addblock!(seq, ADC(ceil(Int, duration/1e-3)+1, duration); x=gradient)
+    g = iszero(amplitude) ? Grad(0.0, duration) :
+        PulseDesigner.make_trapezoid(; amplitude=γ * amplitude, duration, sys=scanner)
+    addblock!(seq, ADC(ceil(Int, duration / 1e-3) + 1, duration); x=g)
     seq
 end
 
-function record_experiment(seq, obj; te=30e-3)
-    n = length(obj.x)
-    times = [0.0]
-    net = [[0.0,0.0,1.0]]
-    record = function(progress, blocks, data, params)
-        push!(times, data.seqd.t[last(blocks.parts[progress.block])])
-        push!(net, [real(sum(data.Xt.xy)), imag(sum(data.Xt.xy)), sum(data.Xt.z)] ./ n)
-    end
-    simulate(obj, seq, scanner; verbose=false, callbacks=(record,),
-        sim_params=Dict("gpu"=>false, "Nthreads"=>1, "precision"=>"f64", "Δt"=>0.5e-3,
-            "Δt_rf"=>20e-6, "max_block_length"=>1, "max_rf_block_length"=>1, "return_type"=>"state"))
-    keep = findall(t -> t <= 1.5te + rf_duration/2 + 1e-9, times)
-    Dict("t"=>1e3 .* (times[keep] .- rf_duration/2),
-        "net"=>net[keep], "te"=>1e3te)
+function record_echo(seq, obj; te=30e-3)
+    rec = record_states(obj, seq, scanner; Δt=0.5e-3, Δt_rf=20e-6, shown=[1], record_net=true)
+    keep = findall(t -> t <= 1.5te + rf_duration / 2 + 1e-9, rec.times)
+    (; t = 1e3 .* (rec.times[keep] .- rf_duration), amp = [hypot(v[1], v[2]) for v in rec.net[keep]])
 end
 
 # Position and off-resonance are sampled independently in both echo experiments.
 np, nf = 21, 151
 frequencies = 50 .* tan.(π .* (((1:nf) .- 0.5) ./ nf .- 0.5))
-frequencies = frequencies[abs.(frequencies) .<= 2π*100]
+frequencies = frequencies[abs.(frequencies) .<= 2π * 100]
 positions = repeat(collect(range(-5e-3, 5e-3; length=np)); inner=length(frequencies))
 omega = repeat(frequencies; outer=np)
-ensemble = Phantom(x=positions, Δw=omega, T1=fill(0.45,length(positions)), T2=fill(0.12,length(positions)))
+ensemble = Phantom(x=positions, Δw=omega, T1=fill(0.45, length(positions)), T2=fill(0.12, length(positions)))
 echo_time, gradient_amplitude = 30e-3, 0.5e-3
-lobe = echo_time/2 - rf_duration
-ramp_compensation = PulseDesigner.make_trapezoid(; amplitude=γ*gradient_amplitude, duration=lobe, sys=scanner).rise/2
-se_seq = rf_block(π/2) + gradient_block(-gradient_amplitude,lobe) + rf_block(π; phase=π/2) +
-    gradient_block(0.0,rf_duration/2+ramp_compensation) + gradient_block(-gradient_amplitude,lobe+echo_time/2)
-pre = (echo_time-rf_duration/2)/2
-ge_seq = rf_block(π/2) + gradient_block(-gradient_amplitude,pre) + gradient_block(0.0,ramp_compensation) +
-    gradient_block(gradient_amplitude,pre+echo_time/2)
-echo_data = Dict("se"=>record_experiment(se_seq,ensemble), "ge"=>record_experiment(ge_seq,ensemble))
+lobe = echo_time / 2 - rf_duration
+ramp_comp = PulseDesigner.make_trapezoid(; amplitude=γ * gradient_amplitude, duration=lobe, sys=scanner).rise / 2
+se_seq = rf_block(π/2) + gradient_block(-gradient_amplitude, lobe) + rf_block(π; phase=π/2) +
+    gradient_block(0.0, rf_duration/2 + ramp_comp) + gradient_block(-gradient_amplitude, lobe + echo_time/2)
+pre = (echo_time - rf_duration/2) / 2
+ge_seq = rf_block(π/2) + gradient_block(-gradient_amplitude, pre) + gradient_block(0.0, ramp_comp) +
+    gradient_block(gradient_amplitude, pre + echo_time/2)
+se_echo, ge_echo = record_echo(se_seq, ensemble), record_echo(ge_seq, ensemble)
 
 # One actual KomaMRI acquisition per Cartesian line. Independent excitations
 # isolate spatial encoding from saturation and relaxation in the Fourier demos.
 N, fov, dwell = 96, 0.24, 5e-6
-dk = 1/fov
-coordinates = (collect(0:N-1) .- N÷2) .* (fov/N)
-pixels = permutedims(reshape(Float64.(read(joinpath(pwd(),"figures","brain-density-96x96.raw"))) ./ 255,N,N))
-density = reverse(pixels; dims=1)
-xx = repeat(coordinates; inner=N)
-yy = repeat(coordinates; outer=N)
-rho = vec(density)
+dk = 1 / fov
+coordinates = (collect(0:N-1) .- N ÷ 2) .* (fov / N)
+x_mm = 1e3 .* coordinates
+kaxis = collect(-N÷2:N÷2-1) .* dk
+density = load_brain_96x96()
+xx, yy, rho = repeat(coordinates; inner=N), repeat(coordinates; outer=N), vec(density)
 inside = rho .> 0
-brain = Phantom(x=xx[inside], y=yy[inside], ρ=rho[inside], T1=fill(Inf,count(inside)), T2=fill(Inf,count(inside)))
+brain = Phantom(x=xx[inside], y=yy[inside], ρ=rho[inside], T1=fill(Inf, count(inside)), T2=fill(Inf, count(inside)))
 excitation = PulseDesigner.build_sinc_pulse(π/4; duration=rf_duration, time_bw_product=4.0,
     slice_thickness=10e-3, apodization=0.5, use=Excitation(), sys=scanner)
-pre_duration = 0.25e-3
 
-function cartesian_line(ky; nx=N, field_of_view=fov, adc_dwell=dwell, tr=nothing)
-    step = 1/field_of_view
-    readout = PulseDesigner.make_trapezoid(; flat_area=(nx-1)*step, flat_time=(nx-1)*adc_dwell, sys=scanner)
-    seq = deepcopy(excitation)
-    pre_area = -nx/2*step - γ*readout.A*readout.rise/2
-    pre_x = PulseDesigner.make_trapezoid(; area=pre_area, sys=scanner)
-    pre_y = PulseDesigner.make_trapezoid(; area=ky, sys=scanner)
-    encoding_duration = max(dur(pre_x), dur(pre_y)) + pre_duration
-    # ADC endpoints are exactly -Nx/2*Δk through (Nx/2-1)*Δk.
-    addblock!(seq; x=PulseDesigner.make_trapezoid(; area=pre_area, duration=encoding_duration, sys=scanner),
-        y=PulseDesigner.make_trapezoid(; area=ky, duration=encoding_duration, sys=scanner))
-    addblock!(seq, ADC(nx,(nx-1)*adc_dwell,readout.rise); x=readout)
-    if !isnothing(tr)
-        addblock!(seq, Delay(tr-dur(seq)))
-    end
-    seq
-end
+line_seq(ky; nx=N, tr=nothing) = cartesian_line(ky, scanner; excitation, nx, fov, dwell, tr)
 
 function sequence_data(seq)
-    rule = KomaMRI.KomaMRIBase.MomentSamplingRule(MaxStepSizeRule(1,20e-6))
+    rule = KomaMRI.KomaMRIBase.MomentSamplingRule(MaxStepSizeRule(1, 20e-6))
     sampled = discretize(seq; sampling_rule=rule)
-    trajectory, adc = get_kspace(seq; sampling_rule=MaxStepSizeRule(1,20e-6))
-    Dict("wave"=>plot_seq(seq;slider=false,show_rf_frame=false),
-        "t"=>1e3 .* sampled.t[2:end], "k"=>[collect(row) for row in eachrow(trajectory[:,1:2])],
-        "adc"=>[collect(row) for row in eachrow(adc[:,1:2])],
-        "duration"=>1e3dur(seq))
+    trajectory, adc = get_kspace(seq; sampling_rule=MaxStepSizeRule(1, 20e-6))
+    Dict{String,Any}("wave" => plot_seq(seq; slider=false, show_rf_frame=false),
+        "t" => 1e3 .* sampled.t[2:end], "k" => rows(trajectory[:, 1:2]),
+        "adc" => rows(adc[:, 1:2]), "duration" => 1e3 * dur(seq))
 end
 
-single_line = sequence_data(cartesian_line(-24dk))
-single_line["start_time"] = 1e3dur(excitation)
-line_indices = [-48,-24,0,24,47]
-multi_seq = Sequence(scanner)
-for ky in line_indices .* dk
-    global multi_seq += cartesian_line(ky; tr=12e-3)
-end
+single_line = sequence_data(line_seq(-24dk))
+single_line["start_time"] = 1e3 * dur(excitation)
+line_indices = [-48, -24, 0, 24, 47]
+multi_seq = reduce(+, (line_seq(ky * dk; tr=12e-3) for ky in line_indices))
 multiple_lines = sequence_data(multi_seq)
 multiple_lines["line_indices"] = line_indices
 
-K = zeros(ComplexF64,N,N)
-for (row,ky) in enumerate((-N÷2:N÷2-1).*dk)
-    seq = cartesian_line(ky)
-    signal = simulate(brain,seq,scanner;verbose=false,
-        sim_params=Dict("gpu"=>false,"Nthreads"=>4,"precision"=>"f64", "return_type"=>"mat",
-            "Δt"=>20e-6,"Δt_rf"=>20e-6))
-    K[row,:] .= vec(signal)
+K = zeros(ComplexF64, N, N)
+for (row, ky) in enumerate(kaxis)
+    signal = simulate(brain, line_seq(ky), scanner; verbose=false,
+        sim_params=Dict("gpu"=>false, "Nthreads"=>4, "precision"=>"f64", "return_type"=>"mat",
+            "Δt"=>20e-6, "Δt_rf"=>20e-6))
+    K[row, :] .= vec(signal)
 end
 
 reconstruct(k) = abs.(fftshift(ifft(ifftshift(k))))
-rows(a) = [collect(row) for row in eachrow(a)]
 scale = maximum(reconstruct(K))
-image = reconstruct(K) ./ scale
+brain_image = reconstruct(K) ./ scale
 klog(k) = log10.(1 .+ 1000 .* abs.(k) ./ maximum(abs.(K)))
-resolution = []
-for width in [12,24,32,48,64,96]
-    masked = zeros(ComplexF64,N,N)
-    indices = N÷2-width÷2+1:N÷2+width÷2
-    masked[indices,indices] .= K[indices,indices]
-    push!(resolution,Dict("n"=>width,"k"=>rows(klog(masked)),"image"=>rows(reconstruct(masked)./scale)))
-end
-fields_of_view = []
-for factor in [1,2,3,4]
-    masked = copy(K)
-    masked[mod.(-N÷2:N÷2-1,factor) .!= 0,:] .= 0
-    push!(fields_of_view,Dict("factor"=>factor,"k"=>rows(klog(masked)),
-        "image"=>rows(factor .* reconstruct(masked)./scale)))
-end
 
-TR = 10e-3
-scan_seq = cartesian_line(-16dk;nx=32,tr=TR) + cartesian_line(-15dk;nx=32,tr=TR)
-scan_time = sequence_data(scan_seq)
-scan_time["tr"] = 1e3TR
-
-lecture_data = Dict("echo"=>echo_data,"single"=>single_line,"multiple"=>multiple_lines,
-    "brain"=>Dict("n"=>N,"fov"=>fov,"dk"=>dk,"x"=>1e3coordinates,"kaxis"=>(-N÷2:N÷2-1).*dk,
-        "density"=>rows(density),"image"=>rows(image),"k"=>rows(klog(K)),
-        "resolution"=>resolution,"fov_variants"=>fields_of_view),"scan"=>scan_time)
-
-function demo_html(id; class="demo")
-    print("```{=html}\n<div id=\"$id\" class=\"$class\"></div>\n```\n")
+function image_pair_plot(k, img; question=false, sliders=Any[], shapes=Any[], height=565, zmax=1.0)
+    has_slider = !isempty(sliders)
+    anns = Any[]
+    if !has_slider
+        push!(anns, attr(xref="paper", yref="paper", x=0.52, y=0.5, ax=-50, ay=0, text="",
+            showarrow=true, arrowhead=3, arrowwidth=2.5, arrowcolor=BIOS_COLORS.ink))
+    end
+    if question
+        push!(anns, attr(text="?", x=0.5, y=0.61, xref="paper", yref="paper", showarrow=false,
+            font=attr(size=44, color=BIOS_COLORS.ink)))
+    end
+    bw = [[0, "#000000"], [1, "#ffffff"]]
+    bios_plot([
+        bios_heatmap(rows(k); x=kaxis, y=kaxis, colorscale=bw, zmin=0, zmax=3.001, showscale=false,
+            hovertemplate="kₓ=%{x:.1f}<br>kᵧ=%{y:.1f}<extra></extra>"),
+        bios_heatmap(rows(img); x=x_mm, y=x_mm, colorscale=bw, zmin=0, zmax=zmax, showscale=false,
+            xaxis="x2", yaxis="y2", hovertemplate="x=%{x:.1f}<br>y=%{y:.1f}<extra></extra>"),
+    ]; height, showlegend=false, annotations=anns, shapes, sliders,
+        margin=attr(l=70, r=30, t=has_slider ? 75 : 45, b=has_slider ? 105 : 60),
+        xaxis=bios_image_axis(domain=[0, 0.43], anchor="y", title="", constrain="domain"),
+        yaxis=bios_image_axis(domain=[0, 1], anchor="x", title="", scaleanchor="x", scaleratio=1),
+        xaxis2=bios_image_axis(domain=[0.57, 1], anchor="y2", title="", range=[-120, 120], constrain="domain"),
+        yaxis2=bios_image_axis(domain=[0, 1], anchor="x2", title="", range=[-120, 120], constrain="domain", scaleanchor="x2", scaleratio=1))
 end
 
+lecture_data = Dict(
+    "single" => single_line, "multiple" => multiple_lines,
+    "brain" => Dict("x" => x_mm, "kaxis" => kaxis, "dk" => dk, "density" => rows(density)),
+)
 ```
-
-
 
 # <u>Left-handed</u> rotations around the <u>effective field</u> {.compact .nostretch}
 
 ![](figures/bloch-rotation.png){.rotation-figure}
 
-
-
 # Comparing SE with GE
 
 ```{julia}
-#| output: asis
-demo_html("echo-comparison")
+env_t = collect(range(0.0, 44.5; length=201))
+te_ms = 29.5
+post_amp(d) = d.amp[argmin(abs.(d.t))]
+bios_plot([
+    scatter(x=se_echo.t, y=se_echo.amp, name="SE", line=attr(color=BIOS_COLORS.blue, width=3)),
+    scatter(x=ge_echo.t, y=ge_echo.amp, name="GE", line=attr(color=BIOS_COLORS.orange, width=3, dash="dash")),
+    scatter(x=env_t, y=post_amp(se_echo) .* exp.(-env_t ./ 120), name="exp(−t/T<sub>2</sub>)",
+        line=attr(color=BIOS_COLORS.ink, width=2, dash="dot")),
+    scatter(x=env_t, y=post_amp(ge_echo) .* exp.(-env_t ./ (1000 / (1 / 0.12 + 50))), name="exp(−t/T<sub>2</sub><sup>*</sup>)",
+        line=attr(color=BIOS_COLORS.gray, width=2, dash="dot")),
+]; height=565, margin=attr(l=75, r=30, t=50, b=65),
+    xaxis=bios_axis(title="Time after excitation (ms)", range=[-1, 44.5]),
+    yaxis=bios_axis(title="|S| / S₀", range=[0, 1.03]),
+    legend=attr(orientation="h", x=0.5, xanchor="center", y=1.1, font=attr(size=19)),
+    shapes=[
+        attr(type="rect", xref="x", yref="y domain", x0=-1, x1=0, y0=0, y1=1, line=attr(width=0), fillcolor="rgba(155,88,207,.15)", layer="below"),
+        attr(type="rect", xref="x", yref="y domain", x0=14, x1=15, y0=0, y1=1, line=attr(width=0), fillcolor="rgba(155,88,207,.15)", layer="below"),
+        attr(type="line", xref="x", yref="y domain", x0=te_ms, x1=te_ms, y0=0, y1=1, line=attr(color=BIOS_COLORS.gray, width=1.5, dash="dot")),
+    ],
+    annotations=[attr(text="TE", xref="x", yref="paper", x=te_ms, y=0.98, xshift=7, xanchor="left", yanchor="top",
+        showarrow=false, font=attr(size=18, color=BIOS_COLORS.gray))])
 ```
-
-
 
 # All spins in a slice are excited, how can we differentiate them? {.compact}
 
@@ -378,8 +253,6 @@ $$\boldsymbol{B}(t_1)=
 ::: notes
 Change bandwidth for acquisition bandwidth definition
 
-
-
 Also B(t_1) =  show RF stuff = 0, G_x . x
 :::
 
@@ -406,11 +279,7 @@ Zeugmatography
 Lauterbur, [*Image Formation by Induced Local Interactions: Examples Employing Nuclear Magnetic Resonance*, Nature (1973)](https://doi.org/10.1038/242190a0)
 :::
 
-
-
 # That works for x; what about y? {.center .transition-slide}
-
-
 
 # We can use phase to encode spatial coordinates {.compact}
 
@@ -448,8 +317,6 @@ Now we listen
 Sequence:
 
 B(t_0)=(B1x, B1y, Gz z - domega_Rf/gamma) -> B(t_1/2)=(0,0,Gy y) -> B(t_1) =(0,0,Gx x)
-
-
 
 Make antenna that listents black
 :::
@@ -508,8 +375,6 @@ Change for e and i to use serif in image
 $$\boldsymbol{k}(t)=\frac{\gamma}{2\pi}\int_0^t\boldsymbol{G}(\tau)\,\mathrm d\tau$$
 
 $$S(t)=\int_V m(\boldsymbol{x})\,\mathrm e^{-\mathrm i2\pi\boldsymbol{k}(t)\cdot\boldsymbol{x}}\,\mathrm d\boldsymbol{x}$$
-
-
 :::
 :::
 
@@ -581,12 +446,9 @@ Add years they won nobel prizes
 
 $$\boldsymbol{k}(t)=\frac{\gamma}{2\pi}\int_0^t\boldsymbol{G}(\tau)\,\mathrm d\tau$$
 
-```{julia}
-#| output: asis
-demo_html("trajectory-one")
+```{=html}
+<div id="trajectory-one" class="demo"></div>
 ```
-
-
 
 # Phase is accumulated while gradients are on {#phase-is-being-accumulated-while-gradients-are-on .compact}
 
@@ -596,8 +458,19 @@ demo_html("trajectory-one")
 :::
 ::: {.column width="62%"}
 ```{julia}
-#| output: asis
-demo_html("trajectory-maze"; class="demo maze-demo")
+k_pts = single_line["k"]
+adc_pts = single_line["adc"]
+ext = 20 * ceil(1.05 * maximum(abs(v) for p in k_pts for v in p) / 20)
+bios_plot([
+    scatter(mode="lines", x=first.(k_pts), y=last.(k_pts), line=attr(color="lightgray", width=2),
+        showlegend=false, hoverinfo="skip"),
+    scatter(mode="markers", x=first.(adc_pts), y=last.(adc_pts), marker=attr(color=BIOS_COLORS.blue, size=5),
+        showlegend=false, hoverinfo="skip"),
+    scatter(mode="markers", x=[k_pts[end][1]], y=[k_pts[end][2]], marker=attr(color=BIOS_COLORS.red, size=12),
+        showlegend=false, hovertemplate="kₓ=%{x:.1f}<br>kᵧ=%{y:.1f}<extra>1/m</extra>"),
+]; height=500, margin=attr(l=75, r=25, t=40, b=45), showlegend=false,
+    xaxis=bios_axis(range=[-ext, ext], title="kₓ (1/m)", tickangle=0, dtick=200, constrain="domain"),
+    yaxis=bios_axis(range=[-ext, ext], title="kᵧ (1/m)", constrain="domain", scaleanchor="x", scaleratio=1))
 ```
 :::
 :::
@@ -608,20 +481,16 @@ Use latex Gx Gy white background
 
 # K-space trajectory: Multiple lines
 
-```{julia}
-#| output: asis
-demo_html("trajectory-multiple")
+```{=html}
+<div id="trajectory-multiple" class="demo"></div>
 ```
-
-
 
 # Each k-space sample measures a spatial pattern {.compact .pattern-slide}
 
 $$\mathrm e^{\mathrm i2\pi\boldsymbol{k}\cdot\boldsymbol{x}}$$
 
-```{julia}
-#| output: asis
-demo_html("spatial-pattern")
+```{=html}
+<div id="spatial-pattern" class="demo"></div>
 ```
 
 ::: notes
@@ -631,11 +500,8 @@ You can use brain image in next slide
 # Which operation needs to be done here?
 
 ```{julia}
-#| output: asis
-demo_html("fourier-question")
+image_pair_plot(klog(K), brain_image; question=true)
 ```
-
-
 
 # The inverse Fourier transform!
 
@@ -644,8 +510,7 @@ $$\mathcal F^{-1}$$
 :::
 
 ```{julia}
-#| output: asis
-demo_html("fourier-reconstruction")
+image_pair_plot(klog(K), brain_image)
 ```
 
 ::: notes
@@ -655,31 +520,69 @@ Formula mathcal F (inverse fourier transform)
 # k-space extent determines spatial resolution {.sizing-slide}
 
 ```{julia}
-#| output: asis
-demo_html("resolution-demo")
+res_widths = [12, 24, 32, 48, 64, 96]
+res_frames = map(res_widths) do w
+    masked = zeros(ComplexF64, N, N)
+    idx = N÷2 - w÷2 + 1 : N÷2 + w÷2
+    masked[idx, idx] .= K[idx, idx]
+    (w, klog(masked), reconstruct(masked) ./ scale)
+end
+res_steps = [attr(label=string(w), method="restyle", args=[attr(z=[rows(k), rows(img)])])
+    for (w, k, img) in res_frames]
+image_pair_plot(res_frames[end][2], res_frames[end][3]; height=470,
+    sliders=[bios_slider(res_steps, ""; active=5, x=0.06, len=0.88, y=-0.21, pad_t=20)])
 ```
 
 $$\Delta x=\frac{1}{2k_{\max}}$$
 
-
 # k-space spacing determines field of view {.sizing-slide}
 
 ```{julia}
-#| output: asis
-demo_html("fov-demo")
+fov_factors = [1, 2, 3, 4]
+fov_box(f) = attr(type="rect", xref="x2", yref="y2", x0=-120, x1=120, y0=-120 / f, y1=120 / f,
+    line=attr(color="#66c4ef", width=2, dash="dash"), fillcolor="rgba(0,0,0,0)")
+fov_frames = map(fov_factors) do f
+    masked = copy(K)
+    masked[mod.(-N÷2:N÷2-1, f) .!= 0, :] .= 0
+    img = f .* reconstruct(masked) ./ scale
+    (f, klog(masked), img, maximum(img))
+end
+fov_steps = [attr(label=string(f), method="update",
+    args=[attr(z=[rows(k), rows(img)], zmax=[3.001, zmax]), attr(shapes=[fov_box(f)])])
+    for (f, k, img, zmax) in fov_frames]
+image_pair_plot(fov_frames[1][2], fov_frames[1][3]; height=470, zmax=fov_frames[1][4],
+    shapes=[fov_box(1)],
+    sliders=[bios_slider(fov_steps, ""; active=0, x=0.06, len=0.88, y=-0.21, pad_t=20)])
 ```
 
 $$\mathrm{FOV}=\frac{1}{\Delta k}$$
 
-
 # Why does the sampling frequency matter?
 
 ```{julia}
-#| output: asis
-demo_html("sampling-demo")
+rates = [0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 6.0, 8.0]
+dense_t = collect(range(0.0, 4.0; length=1001))
+orig_y = sin.(2π .* dense_t)
+sample_step(fs) = begin
+    ts = collect(0:floor(Int, 4fs)) ./ fs
+    fa = 1 - round(1 / fs) * fs
+    (ts, sin.(2π .* ts), sin.(2π * fa .* dense_t))
+end
+s_steps = [begin
+    ts, ys, alias = sample_step(fs)
+    attr(label=string(fs), method="restyle", args=[attr(x=[dense_t, ts], y=[alias, ys]), [1, 2]])
+end for fs in rates]
+ts0, ys0, alias0 = sample_step(rates[end])
+bios_plot([
+    scatter(x=dense_t, y=orig_y, name="Original sinusoid", line=attr(color=BIOS_COLORS.gray, width=3)),
+    scatter(x=dense_t, y=alias0, name="Wave fitting the samples", line=attr(color=BIOS_COLORS.orange, width=3, dash="dash")),
+    scatter(x=ts0, y=ys0, mode="markers", name="Samples", marker=attr(color=BIOS_COLORS.blue, size=11)),
+]; height=565, margin=attr(l=70, r=30, t=85, b=100),
+    xaxis=bios_axis(title="Time (s)", range=[0, 4]),
+    yaxis=bios_axis(title="Signal", range=[-1.2, 1.2]),
+    legend=attr(orientation="h", x=0.5, xanchor="center", y=1.07, yanchor="bottom", font=attr(size=18)),
+    sliders=[bios_slider(s_steps, ""; active=9, x=0.06, len=0.88, y=-0.21, pad_t=20)])
 ```
-
-
 
 # Nyquist–Shannon sampling theorem
 
@@ -701,224 +604,143 @@ $$\Delta k=\frac{1}{\mathrm{FOV}}$$
 $$T_{\mathrm{scan}}=\mathrm{TR}\times N_y$$
 
 ```{julia}
-#| output: asis
-demo_html("scan-time-demo"; class="demo scan-demo")
+TR = 10e-3
+scan_seq = line_seq(-16dk; nx=32, tr=TR) + line_seq(-15dk; nx=32, tr=TR)
+scan_p = clean_seq_plot(scan_seq)
+rf_centers = only(filter(t -> get(t, :name, "") == "RF_center", scan_p.data)).x
+b1_y = only(filter(t -> get(t, :name, "") == "B₁", scan_p.data)).y
+half_b1 = maximum(v for v in b1_y if v isa Number && isfinite(v)) / 2
+bios_plot(scan_p.data; height=390, font_size=20, template=scan_p.layout.template,
+    margin=attr(l=65, r=25, t=65, b=60),
+    xaxis=bios_axis(title="Time (ms)", range=[0, 1e3 * dur(scan_seq)]),
+    yaxis=bios_axis(range=[-22, 28]),
+    legend=attr(orientation="h", x=0, y=1.18, font=attr(size=18)),
+    annotations=[
+        attr(xref="x", yref="y", x=rf_centers[2], y=half_b1, axref="x", ayref="y", ax=rf_centers[1], ay=half_b1,
+            text="", showarrow=true, arrowhead=2, startarrowhead=2, arrowside="end+start",
+            arrowcolor=BIOS_COLORS.ink, arrowwidth=3),
+        attr(xref="x", yref="y", x=(rf_centers[1] + rf_centers[2]) / 2, y=half_b1, yshift=12, yanchor="bottom",
+            text="TR", showarrow=false, font=attr(size=22, color=BIOS_COLORS.ink)),
+    ])
 ```
-
-
 
 # Questions? {#questions .center .transition-slide}
 
-![](figures/questions-droplet.png){height=280px fig-alt="Dizzy droplet spin with spiral eyes"}
-
-
+![](figures/questions-droplet.png){height=180px fig-alt="Dizzy droplet spin with spiral eyes"}
 
 ```{julia}
-#| output: asis
-asset = PlotlyBase.JSON.json(read(KomaMRI.KomaMRIPlots.TIME_PLOTLY.local_path,String))
-print("```{=html}\n<script>",KomaMRI.KomaMRIPlots.plotly_loader(asset),"</script>\n```\n")
-```
-
-```{julia}
-#| output: asis
-print("```{=html}\n<script id=\"lecture-data\" type=\"application/json\">",PlotlyBase.JSON.json(lecture_data),"</script>\n```\n")
+embed_json("lecture-data", lecture_data)
 ```
 
 ```{=html}
 <script>
-window.addEventListener('load', async () => {
-  const Plotly = await window.komaPlotly;
+BIOS214.onReady(async Plotly => {
   const D = JSON.parse(document.getElementById('lecture-data').textContent);
-  const C={blue:'#2a7fb8',orange:'#e9782d',gray:'#89939c',ink:'#343a40'};
-  const palette=['#636EFA','#EF553B','#00CC96','#AB63FA','#19D3F3'];
-  const config={displayModeBar:false,responsive:true};
-  const axis={showgrid:true,gridcolor:'#e8ebed',zeroline:true,zerolinecolor:'#89939c',
-    showline:true,linecolor:'#89939c',mirror:true,ticks:'outside',automargin:true};
-  const imageAxis={...axis,showticklabels:false,ticks:'',showgrid:false,zeroline:false};
-  const base={font:{size:20,color:C.ink},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
-    margin:{l:68,r:30,t:55,b:95},legend:{orientation:'h',x:.5,xanchor:'center',y:1.12},hovermode:'closest'};
-  const graphs=[];
-  const note=(text,x=.5,y=1.1,extra={})=>({text,x,y,xref:'paper',yref:'paper',showarrow:false,font:{size:22,color:C.ink},...extra});
-  const selectSlider=(labels,prefix,active=0,suffix='')=>({
-    active,x:.06,len:.88,y:-.21,pad:{t:20},ticklen:0,minorticklen:0,font:{color:'rgba(0,0,0,0)'},
-    currentvalue:{visible:prefix!=='',prefix,suffix,font:{size:20,color:C.ink}},transition:{duration:0},bordercolor:C.blue,activebgcolor:C.blue,
-    steps:labels.map((label,i)=>({label:String(label),value:String(i),method:'skip',args:[]}))});
-  async function plot(id,data,layout) {
-    const el=document.getElementById(id); if(!el)return null;
-    await Plotly.newPlot(el,data,{...base,...layout},config); graphs.push(el); return el;
-  }
-  async function interactive(id,labels,prefix,build,active=0,suffix='') {
-    const spec=i=>{const p=build(i);return {data:p.data,layout:{...base,...p.layout,sliders:[selectSlider(labels,prefix,i,suffix)]}};};
-    const initial=spec(active),el=await plot(id,initial.data,initial.layout); if(!el)return;
-    el.on('plotly_sliderchange',e=>{const p=spec(Number(e.step.value));Plotly.react(el,p.data,p.layout,config);});
-  }
+  const {C, palette, config, axis, imageAxis, baseLayout, slider} = BIOS214;
 
-  const se=D.echo.se,ge=D.echo.ge;
-  const amplitude=d=>d.net.map(v=>Math.hypot(v[0],v[1]));
-  const time=d=>d.t.map(t=>t-.5);
-  const post=d=>{const i=d.t.reduce((best,t,j)=>Math.abs(t-.5)<Math.abs(d.t[best]-.5)?j:best,0);return amplitude(d)[i];};
-  const envelopeTimes=Array.from({length:201},(_,i)=>44.5*i/200),te=29.5;
-  await plot('echo-comparison',[
-    {x:time(se),y:amplitude(se),name:'SE',line:{color:C.blue,width:3}},
-    {x:time(ge),y:amplitude(ge),name:'GE',line:{color:C.orange,width:3,dash:'dash'}},
-    {x:envelopeTimes,y:envelopeTimes.map(t=>post(se)*Math.exp(-t/120)),name:'exp(−t/T<sub>2</sub>)',line:{color:C.ink,width:2,dash:'dot'}},
-    {x:envelopeTimes,y:envelopeTimes.map(t=>post(ge)*Math.exp(-t/(1000/(1/.12+50)))),name:'exp(−t/T<sub>2</sub><sup>*</sup>)',line:{color:C.gray,width:2,dash:'dot'}}],{
-      xaxis:{...axis,title:'Time after excitation (ms)',range:[-1,44.5]},
-      yaxis:{...axis,title:'|S| / S₀',range:[0,1.03]},margin:{l:75,r:30,t:50,b:65},
-      legend:{orientation:'h',x:.5,xanchor:'center',y:1.1,font:{size:19}},
-      shapes:[{type:'rect',xref:'x',yref:'y domain',x0:-1,x1:0,y0:0,y1:1,line:{width:0},fillcolor:'rgba(155,88,207,.15)',layer:'below'},
-        {type:'rect',xref:'x',yref:'y domain',x0:14,x1:15,y0:0,y1:1,line:{width:0},fillcolor:'rgba(155,88,207,.15)',layer:'below'},
-        {type:'line',xref:'x',yref:'y domain',x0:te,x1:te,y0:0,y1:1,line:{color:C.gray,width:1.5,dash:'dot'}}],
-      annotations:[{text:'TE',xref:'x',yref:'paper',x:te,y:.98,xshift:7,xanchor:'left',yanchor:'top',showarrow:false,font:{size:18,color:C.gray}}]
-    });
-
-  function waveform(d,domain=[0,.43],colored=false) {
-    const traces=[];
-    for(const name of ['Gx','Gy','Gz','|B1|_AM','ADC']) {
-      const t=d.wave.data.find(t=>t.name===name);if(!t)continue;
-      if(name==='Gy') {
-        for(let j=0;j<(colored?5:1);j++)traces.unshift({...t,
-          x:colored?t.x.map(x=>x!==null&&x>=j*12&&x<j*12+12?x:null):t.x,
-          mode:'lines',line:{width:0},fill:'tozeroy',fillcolor:colored?palette[j]:C.orange,opacity:.3,
-          xaxis:'x',yaxis:'y',showlegend:false,visible:true,legendgroup:'Gy',hoverinfo:'skip'});
+  function waveform(d, domain = [0, 0.43], colored = false) {
+    const traces = [];
+    for (const name of ['Gx', 'Gy', 'Gz', '|B1|_AM', 'ADC']) {
+      const t = d.wave.data.find(t => t.name === name); if (!t) continue;
+      if (name === 'Gy') {
+        for (let j = 0; j < (colored ? 5 : 1); j++) traces.unshift({...t,
+          x: colored ? t.x.map(x => x !== null && x >= j * 12 && x < j * 12 + 12 ? x : null) : t.x,
+          mode: 'lines', line: {width: 0}, fill: 'tozeroy', fillcolor: colored ? palette[j] : C.orange, opacity: 0.3,
+          xaxis: 'x', yaxis: 'y', showlegend: false, visible: true, legendgroup: 'Gy', hoverinfo: 'skip'});
       }
-      traces.push({...t,name:name==='|B1|_AM'?'B₁':name,
-        xaxis:'x',yaxis:'y',showlegend:true,visible:true,legendgroup:name});
+      traces.push({...t, name: name === '|B1|_AM' ? 'B₁' : name, xaxis: 'x', yaxis: 'y', showlegend: true, visible: true, legendgroup: name});
     }
-    return {data:traces,layout:{template:d.wave.layout.template,
-      xaxis:{...axis,domain,anchor:'y',range:[0,d.duration],title:'Time (ms)'},
-      yaxis:{...axis,domain:[.1,1],anchor:'x',range:[-22,28]},annotations:[]}};
+    return {data: traces, layout: {template: d.wave.layout.template,
+      xaxis: {...axis, domain, anchor: 'y', range: [0, d.duration], title: 'Time (ms)'},
+      yaxis: {...axis, domain: [0.1, 1], anchor: 'x', range: [-22, 28]}, annotations: []}};
   }
-  function trajectorySpec(d,step,{maze=false,multiple=false}={}) {
-    const single=!maze&&!multiple;
-    const q=maze?{data:[],layout:{}}:waveform(d,[0,.43],multiple);
-    if(single)q.layout.yaxis.domain=[0,1];
-    const elapsed=d.t[step];
-    const extent=20*Math.ceil(1.05*Math.max(...d.k.flat().map(Math.abs))/20);
-    const xd=maze?[0,1]:[.58,1];
-    const paths=[];
-    if(multiple) {
-      for(let j=0;j<5;j++) {
-        const subset=d.adc.filter((_,i)=>Math.floor(i/96)===j);
-        paths.push({type:'scatter',mode:'lines+markers',x:subset.map(k=>k[0]),y:subset.map(k=>k[1]),
-          line:{color:palette[j],width:2},marker:{color:palette[j],size:4},showlegend:false,xaxis:'x2',yaxis:'y4',hoverinfo:'skip'});
+
+  async function mountTrajectory(id, d, multiple = false) {
+    const el = document.getElementById(id); if (!el) return;
+    const first = d.start_time === undefined ? 0 : d.t.findIndex(t => t >= d.start_time - 1e-6);
+    const indices = [...new Set([...Array.from({length: 150}, (_, i) => first + Math.round(i * (d.t.length - 1 - first) / 149)), d.t.length - 1])];
+    const extent = 20 * Math.ceil(1.05 * Math.max(...d.k.flat().map(Math.abs)) / 20);
+    const centers = d.wave.data.find(t => t.name === 'RF_center').x;
+    const steps = indices.map((k, i) => ({label: d.t[k].toFixed(2), value: String(i), method: 'skip', args: []}));
+    const spec = idx => {
+      const step = indices[idx], q = waveform(d, [0, 0.43], multiple), elapsed = d.t[step];
+      if (!multiple) q.layout.yaxis.domain = [0, 1];
+      const pathX = [], pathY = [];
+      for (let i = 0; i <= step; i++) {
+        if (i && centers.some(t => t >= d.t[i - 1] && t < d.t[i])) { pathX.push(null); pathY.push(null); }
+        pathX.push(d.k[i][0]); pathY.push(d.k[i][1]);
       }
-    } else paths.push({type:'scatter',mode:'markers',x:d.adc.map(k=>k[0]),y:d.adc.map(k=>k[1]),
-      marker:{color:maze?C.blue:C.orange,size:5},showlegend:false,xaxis:'x2',yaxis:'y4',hoverinfo:'skip'});
-    const pathX=[],pathY=[],centers=d.wave.data.find(t=>t.name==='RF_center').x;
-    for(let i=0;i<=step;i++){
-      if(i&&centers.some(t=>t>=d.t[i-1]&&t<d.t[i])){pathX.push(null);pathY.push(null);}
-      pathX.push(d.k[i][0]);pathY.push(d.k[i][1]);
-    }
-    paths.unshift({type:'scatter',mode:'lines',x:pathX,y:pathY,
-      line:{color:'lightgray',width:2},showlegend:false,xaxis:'x2',yaxis:'y4',hoverinfo:'skip'});
-    paths.push({type:'scatter',mode:'markers',x:[d.k[step][0]],y:[d.k[step][1]],marker:{color:'#db4654',size:12},
-      showlegend:false,xaxis:'x2',yaxis:'y4',hovertemplate:'kₓ=%{x:.1f}<br>kᵧ=%{y:.1f}<extra>1/m</extra>'});
-    return {data:[...q.data,...paths],layout:{...q.layout,
-      xaxis2:{...axis,domain:xd,anchor:'y4',range:[-extent,extent],title:'kₓ (1/m)',tickangle:0,dtick:200,constrain:'domain'},
-      yaxis4:{...axis,domain:single?[0,1]:[.12,1],anchor:'x2',range:[-extent,extent],title:'kᵧ (1/m)',constrain:'domain',scaleanchor:'x2',scaleratio:1},
-      annotations:[],
-      shapes:maze?[]:[{type:'line',xref:'x',yref:'paper',x0:elapsed,x1:elapsed,y0:single?0:.12,y1:1,line:{color:'#db4654',width:2}}],
-      legend:{orientation:'h',x:0,y:single?1.12:1.22,font:{size:16}},margin:{l:75,r:25,t:single?40:72,b:single?70:90}}};
+      const paths = [{type: 'scatter', mode: 'lines', x: pathX, y: pathY, line: {color: 'lightgray', width: 2},
+        showlegend: false, xaxis: 'x2', yaxis: 'y4', hoverinfo: 'skip'}];
+      if (multiple) {
+        for (let j = 0; j < 5; j++) {
+          const sub = d.adc.filter((_, i) => Math.floor(i / 96) === j);
+          paths.push({type: 'scatter', mode: 'lines+markers', x: sub.map(k => k[0]), y: sub.map(k => k[1]),
+            line: {color: palette[j], width: 2}, marker: {color: palette[j], size: 4}, showlegend: false, xaxis: 'x2', yaxis: 'y4', hoverinfo: 'skip'});
+        }
+      } else {
+        paths.push({type: 'scatter', mode: 'markers', x: d.adc.map(k => k[0]), y: d.adc.map(k => k[1]),
+          marker: {color: C.orange, size: 5}, showlegend: false, xaxis: 'x2', yaxis: 'y4', hoverinfo: 'skip'});
+      }
+      paths.push({type: 'scatter', mode: 'markers', x: [d.k[step][0]], y: [d.k[step][1]], marker: {color: C.red, size: 12},
+        showlegend: false, xaxis: 'x2', yaxis: 'y4', hovertemplate: 'kₓ=%{x:.1f}<br>kᵧ=%{y:.1f}<extra>1/m</extra>'});
+      return {data: [...q.data, ...paths], layout: baseLayout({...q.layout, hovermode: 'closest',
+        xaxis2: {...axis, domain: [0.58, 1], anchor: 'y4', range: [-extent, extent], title: 'kₓ (1/m)', tickangle: 0, dtick: 200, constrain: 'domain'},
+        yaxis4: {...axis, domain: multiple ? [0.12, 1] : [0, 1], anchor: 'x2', range: [-extent, extent], title: 'kᵧ (1/m)', constrain: 'domain', scaleanchor: 'x2', scaleratio: 1},
+        shapes: [{type: 'line', xref: 'x', yref: 'paper', x0: elapsed, x1: elapsed, y0: multiple ? 0.12 : 0, y1: 1, line: {color: C.red, width: 2}}],
+        legend: {orientation: 'h', x: 0, y: multiple ? 1.22 : 1.12, font: {size: 16}},
+        margin: {l: 75, r: 25, t: multiple ? 72 : 40, b: multiple ? 90 : 70},
+        sliders: [slider(steps, 'Time: ', ' ms', idx, {x: 0.06, len: 0.88, y: -0.21, pad: {t: 20}})]})};
+    };
+    const init = spec(0);
+    await Plotly.newPlot(el, init.data, init.layout, config);
+    el.on('plotly_sliderchange', e => { const p = spec(Number(e.step.value)); Plotly.react(el, p.data, p.layout, config); });
   }
-  async function trajectory(id,d,options={}) {
-    const first=d.start_time===undefined?0:d.t.findIndex(t=>t>=d.start_time-1e-6);
-    const indices=Array.from(new Set([...Array.from({length:150},(_,i)=>first+Math.round(i*(d.t.length-1-first)/149)),d.t.length-1]));
-    await interactive(id,indices.map(k=>d.t[k].toFixed(2)),'Time: ',i=>trajectorySpec(d,indices[i],options),0,' ms');
-  }
-  await trajectory('trajectory-one',D.single);
-  const maze=trajectorySpec(D.single,D.single.t.length-1,{maze:true});
-  maze.layout.margin.b=45;
-  await plot('trajectory-maze',maze.data,maze.layout);
-  await trajectory('trajectory-multiple',D.multiple,{multiple:true});
+  await mountTrajectory('trajectory-one', D.single, false);
+  await mountTrajectory('trajectory-multiple', D.multiple, true);
 
-  const B=D.brain;
-  const phaseScale=[[0,'rgb(51,255,255)'],[1/6,'rgb(51,51,255)'],[1/3,'rgb(255,51,255)'],
-    [.5,'rgb(255,51,51)'],[2/3,'rgb(255,255,51)'],[5/6,'rgb(51,255,51)'],[1,'rgb(51,255,255)']];
-  const imageTrace=(z,axisName='x2',yaxis='y2')=>({type:'heatmap',z,x:B.x,y:B.x,colorscale:[[0,'#000000'],[1,'#ffffff']],zmin:0,zmax:1,
-    showscale:false,xaxis:axisName,yaxis,hovertemplate:'x=%{x:.1f}<br>y=%{y:.1f}<extra></extra>'});
-  const kTrace=z=>({type:'heatmap',z,x:B.kaxis,y:B.kaxis,colorscale:[[0,'#000000'],[1,'#ffffff']],zmin:0,zmax:3.001,showscale:false,
-    hovertemplate:'kₓ=%{x:.1f}<br>kᵧ=%{y:.1f}<extra></extra>'});
-  function imagePair(k,img,{question=false,slider=false}={}) {
-    return {data:[kTrace(k),imageTrace(img)],layout:{
-      xaxis:{...imageAxis,domain:[0,.43],anchor:'y',title:'',constrain:'domain'},
-      yaxis:{...imageAxis,domain:[0,1],anchor:'x',title:'',scaleanchor:'x',scaleratio:1},
-      xaxis2:{...imageAxis,domain:[.57,1],anchor:'y2',title:'',range:[-120,120],constrain:'domain',visible:true},
-      yaxis2:{...imageAxis,domain:[0,1],anchor:'x2',title:'',range:[-120,120],constrain:'domain',scaleanchor:'x2',scaleratio:1,visible:true},
-      annotations:[...(!slider?[{xref:'paper',yref:'paper',x:.52,y:.5,ax:-50,ay:0,text:'',showarrow:true,arrowhead:3,arrowwidth:2.5,arrowcolor:C.ink}]:[]),
-        ...(question?[note('?',.5,.61,{font:{size:44,color:C.ink}})]:[])],
-      margin:{l:70,r:30,t:slider?75:45,b:slider?105:60},showlegend:false}};
-  }
-  let pair=imagePair(B.k,B.image,{question:true});await plot('fourier-question',pair.data,pair.layout);
-  pair=imagePair(B.k,B.image);await plot('fourier-reconstruction',pair.data,pair.layout);
-  await interactive('resolution-demo',B.resolution.map(d=>d.n),'',i=>{
-    const d=B.resolution[i];return imagePair(d.k,d.image,{slider:true});
-  },5);
-  await interactive('fov-demo',B.fov_variants.map(d=>d.factor),'',i=>{
-    const d=B.fov_variants[i],p=imagePair(d.k,d.image,{slider:true});
-    p.data[1].zmax=Math.max(...d.image.flat());
-    p.layout.shapes=[{type:'rect',xref:'x2',yref:'y2',x0:-120,x1:120,y0:-120/d.factor,y1:120/d.factor,
-      line:{color:'#66c4ef',width:2,dash:'dash'},fillcolor:'rgba(0,0,0,0)'}];return p;
-  },0);
-
-  function phaseImage(kx,ky) {
-    const value=B.density.flat(),maximum=Math.max(...value);
-    return B.density.map((row,j)=>row.map((a,i)=>{
-      const phase=2*Math.PI*(kx*B.x[i]/1000+ky*B.x[j]/1000),h=((phase/(2*Math.PI))%1+1)%1;
-      const sector=h*6,c=.8,x=c*(1-Math.abs(sector%2-1));
-      const rgb=sector<1?[c,x,0]:sector<2?[x,c,0]:sector<3?[0,c,x]:sector<4?[0,x,c]:sector<5?[x,0,c]:[c,0,x];
-      return [...rgb.map(v=>Math.round(255*(v+.2)*a/maximum)),255];
-    }));
-  }
-  const gridX=[],gridY=[],central=B.kaxis.filter(k=>Math.abs(k)<=12*B.dk+1e-6);central.forEach(y=>central.forEach(x=>{gridX.push(x);gridY.push(y);}));
-  function patternSpec(kx,ky) {
-    return {data:[{type:'image',z:phaseImage(kx,ky),colormodel:'rgba',x0:B.x[0],y0:B.x[0],dx:2.5,dy:2.5,
-      xaxis:'x',yaxis:'y',hovertemplate:'x=%{x:.1f}<br>y=%{y:.1f}<extra></extra>'},
-      {type:'scatter',mode:'markers',x:gridX,y:gridY,marker:{color:'#86acc8',size:5},xaxis:'x2',yaxis:'y2',
-        hovertemplate:'kₓ=%{x:.1f}<br>kᵧ=%{y:.1f}<extra>1/m</extra>',showlegend:false},
-      {type:'scatter',mode:'markers',x:[kx],y:[ky],marker:{color:C.orange,size:12},xaxis:'x2',yaxis:'y2',showlegend:false},
-      {type:'scatter',mode:'markers',x:[0,0],y:[0,0],xaxis:'x',yaxis:'y',showlegend:false,hoverinfo:'skip',
-        marker:{size:0,opacity:0,color:[-Math.PI,Math.PI],cmin:-Math.PI,cmax:Math.PI,colorscale:phaseScale,showscale:true,
-          colorbar:{x:.45,y:.5,len:.85,thickness:14,outlinewidth:0,title:{text:'Phase',side:'top'},
-            tickvals:[-Math.PI,-Math.PI/2,0,Math.PI/2,Math.PI],ticktext:['−π','−π/2','0','π/2','π'],tickfont:{size:16}}}}],layout:{
-      xaxis:{...imageAxis,domain:[0,.43],anchor:'y',title:'x (mm)',range:[-120,120],constrain:'domain'},
-      yaxis:{...imageAxis,domain:[0,1],anchor:'x',title:'y (mm)',range:[-120,120],scaleanchor:'x',scaleratio:1},
-      xaxis2:{...imageAxis,domain:[.57,1],anchor:'y2',title:'kₓ (1/m)',range:[-55,55],constrain:'domain'},
-      yaxis2:{...imageAxis,domain:[0,1],anchor:'x2',title:'kᵧ (1/m)',range:[-55,55],constrain:'domain',scaleanchor:'x2',scaleratio:1},
-      annotations:[],margin:{l:65,r:25,t:25,b:60}}};
-  }
-  let pattern=patternSpec(0,0);const patternEl=await plot('spatial-pattern',pattern.data,pattern.layout);
-  function updatePattern(kx,ky){const p=patternSpec(kx,ky);Plotly.react(patternEl,p.data,p.layout,config);}
-  patternEl.on('plotly_click',e=>{const p=e.points[0];if(p.curveNumber===1||p.curveNumber===2)updatePattern(p.x,p.y);});
-
-  const rates=[.75,1,1.25,1.5,2,2.5,3,4,6,8],dense=Array.from({length:1001},(_,i)=>4*i/1000);
-  await interactive('sampling-demo',rates,'',i=>{
-    const fs=rates[i],t=Array.from({length:Math.floor(4*fs)+1},(_,j)=>j/fs),fa=1-Math.round(1/fs)*fs;
-    return {data:[{x:dense,y:dense.map(t=>Math.sin(2*Math.PI*t)),name:'Original sinusoid',line:{color:C.gray,width:3}},
-      {x:dense,y:dense.map(t=>Math.sin(2*Math.PI*fa*t)),name:'Wave fitting the samples',line:{color:C.orange,width:3,dash:'dash'}},
-      {x:t,y:t.map(t=>Math.sin(2*Math.PI*t)),mode:'markers',name:'Samples',marker:{color:C.blue,size:11}}],
-      layout:{xaxis:{...axis,title:'Time (s)',range:[0,4]},yaxis:{...axis,title:'Signal',range:[-1.2,1.2]},
-        annotations:[],
-        legend:{orientation:'h',x:.5,xanchor:'center',y:1.07,yanchor:'bottom',font:{size:18}},margin:{l:70,r:30,t:85,b:100}}};
-  },9);
-
-  const scan=D.scan,centers=scan.wave.data.find(t=>t.name==='RF_center').x,
-    halfB1=Math.max(...scan.wave.data.find(t=>t.name==='|B1|_AM').y.filter(Number.isFinite))/2;
-  await plot('scan-time-demo',scan.wave.data,{
-    ...scan.wave.layout,font:base.font,paper_bgcolor:base.paper_bgcolor,plot_bgcolor:base.plot_bgcolor,
-    xaxis:{...axis,title:'Time (ms)',range:[0,scan.duration],rangeslider:{visible:false}},
-    yaxis:{...axis,range:[-22,28]},margin:{l:65,r:25,t:65,b:60},
-    legend:{orientation:'h',x:0,y:1.18,font:{size:18}},
-    annotations:[{xref:'x',yref:'y',x:centers[1],y:halfB1,axref:'x',ayref:'y',ax:centers[0],ay:halfB1,
-      text:'',showarrow:true,arrowhead:2,startarrowhead:2,arrowside:'end+start',arrowcolor:C.ink,arrowwidth:3},
-      {xref:'x',yref:'y',x:(centers[0]+centers[1])/2,y:halfB1,yshift:12,yanchor:'bottom',text:'TR',showarrow:false,font:{size:22,color:C.ink}}]
+  const B = D.brain, maxRho = Math.max(...B.density.flat());
+  const phaseScale = [[0, 'rgb(51,255,255)'], [1/6, 'rgb(51,51,255)'], [1/3, 'rgb(255,51,255)'],
+    [0.5, 'rgb(255,51,51)'], [2/3, 'rgb(255,255,51)'], [5/6, 'rgb(51,255,51)'], [1, 'rgb(51,255,255)']];
+  const gridX = [], gridY = [], central = B.kaxis.filter(k => Math.abs(k) <= 12 * B.dk + 1e-6);
+  central.forEach(y => central.forEach(x => { gridX.push(x); gridY.push(y); }));
+  const phaseImage = (kx, ky) => B.density.map((row, j) => row.map((a, i) => {
+    const h = (((kx * B.x[i] + ky * B.x[j]) / 1000) % 1 + 1) % 1, s = h * 6, c = 0.8, x = c * (1 - Math.abs(s % 2 - 1));
+    const rgb = s < 1 ? [c, x, 0] : s < 2 ? [x, c, 0] : s < 3 ? [0, c, x] : s < 4 ? [0, x, c] : s < 5 ? [x, 0, c] : [c, 0, x];
+    return [...rgb.map(v => Math.round(255 * (v + 0.2) * a / maxRho)), 255];
+  }));
+  const patternSpec = (kx, ky) => ({
+    data: [
+      {type: 'image', z: phaseImage(kx, ky), colormodel: 'rgba', x0: B.x[0], y0: B.x[0], dx: 2.5, dy: 2.5,
+        xaxis: 'x', yaxis: 'y', hovertemplate: 'x=%{x:.1f}<br>y=%{y:.1f}<extra></extra>'},
+      {type: 'scatter', mode: 'markers', x: gridX, y: gridY, marker: {color: '#86acc8', size: 5},
+        xaxis: 'x2', yaxis: 'y2', hovertemplate: 'kₓ=%{x:.1f}<br>kᵧ=%{y:.1f}<extra>1/m</extra>', showlegend: false},
+      {type: 'scatter', mode: 'markers', x: [kx], y: [ky], marker: {color: C.orange, size: 12},
+        xaxis: 'x2', yaxis: 'y2', showlegend: false},
+      {type: 'scatter', mode: 'markers', x: [0, 0], y: [0, 0], xaxis: 'x', yaxis: 'y', showlegend: false, hoverinfo: 'skip',
+        marker: {size: 0, opacity: 0, color: [-Math.PI, Math.PI], cmin: -Math.PI, cmax: Math.PI, colorscale: phaseScale, showscale: true,
+          colorbar: {x: 0.45, y: 0.5, len: 0.85, thickness: 14, outlinewidth: 0, title: {text: 'Phase', side: 'top'},
+            tickvals: [-Math.PI, -Math.PI/2, 0, Math.PI/2, Math.PI], ticktext: ['−π', '−π/2', '0', 'π/2', 'π'], tickfont: {size: 16}}}}
+    ],
+    layout: baseLayout({margin: {l: 65, r: 25, t: 25, b: 60}, hovermode: 'closest',
+      xaxis: {...imageAxis, domain: [0, 0.43], anchor: 'y', title: 'x (mm)', range: [-120, 120], constrain: 'domain'},
+      yaxis: {...imageAxis, domain: [0, 1], anchor: 'x', title: 'y (mm)', range: [-120, 120], scaleanchor: 'x', scaleratio: 1},
+      xaxis2: {...imageAxis, domain: [0.57, 1], anchor: 'y2', title: 'kₓ (1/m)', range: [-55, 55], constrain: 'domain'},
+      yaxis2: {...imageAxis, domain: [0, 1], anchor: 'x2', title: 'kᵧ (1/m)', range: [-55, 55], constrain: 'domain', scaleanchor: 'x2', scaleratio: 1}})
   });
-
-  const resize=()=>graphs.filter(el=>el.closest('section')?.classList.contains('present')).forEach(el=>Plotly.Plots.resize(el));
-  if(window.Reveal){Reveal.on('slidechanged',resize);Reveal.on('ready',resize);}
-  window.addEventListener('resize',resize);resize();
-  window.lecture4Ready=true;
+  const patternEl = document.getElementById('spatial-pattern');
+  if (patternEl) {
+    const init = patternSpec(0, 0);
+    await Plotly.newPlot(patternEl, init.data, init.layout, config);
+    patternEl.on('plotly_click', e => {
+      const p = e.points[0];
+      if (p.curveNumber === 1 || p.curveNumber === 2) {
+        const next = patternSpec(p.x, p.y);
+        Plotly.react(patternEl, next.data, next.layout, config);
+      }
+    });
+  }
+  window.lecture4Ready = true;
 });
-
 </script>
 ```

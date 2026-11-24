@@ -3,123 +3,32 @@ title: |
   [Lecture 1]{.lecture-number}
   Open-source, AI agents, and\
   MRI simulation
-subtitle: "BIOS 214: Open-Source MRI Sequence Development"
-author:
-  name: Carlos Castillo-Passi
-  email: cacp@stanford.edu
 date: 2026-11-09
 output-file: slides1.html
 engine: julia
-execute:
-  daemon: 86400
-  echo: false
-  warning: false
-toc: false
 fig-align: center
-toc-depth: 1
-toc-title: Outline
-format:
-  revealjs:
-    date-format: "DD MMM YYYY"
-    width: 1280
-    height: 720
-    margin: 0.04
-    center: false
-    center-title-slide: false
-    logo: "data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMiIgZGF0YS1uYW1lPSJMYXllciAyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5Mi4yMSAxMzkuMTEiPjxkZWZzPjxzdHlsZT4uY2xzLTF7ZmlsbDojZmZmO30uY2xzLTJ7ZmlsbDojOGMxNTE1O308L3N0eWxlPjwvZGVmcz48dGl0bGU+c2FmYXJpLXBpbm5lZC10YWI8L3RpdGxlPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTM0Ni4zOCwzNDYuNTRsLTE4LjUtMTcuOEgyNzcuNDNsLTE4LjUsMTcuNzd2NDkuNGwxNS45MiwxNS45NGgxMC4yN2E1LjcyLDUuNzIsMCwwLDAtMS42OSwyLjU5Yy0uNCwxLjEyLS44MSwxLjQ0LDIuNzksMWExMi44MiwxMi44MiwwLDAsMCw0LjItMS41M2MxLS42NCwyLjg1LS4xMiwyLjY4LDEuMjdhNi42OCw2LjY4LDAsMCwxLTUuMzQsMy43NGMtNSwuNjItMi44NCwyLjQ1LTIuODQsMi40NWE2LjIsNi4yLDAsMCwxLDEuMjMsMS4wNWgtMjcuMnYyMi44OGwxOC41LDE3LjgzaDUwLjQ2bDE4LjUtMTcuOFYzOThsLTE1LjkzLTE1LjkySDMxNy41OWMtMS0uNjctMi40MS0xLjQyLTMuNjctMi4yM2gwYTkuNTUsOS41NSwwLDAsMS0xLjQxLTEsOC4yLDguMiwwLDAsMS0xLS45MywxMS42MSwxMS42MSwwLDAsMS0yLjE3LTIuODdjLS40MS0xLS4zMi0yLjI4LjYyLTEuNzUsMi4zOCwxLjM1LDYuMjksMS42LDcuNzQsMS42NWExMS44NiwxMS44NiwwLDAsMSwxLjYxLjIxYy4yOS4xMS43NC4zMy43NC4zMy41OC4yNSwxLjY1LS41NS40Mi0yYTExLjQ5LDExLjQ5LDAsMCwwLTEuMzctMS42N2gyNy4zWm0tNDcuNTUsODQuODF2MS4xNWgwdjguODVjMCwzLjQ2LS4yOSw2LjY0LTEuNjksOHMtMy40MSwyLjg4LTQuNiw0LjcyYy0xLjU3LDIuNDItMy40OSw2LjM0LTguNjYsNi41OWgtNS40OUwyNjEuMyw0NDQuMjV2LTE5LjVIMjg2LjJhMi44OSwyLjg5LDAsMCwxLS43NC41MXMtMy44NSwxLjUyLTQuODgsNC4xM2EzMy4zNywzMy4zNywwLDAsMC0xLjQ1LDQuMzRoMGMtLjUzLDIuMzMuNzcsMy4zMSwxLjcsMi4xMiwxLjQ5LTEuOTEsNi42OS00LjU2LDguNDktNC43M3M0Ljk0LDAsNi44LTIsMi43MS0xLjkxLDIuNzEtMS4xOXYzLjExQzI5OC44Myw0MzEuMiwyOTguODMsNDMxLjMsMjk4LjgzLDQzMS4zNVpNMzA5LjU0LDM5NmMxLjc5LjQ3LDIuNzEsMS43Miw1Ljc4Ljg5YTMuODIsMy44MiwwLDAsMSwyLC4xNWMuNzguNCwyLjgxLS4xNS0xLTIuODItMi43Ny0xLjk0LTUuMjgtMS43OC02LjY1LTQuODEsMCwwLS41LS45MS0uMjYtMS4zNmgwYTEuNDksMS40OSwwLDAsMSwxLjc5LS42MmMuOTUuMzQsNC40MywxLjgzLDUuODgsMi4xOGE1LjM5LDUuMzksMCwwLDEsMS44My43N2MuNjUuMzksMi42NSwxLjExLDIuNjQtLjM4YTEzLjg3LDEzLjg3LDAsMCwwLTEuNi01LjQ2aDkuNDZMMzQ0LDM5OXY0NS4yNWwtMTcuMDgsMTYuNDRoLTQuOGMtMi41LDAtNi4yNi0xLjUxLTcuNDEtMi44OS0yLjUtMy0zLjg0LTIuNjUtNS42MS00LjQyLTIuMTYtMi4xNi0yLjY2LTQuNy0yLjc3LTcuMzZ2LTExLjlzLS4xOS0yLjQxLDEuNzItLjkyLDMsMS4zMiw2LjIsMS4wNyw2Ljc1LDIuNjQsOC42LDMuNzgsNS42Miw0LDEuNzMtNS45Yy0uNzUtMS45MS0zLTMuMjMtNC4xNi0zLjgtLjcxLS4zOC0xLjc2LTEuNjgtLjc5LTIuNzcsMCwwLDEuOTMtMS43MS44OC0yLjg3LS4zNC0uNDItMS4yMS0uODMtMy4xMS0xLjA2YTYuNjgsNi42OCwwLDAsMS01LjM1LTMuNzRjLS4xNy0xLjM5LDEuNzMtMS45MSwyLjY4LTEuMjdhMTIuODcsMTIuODcsMCwwLDAsNC4yLDEuNTNjMy42LjQ5LDMuMTkuMTcsMi43OS0xYTYsNiwwLDAsMC0zLjE1LTMuNThjLTQuOTUtMi41OS01LjUzLTEuODktNi4zOS0zLjU5LS4yNC0uNDktLjQ4LTMuNDQuNzEtMi41NmwwLDBhNi43Nyw2Ljc3LDAsMCwwLC44MS43Nyw1LjI5LDUuMjksMCwwLDAsNCwxYzEuNzMsMCwxLjkzLjY3LDIuNjMsMXMxLjYzLjkuNzctMS43MWE5LjY5LDkuNjksMCwwLDAtNS4zNi02LjI3LDMzLjcyLDMzLjcyLDAsMCwxLTUuOS0zLjkyQzMwOS4yMSwzOTcuNjgsMzA3Ljc1LDM5NS41LDMwOS41NCwzOTZaTTM0NCwzNjkuNDdsLTI3LjU3LDBhMTguNjIsMTguNjIsMCwwLDAtNS4zNy0zYy0zLjM2LTEtMy0yLTIuODEtMi4yNGE1Ljc4LDUuNzgsMCwwLDEsMS40Ni0uNDQsNy42NSw3LjY1LDAsMCwxLDIuNjMuMTdjMi40MS40MiwzLjQ0LS43NywxLjUxLTIuMTgtMS0uNzYtMS42OS0xLTQuNjItMi4yNy0xLjkyLS44NS0xLjY1LTMtLjkxLTMuMDcsMS4xNi0uMTIsNC4yOS44NiwyLjA5LTEuNmExMS43OCwxMS43OCwwLDAsMC0yLjk0LTIuMTVjLTEuMjMtLjQ3LDAtMS4yMS40NC0xLjQ0czItLjY2LS4xOC0yLjMyYzAsMC0zLjg0LTIuMzMtMi4zMy0zLjQzczIuMTUtMiwuNzEtMi4xMWMtMS0uMDctMi0uNDQtMS43NS0xLjQ3LjA2LS4zNi45My0xLDEuMjMtMS4zMnMuMDUtLjY1LS4xNi0uN2ExLjgxLDEuODEsMCwwLDAtLjQxLDBjLS43NiwwLTEuMi0uNDQtMS41OS0xLjQ2LS40Ny0xLjg3LS43OS0zLjU0LS43OS0zLjU0aC0uMDdjLS4zMywwLS4zNS4yMS0uNTcsMS4yMS0uNzUsMy4zLTEuMTIsNC41Ni0yLjQxLDQuNTZhMi4xNywyLjE3LDAsMCwwLS40MSwwYy0uMjEuMDYtLjU0LjIzLS4xNS43LjUzLjY2LDEuNzgsMS4yNSwxLjgsMS43MnMtLjMyLjc5LS44MiwxLjI1YTE2LjE3LDE2LjE3LDAsMCwxLTEuNzcsMS4zNSw3LjYxLDcuNjEsMCwwLDAtMS44NCwxLjVjLS4zNS44LDEuNDQuNzYsMS40NC43NiwzLjE4LjEyLDEuODUsMS4yOSwxLjMzLDEuNDdhMTIuOTEsMTIuOTEsMCwwLDAtMi4zNC45NSwxNS40NywxNS40NywwLDAsMC0yLjEsMS43Yy0yLjIsMi40Ny45MiwxLjQ5LDIuMDksMS42MS43NS4wOCwxLDIuMjMtLjkxLDMuMDdsLTIuNjgsMS4xOGE2LjM2LDYuMzYsMCwwLDAtMi4xMiwxLjc4Yy0uNzMsMS4wNSwxLjQ4LjcxLDMsLjgzLDEsLjA4LDIuMTUtLjczLDIuODYtLjY2Ljg5LjA5LDEuMTYuMjgsMS4zLjg0cy0uMjksMS4yMi0xLDEuNzZhMi4xMSwyLjExLDAsMCwxLS43Ni41NWwtLjA1LDBhMTYuNDcsMTYuNDcsMCwwLDEtMi4zNSwxLjE4Yy0zLDEuNjItNy41MSw0LjMzLTkuMzYsNi40MS0xLjM4LDEuNTUtLjI1LDIuNC4zNSwyLjEzYTQuNzIsNC43MiwwLDAsMSwzLjIzLS41NSwxMC42OSwxMC42OSwwLDAsMCw0LjMyLS41MmgwYzEuMTctLjI1LDIuMzEtMi4yMSwyLjc3LTEuNDYsMS4xLDEuODEtLjc5LDMuOTMtMS41NSw0LjY2LTEuNDcsMi01LjU1LDMuNzQtNy4xOSw1LjA3LTEuOTEsMS41NC0yLjY5LDMuNTYtMy4yMSw3LjUzczEuNTUsMS4xMywxLjU1LDEuMTNhNS41MSw1LjUxLDAsMCwxLDQuNzQtMiw2LjY1LDYuNjUsMCwwLDAsNC42OS0xLjQ4YzEuOTQtMS4xLjkzLDEuNDguOTMsMS40OC0xLjI5LDIuODctMy42LDIuODktNi4xOCw0LjUxYTkuMzEsOS4zMSwwLDAsMC0uOTMuODdjLTEuMDksMS4wNy0uNzQsMS41MS0uMTUsMS40MnMxLjUzLjI4LDIuNTIuMjVhNy44LDcuOCwwLDAsMCwzLS43NGMxLjE1LS41LDEuNzQtMS40NCwyLjQ3LTEsLjQ5LjMxLjQsMS4xMS4yOCwxLjYxYTUsNSwwLDAsMS0xLjE4LDIuMDksMzMuNTQsMzMuNTQsMCwwLDEtNS45LDMuOTNsLS41NC4yNi0uMTcuMTFhMTEuMTMsMTEuMTMsMCwwLDAtMywyLjU0Yy0uMzEuNDUtMS45MiwzLC4yOCwxLjkyczUuMTUuNzgsNi42MS4wNWMuODYtLjQyLjU2LDEuMzEuNTMsMS40N2E0LjI2LDQuMjYsMCwwLDEtLjIsMS4zNmMtLjY1LDEuMjgtMS4xNCwxLjItMy40OCwyLjJIMjc1LjgzTDI2MS4zLDM5NC45M1YzNDcuNTJsMTcuMDgtMTYuNDFoNDguNTVMMzQ0LDM0Ny41NVoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yNTYuNTUgLTMyNi4zNikiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0zMDkuODYsMzk4LjQyYTMzLjcyLDMzLjcyLDAsMCwwLDUuOSwzLjkyLDkuNjksOS42OSwwLDAsMSw1LjM2LDYuMjdjLjg2LDIuNjEtLjA4LDItLjc3LDEuNzFzLS45LTEtMi42My0xYTUuMjksNS4yOSwwLDAsMS00LTEsNi43Nyw2Ljc3LDAsMCwxLS44MS0uNzdsMCwwYy0xLjE5LS44OS0xLDIuMDctLjcxLDIuNTYuODYsMS43LDEuNDQsMSw2LjM5LDMuNTlhNiw2LDAsMCwxLDMuMTUsMy41OGMuNCwxLjEyLjgxLDEuNDQtMi43OSwxYTEyLjg3LDEyLjg3LDAsMCwxLTQuMi0xLjUzYy0uOTUtLjY0LTIuODUtLjEyLTIuNjgsMS4yN2E2LjY4LDYuNjgsMCwwLDAsNS4zNSwzLjc0YzEuOS4yNCwyLjc3LjY0LDMuMTEsMS4wNiwxLDEuMTctLjg4LDIuODctLjg4LDIuODctMSwxLjEuMDgsMi4zOS43OSwyLjc3LDEuMTYuNTgsMy40MSwxLjksNC4xNiwzLjgsMy45LDkuODYuMTMsNy0xLjczLDUuOXMtNS4zOC00LTguNi0zLjc4LTQuMjkuNDItNi4yLTEuMDctMS43Mi45Mi0xLjcyLjkyVjQ0NmMuMTEsMi42Ny42MSw1LjIxLDIuNzcsNy4zNiwxLjc3LDEuNzcsMy4xMSwxLjQ0LDUuNjEsNC40MiwxLjE1LDEuMzgsNC45LDIuODYsNy40MSwyLjg5aDQuOEwzNDQsNDQ0LjI4VjM5OWwtMTQuNTMtMTQuNTNIMzIwYTEzLjg3LDEzLjg3LDAsMCwxLDEuNiw1LjQ2YzAsMS40OS0yLC43Ni0yLjY0LjM4YTUuMzksNS4zOSwwLDAsMC0xLjgzLS43N2MtMS40NS0uMzUtNC45My0xLjg0LTUuODgtMi4xOGExLjQ5LDEuNDksMCwwLDAtMS43OS42MmgwYy0uMjQuNDUuMjYsMS4zNi4yNiwxLjM2LDEuMzcsMywzLjg4LDIuODgsNi42NSw0LjgxLDMuOCwyLjY2LDEuNzYsMy4yMiwxLDIuODJhMy44MiwzLjgyLDAsMCwwLTItLjE1Yy0zLjA3LjgzLTQtLjQyLTUuNzgtLjg5UzMwOS4yMSwzOTcuNjgsMzA5Ljg2LDM5OC40MloiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yNTYuNTUgLTMyNi4zNikiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yOTIuNTMsNDU0LjFjMS4xOC0xLjgzLDMuMjctMy4zOSw0LjYtNC43MnMxLjY1LTQuNTgsMS42OS04VjQzMi41aDB2LTEuMTVzMC0uMTUsMC0uMjdWNDI4YzAtLjcyLS44NS0uNzctMi43MSwxLjE5cy01LDEuODEtNi44LDItNywyLjgyLTguNDksNC43M2MtLjkyLDEuMTktMi4yMy4yMS0xLjctMi4xMmgwYTMzLjM3LDMzLjM3LDAsMCwxLDEuNDUtNC4zNGMxLTIuNjEsNC44OC00LjEzLDQuODgtNC4xM2EyLjg5LDIuODksMCwwLDAsLjc0LS41MUgyNjEuMzF2MTkuNWwxNy4wOCwxNi40NGg1LjQ5QzI4OSw0NjAuNDQsMjkxLDQ1Ni41MiwyOTIuNTMsNDU0LjFaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMjU2LjU1IC0zMjYuMzYpIi8+PHBhdGggY2xhc3M9ImNscy0yIiBkPSJNMjc4LjM4LDMzMS4xMSwyNjEuMywzNDcuNTJ2NDcuNDFsMTQuNTMsMTQuNTVoMTMuNjVjMi4zNC0xLDIuODMtLjkyLDMuNDgtMi4yYTQuMjYsNC4yNiwwLDAsMCwuMi0xLjM2YzAtLjE2LjMyLTEuODktLjUzLTEuNDctMS40Ni43Mi00LjQtMS4xNy02LjYxLS4wNXMtLjU5LTEuNDctLjI4LTEuOTJhMTEuMTMsMTEuMTMsMCwwLDEsMy0yLjU0bC4xNy0uMTEuNTQtLjI2YTMzLjU0LDMzLjU0LDAsMCwwLDUuOS0zLjkzLDUsNSwwLDAsMCwxLjE4LTIuMDljLjEyLS41LjIyLTEuMy0uMjgtMS42MS0uNzQtLjQ3LTEuMzIuNDYtMi40NywxYTcuOCw3LjgsMCwwLDEtMywuNzRjLTEsMC0xLjkzLS4zMy0yLjUyLS4yNXMtLjk0LS4zNS4xNS0xLjQyYTkuMzEsOS4zMSwwLDAsMSwuOTMtLjg3YzIuNTgtMS42Miw0Ljg5LTEuNjQsNi4xOC00LjUxLDAsMCwxLTIuNTgtLjkzLTEuNDhhNi42NSw2LjY1LDAsMCwxLTQuNjksMS40OCw1LjUxLDUuNTEsMCwwLDAtNC43NCwycy0yLjA2LDIuODQtMS41NS0xLjEzLDEuMy02LDMuMjEtNy41M2MxLjY0LTEuMzMsNS43Mi0zLjExLDcuMTktNS4wNy43Ni0uNzQsMi42NS0yLjg2LDEuNTUtNC42Ni0uNDYtLjc1LTEuNTksMS4yMS0yLjc3LDEuNDZoMGExMC42OSwxMC42OSwwLDAsMS00LjMyLjUyLDQuNzIsNC43MiwwLDAsMC0zLjIzLjU1Yy0uNi4yNy0xLjczLS41OC0uMzUtMi4xMywxLjg2LTIuMDgsNi4zNC00Ljc5LDkuMzYtNi40MWExNi40NywxNi40NywwLDAsMCwyLjM1LTEuMThsLjA1LDBhMi4xMSwyLjExLDAsMCwwLC43Ni0uNTVjLjY2LS41NCwxLjExLTEuMTUsMS0xLjc2cy0uNDItLjc1LTEuMy0uODRjLS43MS0uMDctMS44Ny43NC0yLjg2LjY2LTEuNTEtLjEyLTMuNzIuMjItMy0uODNhNi4zNiw2LjM2LDAsMCwxLDIuMTItMS43OGwyLjY4LTEuMThjMS45Mi0uODUsMS42NS0zLC45MS0zLjA3LTEuMTYtLjEyLTQuMjkuODYtMi4wOS0xLjYxYTE1LjQ3LDE1LjQ3LDAsMCwxLDIuMS0xLjcsMTIuOTEsMTIuOTEsMCwwLDEsMi4zNC0uOTVjLjUyLS4xOCwxLjg1LTEuMzUtMS4zMy0xLjQ3LDAsMC0xLjc5LDAtMS40NC0uNzZhNy42MSw3LjYxLDAsMCwxLDEuODQtMS41LDE2LjE3LDE2LjE3LDAsMCwwLDEuNzctMS4zNWMuNDktLjQ2Ljg0LS44My44Mi0xLjI1cy0xLjI3LTEuMDYtMS44LTEuNzJjLS4zOC0uNDgtLjA2LS42NC4xNS0uN2EyLjE3LDIuMTcsMCwwLDEsLjQxLDBjMS4yOSwwLDEuNjYtMS4yNiwyLjQxLTQuNTYuMjMtMSwuMjQtMS4yLjU3LTEuMjFoLjA3cy4zMiwxLjY4Ljc5LDMuNTRjLjM5LDEsLjgzLDEuNDcsMS41OSwxLjQ2YTEuODEsMS44MSwwLDAsMSwuNDEsMGMuMjEuMDYuNTQuMjIuMTYuN3MtMS4xNiwxLTEuMjMsMS4zMmMtLjI2LDEsLjc0LDEuNCwxLjc1LDEuNDcsMS40NC4xLjg0LDEtLjcxLDIuMTFzMi4zMywzLjQzLDIuMzMsMy40M2MyLjE5LDEuNjYuNjMsMi4wOS4xOCwyLjMycy0xLjY3LDEtLjQ0LDEuNDRhMTEuNzgsMTEuNzgsMCwwLDEsMi45NCwyLjE1YzIuMiwyLjQ2LS45MywxLjQ4LTIuMDksMS42LS43NS4wOC0xLDIuMjMuOTEsMy4wNywyLjkzLDEuMywzLjU4LDEuNTIsNC42MiwyLjI3LDEuOTMsMS40MS45MSwyLjYtMS41MSwyLjE4YTcuNjUsNy42NSwwLDAsMC0yLjYzLS4xNyw1Ljc4LDUuNzgsMCwwLDAtMS40Ni40NGMtLjE3LjI1LS41NSwxLjIzLDIuODEsMi4yNGExOC42MiwxOC42MiwwLDAsMSw1LjM3LDNsMjcuNTcsMFYzNDcuNTVsLTE3LjA4LTE2LjQ0WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTI1Ni41NSAtMzI2LjM2KSIvPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTM0OC43NiwzNDUuNTNsLTE5LjkyLTE5LjE3SDI3Ni40N0wyNTYuNTUsMzQ1LjV2NTEuNGwxNy4zMSwxNy4zM2g3Ljk0YTIuMTgsMi4xOCwwLDAsMCwuMSwyLjEyLDIuMzQsMi4zNCwwLDAsMCwyLC44NywxNy40MSwxNy40MSwwLDAsMCwyLjEyLS4xOWgwcy40MS4zNS0uODUuNzZoMGEzLjI1LDMuMjUsMCwwLDAtMi4yNiwyLDIuMTUsMi4xNSwwLDAsMCwwLC4yMkgyNTYuNTZ2MjYuMjdsMTkuOTEsMTkuMmg1Mi4zOGwxOS45Mi0xOS4xN1YzOTcuMDdsLTE3LjMyLTE3LjMxSDMxNi43M2MtLjY1LS4zOC0xLjMxLS43Ny0xLjkyLTEuMTdsLS4yMi0uMTRoMGE5LjQsOS40LDAsMCwxLTEuMDUtLjc3LDYuMzQsNi4zNCwwLDAsMS0uOC0uNzRsLS4wNi0uMDZhMTQuMjcsMTQuMjcsMCwwLDEtMS0xLjExLDI2LjMsMjYuMywwLDAsMCw2LC44NWguNDhhMy4yOCwzLjI4LDAsMCwxLC42NS4xMWwuNDEuMTguNjIuMjNhMi4xNSwyLjE1LDAsMCwwLC40NiwwLDIuMzYsMi4zNiwwLDAsMCwyLjEzLTEuMzcsMi42LDIuNiwwLDAsMCwuMTctMS42aDI2LjE5Wm0tMi4zNywyNi4zMmgtMjcuM2ExMS40OSwxMS40OSwwLDAsMSwxLjM4LDEuNjdjMS4yMiwxLjQ3LjE2LDIuMjctLjQyLDIsMCwwLS40NS0uMjEtLjc0LS4zM2ExMS44NiwxMS44NiwwLDAsMC0xLjYxLS4yMWMtMS40NSwwLTUuMzYtLjMtNy43NC0xLjY1LS45My0uNTMtMSwuNzUtLjYyLDEuNzVBMTEuNjEsMTEuNjEsMCwwLDAsMzExLjUsMzc4YTguMiw4LjIsMCwwLDAsMSwuOTMsOS41NSw5LjU1LDAsMCwwLDEuNDEsMWgwYzEuMjYuODEsMi42NCwxLjU2LDMuNjcsMi4yM2gxMi44NkwzNDYuMzgsMzk4djQ3LjI0bC0xOC41LDE3LjhIMjc3LjQybC0xOC41LTE3LjgzVjQyMi4zOGgyNy4yYTYuMiw2LjIsMCwwLDAtMS4yMy0xLjA1cy0yLjE2LTEuODMsMi44NC0yLjQ1YTYuNjgsNi42OCwwLDAsMCw1LjM0LTMuNzRjLjE3LTEuNC0xLjczLTEuOTItMi42OC0xLjI3YTEyLjgyLDEyLjgyLDAsMCwxLTQuMiwxLjUzYy0zLjYuNDktMy4xOS4xNy0yLjc5LTFhNS43Miw1LjcyLDAsMCwxLDEuNjktMi41OUgyNzQuODVsLTE1LjkyLTE1Ljk0di00OS40bDE4LjUtMTcuNzdoNTAuNDVsMTguNSwxNy44WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTI1Ni41NSAtMzI2LjM2KSIvPjwvc3ZnPgo="
-    menu: true
-    slide-number: c/t
-    slide-level: 1
-    auto-play-media: true
-    controls: true
-    embed-resources: true
-brand:
-  color:
-    foreground: "#343a40"
-    background: "#ffffff"
-    primary: "#2a7fb8"
-    secondary: "#6c757d"
-  typography:
-    headings:
-      color: foreground
-    link:
-      color: primary
-      decoration: none
-code-line-numbers: false
 code-overflow: wrap
-highlight-style: github-light
 footer: "[BIOS 214](https://cncastillo.github.io/teaching/bios-214/) · Lecture 1 — Open-source, AI agents, and MRI simulation"
 include-in-header:
   text: |
     <style>
-    .reveal {
-      --r-heading1-size: 60px;
-      --r-heading2-size: 60px;
-    }
-    .reveal .slides section:not(#title-slide) > h1 { font-size: var(--r-heading1-size); }
-    .reveal .slides section.slide { padding-bottom: 40px; box-sizing: border-box; }
-    .reveal .title {
-      font-size: 84px;
-    }
-    .reveal .controls[data-controls-layout=edges] .navigate-left,
-    .reveal .controls[data-controls-layout=edges] .navigate-right { top: 12px; margin-top: 0; }
-    .reveal .controls .controls-arrow {
-      scale: 0.6;
-    }
-    #title-slide {
-      text-align: left;
-    }
-    #title-slide .subtitle {
-      color: #6c757d;
-    }
-    #title-slide .quarto-title-authors {
-      justify-content: flex-start;
-    }
-    #title-slide .quarto-title-author {
-      padding: 0;
-    }
-    .reveal .title .lecture-number {
-      display: block;
-      margin-bottom: 0.35em;
-      font-size: 32px;
-      font-weight: normal;
-      color: #6c757d;
-    }
-    .reveal .slide-logo {
-      height: 6vh;
-      max-width: unset;
-      max-height: unset;
-    }
-    .reveal.has-logo .slide-number {
-      top: auto;
-      bottom: 12px;
-      right: calc(4vh + 20px);
-      font-size: 12px;
-      color: #6c757d;
-    }
-    #title-slide .quarto-title-author-email a {
-      font-size: 32px;
-      color: var(--r-link-color);
-    }
-
     .reveal h1 { margin-bottom: 0.35em; }
     .reveal p { margin: 0.35em 0; }
     .reveal .columns { gap: 32px; }
-    .reveal .column img { object-fit: contain; }
-    .reveal .figure-centered { text-align: center; }
     .reveal .slides section.slide > img.r-stretch { display: block; margin-inline: auto; }
     .reveal .slides section.slide > .slide-note { text-align: center; }
-    .reveal .slides section.center { text-align: center; }
-    .reveal .slide-note { font-size: 20px; line-height: 1.3; margin-top: 12px; }
     .reveal .quotation { font-size: 0.8em; }
     .reveal .source-pane { height: 450px; overflow: auto; font-size: 20px; }
     .reveal .source-pane pre { margin: 0; font-size: inherit; }
-    .reveal .interactive-preview { width: 100%; height: 465px; border: 1px solid #d8dde1; border-radius: 6px; background: white; }
-    .koma-live-viewport { overflow: hidden; border: 1px solid #d8dde1; border-radius: 6px; }
-    .koma-live-viewport iframe { width: 100%; height: 100%; max-width: none; max-height: none; border: 0; }
+    .koma-live-viewport { position: relative; width: 80%; height: 535px; margin: 0 auto; overflow: hidden; border: 1px solid #d8dde1; border-radius: 6px; background: #181a1f; }
+    .koma-live-viewport p { margin: 0; height: 100%; }
+    .koma-live-viewport img { display: block; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; object-fit: contain; }
+    .koma-live-viewport iframe {
+      position: absolute; top: 0; left: 0; border: 0; display: none;
+      width: calc(100% / 0.62); height: calc(100% / 0.62); max-width: none; max-height: none;
+      transform: scale(0.62); transform-origin: top left;
+    }
     </style>
-
-
 ---
 
 # What is open-source software?
@@ -359,29 +268,17 @@ add(x, y) = x + y
 
 ```{julia}
 #| output: false
-using KomaMRI
-using KomaMRI.KomaMRIPlots.PlotlyBase
+include("../common.jl")
 
 function bloch_sphere_trajectory(seq)
     positions = collect(range(-3e-3, 3e-3; length=9))
     n = length(positions)
     obj = Phantom(x=zeros(n), z=positions, T1=fill(Inf, n), T2=fill(Inf, n))
-    times = [0.0]
-    transverse = [zeros(ComplexF64, n)]
-    longitudinal = [ones(n)]
-    record = function (progress, blocks, data, params)
-        push!(times, data.seqd.t[last(blocks.parts[progress.block])])
-        push!(transverse, copy(data.Xt.xy))
-        push!(longitudinal, copy(data.Xt.z))
-    end
-    simulate(obj, seq, Scanner(); verbose=false, callbacks=(record,), sim_params=Dict(
-        "gpu" => false, "Nthreads" => 1, "precision" => "f64",
-        "max_block_length" => 1, "max_rf_block_length" => 1,
-        "Δt" => 10e-6, "Δt_rf" => 10e-6, "return_type" => "state",
-    ))
-    mx = real.(hcat(transverse...))
-    my = imag.(hcat(transverse...))
-    mz = hcat(longitudinal...)
+    rec = record_states(obj, seq, Scanner(); Δt=10e-6, Δt_rf=10e-6)
+    times = rec.times
+    mx = hcat((s[:, 1] for s in rec.states)...)
+    my = hcat((s[:, 2] for s in rec.states)...)
+    mz = hcat((s[:, 3] for s in rec.states)...)
     t_ms = 1e3 .* times
     colors = ["#2166ac", "#3e5cba", "#6051bb", "#8244b4", "#a1379f",
               "#b52e83", "#c22d62", "#c32c43", "#b2182b"]
@@ -433,7 +330,7 @@ function bloch_sphere_trajectory(seq)
         showline=true, linecolor="#64748b", zerolinecolor="#64748b",
         ticks="outside", tickcolor="#64748b", tickfont=attr(color="#334155"))
     layout = Layout(
-        height=430, margin=attr(l=0, r=70, t=0, b=70),
+        height=450, width=800, margin=attr(l=0, r=70, t=0, b=70),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=attr(family="Arial, sans-serif", color="#475569"),
         showlegend=false,
@@ -449,16 +346,12 @@ function bloch_sphere_trajectory(seq)
                 args=[[string(k)], immediate]) for k in indices])],
         uirevision="bloch-sphere",
     )
-    Plot(traces, layout, frames; config=PlotConfig(displaylogo=false, displayModeBar=false))
+    Plot(traces, layout, frames; config=bios_config())
 end
-
 
 example_seq = PulseDesigner.build_sinc_pulse(π / 2;
     duration=2e-3, slice_thickness=5e-3,
     sys=Scanner(limits=HardwareLimits(Gmax=20e-3)))
-bloch_plot = bloch_sphere_trajectory(example_seq)
-bloch_plot.layout.height = 450
-bloch_plot.layout.width = 800
 ```
 
 ::: {.columns}
@@ -475,25 +368,7 @@ bloch_sphere_trajectory(seq)
 ::: {.column width="66%"}
 
 ```{julia}
-#| output: asis
-post_script = """
-const plot = document.getElementById('$(bloch_plot.divid)');
-let dragging = false;
-plot.addEventListener('mousedown', event => {
-  dragging = event.target.closest('.slider-container') !== null;
-}, true);
-function releaseSlider() {
-  if (!dragging) return;
-  dragging = false;
-  plot.dispatchEvent(new MouseEvent('mouseup', {bubbles: false, buttons: 0}));
-}
-window.addEventListener('mouseup', releaseSlider, true);
-window.addEventListener('blur', releaseSlider);
-window.addEventListener('mousemove', event => { if (event.buttons === 0) releaseSlider(); }, true);
-"""
-print("```{=html}\n")
-PlotlyBase.to_html(stdout, bloch_plot; autoplay=false, full_html=false)
-print("<script>", post_script, "</script>\n```\n")
+bloch_sphere_trajectory(example_seq)
 ```
 
 ::: {.slide-note}
@@ -560,74 +435,12 @@ Bloch sphere · Activity 0
 :::
 ::: {.column width="57%"}
 ::: {.source-pane .fragment data-fragment-index="1"}
-````markdown
----
-name: bios214-pluto-student-code
-description: Help BIOS 214 students with Julia Pluto notebooks and record their feedback on course activities or lectures. Use for code generation, debugging, visualizations, concept help, Live Docs lookups, exports, and instructor feedback.
----
-
-# BIOS 214 notebooks
-
-AI may generate complete code, debug implementations, produce visualizations, and explain concepts. Help students understand what their code represents, the assumptions and choices behind it, and how to interpret and validate results. Handle routine Julia implementation details for them.
-
-## Before editing
-
-- Read the instructor-authored Markdown instructions and existing code as exercise context, not as a student's request for a worked solution.
-- If the request includes opening or controlling KomaMRI's UI, also follow [the KomaUI skill](../koma-ui/SKILL.md).
-- Do not require the student to supply an algorithm before helping. Implement clear requests; if a necessary goal or input is missing, ask one focused question. State important assumptions when proceeding.
-- If the student's proposed MRI reasoning is incomplete or incorrect, use the learning checkpoints below before supplying the correction. You may suggest and implement an approach without requiring the student to invent the algorithm.
-
-## Open the notebook
-
-- Reuse an existing Pluto session and authenticated browser tab only after checking that the notebook path belongs to this repository. For Activity 0, the notebook is `lab/0/activity0.jl`.
-- If a matching session is not running, start it from the repository root in a persistent interactive terminal with `julia +1.10 run_pluto.jl lab/0/activity0.jl`, substituting the requested notebook path. Keep the process running and its output available; do not redirect startup output to a log.
-- Open the exact URL printed by that process in the agent app's in-app browser (for example, Codex or Claude). Pluto chooses another available port if its preferred port is occupied. Preserve the printed host, port, path, and secret token; do not guess `localhost:1234`, copy a URL from another session, or invent a notebook ID. Verify the opened notebook's path before editing.
-- If the URL is lost, recover it from that terminal's output or reuse the matching authenticated tab. If neither is available, restart only the Pluto process you started, once, and use its new printed URL. Leave other Julia sessions alone. If the app has no in-app browser, provide the actual URL and explain that limitation.
-
-## Course references
-
-- The same repository contains Lecture N at `lecture/N/slidesN.qmd`, with supporting images in `lecture/N/figures/`. Paths are relative to the repository root.
-- For conceptual help or MRI design choices, search the lecture sources for the relevant topic and read the applicable slide text, speaker notes, and figures. Read only what is needed; skip embedded logo data and theme styles. Prefer the `.qmd` source over generated HTML when looking up content.
-- In chat, reference the lecture number and exact slide heading, linking to `https://cncastillo.github.io/bios-214/lecture/N/`. Add a slide anchor only when verified in the source or rendered deck; do not invent slide numbers or anchors.
-- Do not cite "To be uploaded soon!" placeholders as teaching content. If the topic is not covered, say so and use an authoritative external source, distinguishing that explanation from the course material.
-
-## Learning through prediction and evidence
-
-- Focus learning on MRI physics, experimental design, interpretation, and validation; handle routine Julia implementation for the student. For a substantive MRI experiment, ask one focused question that elicits a prediction and a brief reason before revealing the result or interpretation. Wait for the student's attempt; do not answer your own question in the same message. Use reasoning they have already supplied instead of asking again.
-- Help the student test their prediction with a simulation, interactive visualization, or meaningful comparison. Use discrepancies between their prediction and reliable evidence to create cognitive conflict; do not manufacture disagreement or deliberately introduce errors.
-- Before treating an unexpected result as evidence against the student's explanation, check the implementation, simulation assumptions, and relevant reference or independent check. Ground explanations in course material and authoritative sources; an AI-generated demonstration may itself be wrong.
-- When the prediction and observation disagree, ask the student to explain the discrepancy before providing your interpretation. Offer a targeted hint and another attempt when useful. If they remain stuck or ask for an explanation, provide it rather than prolonging the quiz.
-- Help the student revise their explanation and test it on a related case. If their original reasoning was correct, explore a useful boundary condition rather than inventing a misconception.
-- Keep checkpoints brief and relevant, not a fixed ritual for every edit. Do not quiz students or delay routine setup, syntax fixes, API lookups, formatting, Live Docs, or exports. Answer direct requests for explanations, then invite a short prediction or application when useful.
-
-## Edit the notebook
-
-- Add or modify only Julia code cells needed for the student's request, plus the prompt history below. Do not add or rewrite Markdown cells, exercise text, explanations, reflections, or a solution narrative in the Pluto interface. Keep code comments minimal and only when requested or needed to make the student's code understandable.
-- Preserve instructor-authored Markdown instructions and code scaffolding, existing cell IDs, and the student's unrelated code. Prefer an existing empty code cell; add a code cell only when needed.
-- Reuse existing package functionality and keep implementations minimal. For a bug, reproduce and understand the failure before changing the code.
-- If editing the `.jl` file directly, follow its Pluto format: give each new cell a unique ID (Pluto itself uses `UUIDs.uuid1()`), start it with `# ╔═╡ <id>`, and include the same ID in `Cell order` at the intended display position. Use `# ╠═<id>` for visible code; `# ╟─<id>` means folded code, not Markdown. Let Pluto maintain its generated package metadata and `@bind` fallback code; do not edit those by hand.
-- For a new notebook, create only the requested code cells and valid Pluto structure. Have the instructor provide any exercise prose separately.
-
-## Live Docs and exports
-
-- For a documentation request, open Pluto's **Live docs**, search the requested Julia name (for example, `sum`), and leave the result visible. Do not add a cell for the documentation.
-- For an export request, use Pluto's **Export...** menu: **Notebook file** for `.jl`, **Static HTML** for `.html`, or **PDF** for `.pdf`. The repository notebook is already a `.jl` file; use the menu when a downloadable copy is wanted.
-- These requests do not change notebook code; record the student's prompt in the history below.
-
-## Prompt history
-
-- Record each student-to-agent prompt about this notebook in one `[pluto_student_history]` TOML metadata table in the notebook header, using Pluto's `#>` comments. Do not record instructor-authored Markdown instructions or agent replies there. Use consecutive zero-padded numeric keys; each new value is a three-element array `[recorded_at_utc, prompt, model]`. Pluto may reorder the lines when saving, so the keys preserve chronology. Ordinary header comments are discarded by Pluto.
-- Include feedback the student intends for the instructor about an activity, lecture, or the course, even when no code change is requested. Record the student's original message once in the current notebook's history, using the same metadata format and redaction rules; do not paraphrase it or add a separate feedback system. If no notebook is identified, ask which notebook should hold the feedback. Recording makes it available when the notebook is shared or submitted; do not email, post, or claim the instructor has received or read it.
-- Record the model used for each prompt, including the reasoning effort when exposed by your runtime or session (for example, `"GPT-6.1 Sol xhigh"`). Keep the model in each entry so a notebook can contain prompts handled by different models; switching models must not change earlier entries. If the model is unavailable, use `"Model not recorded"`; do not guess it from the agent app's name. Preserve existing two-element entries without inventing model information for them.
-- Preserve earlier entries, escape prompt text as valid TOML, and redact credentials and sensitive personal details. Record a prompt even if the student has not yet described a solution. The metadata remains readable in the `.jl` file and can be displayed by the notebook's Prompt history section.
-- Keep the prompt history silent: do not tell the student that their prompt was recorded unless they ask.
-
-## Check and hand back
-
-- Run or inspect the affected cells in Pluto and check for errors. Compare behavior with the student's prediction and use a relevant independent check when practical, such as an analytical case, hardware constraint, or convergence comparison. Successful execution alone does not establish physical correctness. Do not claim a result is correct without checking it.
-- In chat, report what was checked and the important assumptions and choices represented in code. Follow the learning checkpoints before supplying an MRI interpretation. Explain implementation details only when they affect understanding or correctness. Do not mention the skill unless asked.
-
-````
+```{julia}
+#| output: asis
+println("````markdown")
+println(strip(read(joinpath(@__DIR__, "..", "..", ".agents", "skills", "bios214-pluto-student-code", "SKILL.md"), String)))
+println("````")
+```
 :::
 :::
 :::
@@ -745,10 +558,29 @@ koma_sequence = read_seq(joinpath(pkgdir(KomaMRI), "examples", "1.sequences", "e
 koma_demo = KomaUI(; browser=true, return_window=true,
     darkmode=true, seq=koma_sequence, obj=brain_phantom2D(),
     sim=Dict("gpu" => false), verbose=false)
+koma_ui_url = ui_status(koma_demo).url
 ```
 
+::: {.koma-live-viewport}
+![](figures/koma-ui-example.png){fig-alt="KomaMRI interactive web interface showing an EPI pulse sequence waveform with phantom, scanner, simulate, and reconstruct controls"}
+
 ```{julia}
-#| output: asis
-url = ui_status(koma_demo).url
-print("""<div class="koma-live-viewport r-stretch"><iframe title="Live KomaMRI UI" data-external="1" data-src="$url"></iframe></div>""")
+Base.HTML("""<iframe title="Live KomaMRI UI" data-external="1" data-koma-url="$koma_ui_url"></iframe>""")
+```
+:::
+
+```{=html}
+<script>
+BIOS214.onSlide('explore-mri-experiments-in-komas-live-ui', () => {
+  const frame = document.querySelector('#explore-mri-experiments-in-komas-live-ui iframe[data-koma-url]');
+  if (!frame || !/^(localhost|127\.0\.0\.1|)$/.test(location.hostname)) return;
+  const url = frame.dataset.komaUrl, ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 1500);
+  fetch(url, {mode: 'no-cors', signal: ctrl.signal}).then(() => {
+    clearTimeout(timer);
+    frame.addEventListener('load', () => { frame.style.display = 'block'; }, {once: true});
+    frame.src = url;
+  }).catch(() => clearTimeout(timer));
+});
+</script>
 ```

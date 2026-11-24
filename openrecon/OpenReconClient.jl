@@ -1,6 +1,10 @@
 module OpenReconClient
 using Sockets
-using KomaMRIFiles: MRIFiles
+if isdefined(parentmodule(@__MODULE__), :KomaMRI)
+    using ..KomaMRI.KomaMRIFiles: MRIFiles
+else
+    using KomaMRIFiles: MRIFiles
+end
 export start, recon, stop
 
 const server = Ref{Any}(nothing)

@@ -1,0 +1,100 @@
+/* Shared BIOS 214 Reveal.js lecture theme and utility classes */
+
+.reveal {
+  --r-heading1-size: 60px;
+  --r-heading2-size: 60px;
+}
+
+.reveal .slides section:not(#title-slide) > h1 { font-size: var(--r-heading1-size); }
+.reveal .slides section.slide:not(.center) { padding-bottom: 40px; box-sizing: border-box; }
+.reveal .title { font-size: 84px; }
+
+.reveal .controls[data-controls-layout=edges] .navigate-left,
+.reveal .controls[data-controls-layout=edges] .navigate-right {
+  top: 12px;
+  margin-top: 0;
+}
+.reveal .controls .controls-arrow { scale: 0.6; }
+
+#title-slide { text-align: left; }
+#title-slide .subtitle { color: #6c757d; }
+#title-slide .quarto-title-authors { justify-content: flex-start; }
+#title-slide .quarto-title-author { padding: 0; }
+#title-slide .quarto-title-author-email a {
+  font-size: 32px;
+  color: var(--r-link-color);
+}
+
+.reveal .title .lecture-number {
+  display: block;
+  margin-bottom: 0.35em;
+  font-size: 32px;
+  font-weight: normal;
+  color: #6c757d;
+}
+
+.slide-logo,
+.reveal .slide-logo {
+  display: block;
+  position: fixed;
+  bottom: 0;
+  right: 12px;
+  height: 6vh;
+  width: auto;
+  max-width: unset;
+  max-height: unset;
+  z-index: 2;
+}
+
+.reveal.has-logo .slide-number {
+  top: auto;
+  bottom: 12px;
+  right: calc(4vh + 20px);
+  font-size: 12px;
+  color: #6c757d;
+}
+.reveal .slide-number { z-index: 10; }
+
+/* Common layout & figure utilities */
+.reveal .figure-centered { text-align: center; }
+.reveal .figure-centered img { object-fit: contain; margin-inline: auto; }
+.reveal .column img { object-fit: contain; }
+.reveal .v-center { display: flex; align-items: center; gap: 24px; }
+.reveal .v-center > .column { min-width: 0; }
+.reveal .transition-slide,
+.reveal .slides section.center { text-align: center; }
+
+.reveal .slide-note { font-size: 20px; line-height: 1.3; margin-top: 10px; }
+.reveal .slides section:has(> .slide-reference) { min-height: 100%; }
+.reveal .slide-reference {
+  position: absolute;
+  inset: auto 0 4px;
+  font-size: 18px;
+  line-height: 1.2;
+  text-align: left;
+}
+.reveal .slide-reference p { margin: 0; }
+
+.reveal .activity-frame {
+  display: block;
+  width: 100%;
+  height: 510px;
+  border: 1px solid #cdd3d9;
+  box-sizing: border-box;
+  color-scheme: only light;
+}
+.reveal .lab-columns { display: flex; align-items: flex-start; gap: 24px; }
+.reveal .lab-columns ul { font-size: 30px; line-height: 1.3; }
+.reveal .lab-columns li { margin-bottom: 18px; }
+
+.reveal .figure-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 30px;
+}
+.reveal .figure-row.middle { align-items: center; }
+.reveal .figure-row.three-panels { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.reveal .chart { height: 440px; }
+.reveal .demo { width: 100%; height: 565px; }
+.reveal .slides section.compact .demo { height: 535px; }
+.reveal .plotly-graph-div { margin: 0 auto; }

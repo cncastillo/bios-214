@@ -2,110 +2,15 @@
 title: |
   [Lecture 3]{.lecture-number}
   Echo formation and relaxation
-subtitle: "BIOS 214: Open-Source MRI Sequence Development"
-author:
-  name: Carlos Castillo-Passi
-  email: cacp@stanford.edu
 date: 2026-11-13
 output-file: slides3.html
 engine: julia
-execute:
-  daemon: 86400
-  echo: false
-  warning: false
-toc: false
-toc-depth: 1
-toc-title: Outline
-format:
-  revealjs:
-    html-math-method: katex
-    date-format: "DD MMM YYYY"
-    width: 1280
-    height: 720
-    margin: 0.04
-    center: false
-    center-title-slide: false
-    logo: "data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMiIgZGF0YS1uYW1lPSJMYXllciAyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5Mi4yMSAxMzkuMTEiPjxkZWZzPjxzdHlsZT4uY2xzLTF7ZmlsbDojZmZmO30uY2xzLTJ7ZmlsbDojOGMxNTE1O308L3N0eWxlPjwvZGVmcz48dGl0bGU+c2FmYXJpLXBpbm5lZC10YWI8L3RpdGxlPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTM0Ni4zOCwzNDYuNTRsLTE4LjUtMTcuOEgyNzcuNDNsLTE4LjUsMTcuNzd2NDkuNGwxNS45MiwxNS45NGgxMC4yN2E1LjcyLDUuNzIsMCwwLDAtMS42OSwyLjU5Yy0uNCwxLjEyLS44MSwxLjQ0LDIuNzksMWExMi44MiwxMi44MiwwLDAsMCw0LjItMS41M2MxLS42NCwyLjg1LS4xMiwyLjY4LDEuMjdhNi42OCw2LjY4LDAsMCwxLTUuMzQsMy43NGMtNSwuNjItMi44NCwyLjQ1LTIuODQsMi40NWE2LjIsNi4yLDAsMCwxLDEuMjMsMS4wNWgtMjcuMnYyMi44OGwxOC41LDE3LjgzaDUwLjQ2bDE4LjUtMTcuOFYzOThsLTE1LjkzLTE1LjkySDMxNy41OWMtMS0uNjctMi40MS0xLjQyLTMuNjctMi4yM2gwYTkuNTUsOS41NSwwLDAsMS0xLjQxLTEsOC4yLDguMiwwLDAsMS0xLS45MywxMS42MSwxMS42MSwwLDAsMS0yLjE3LTIuODdjLS40MS0xLS4zMi0yLjI4LjYyLTEuNzUsMi4zOCwxLjM1LDYuMjksMS42LDcuNzQsMS42NWExMS44NiwxMS44NiwwLDAsMSwxLjYxLjIxYy4yOS4xMS43NC4zMy43NC4zMy41OC4yNSwxLjY1LS41NS40Mi0yYTExLjQ5LDExLjQ5LDAsMCwwLTEuMzctMS42N2gyNy4zWm0tNDcuNTUsODQuODF2MS4xNWgwdjguODVjMCwzLjQ2LS4yOSw2LjY0LTEuNjksOHMtMy40MSwyLjg4LTQuNiw0LjcyYy0xLjU3LDIuNDItMy40OSw2LjM0LTguNjYsNi41OWgtNS40OUwyNjEuMyw0NDQuMjV2LTE5LjVIMjg2LjJhMi44OSwyLjg5LDAsMCwxLS43NC41MXMtMy44NSwxLjUyLTQuODgsNC4xM2EzMy4zNywzMy4zNywwLDAsMC0xLjQ1LDQuMzRoMGMtLjUzLDIuMzMuNzcsMy4zMSwxLjcsMi4xMiwxLjQ5LTEuOTEsNi42OS00LjU2LDguNDktNC43M3M0Ljk0LDAsNi44LTIsMi43MS0xLjkxLDIuNzEtMS4xOXYzLjExQzI5OC44Myw0MzEuMiwyOTguODMsNDMxLjMsMjk4LjgzLDQzMS4zNVpNMzA5LjU0LDM5NmMxLjc5LjQ3LDIuNzEsMS43Miw1Ljc4Ljg5YTMuODIsMy44MiwwLDAsMSwyLC4xNWMuNzguNCwyLjgxLS4xNS0xLTIuODItMi43Ny0xLjk0LTUuMjgtMS43OC02LjY1LTQuODEsMCwwLS41LS45MS0uMjYtMS4zNmgwYTEuNDksMS40OSwwLDAsMSwxLjc5LS42MmMuOTUuMzQsNC40MywxLjgzLDUuODgsMi4xOGE1LjM5LDUuMzksMCwwLDEsMS44My43N2MuNjUuMzksMi42NSwxLjExLDIuNjQtLjM4YTEzLjg3LDEzLjg3LDAsMCwwLTEuNi01LjQ2aDkuNDZMMzQ0LDM5OXY0NS4yNWwtMTcuMDgsMTYuNDRoLTQuOGMtMi41LDAtNi4yNi0xLjUxLTcuNDEtMi44OS0yLjUtMy0zLjg0LTIuNjUtNS42MS00LjQyLTIuMTYtMi4xNi0yLjY2LTQuNy0yLjc3LTcuMzZ2LTExLjlzLS4xOS0yLjQxLDEuNzItLjkyLDMsMS4zMiw2LjIsMS4wNyw2Ljc1LDIuNjQsOC42LDMuNzgsNS42Miw0LDEuNzMtNS45Yy0uNzUtMS45MS0zLTMuMjMtNC4xNi0zLjgtLjcxLS4zOC0xLjc2LTEuNjgtLjc5LTIuNzcsMCwwLDEuOTMtMS43MS44OC0yLjg3LS4zNC0uNDItMS4yMS0uODMtMy4xMS0xLjA2YTYuNjgsNi42OCwwLDAsMS01LjM1LTMuNzRjLS4xNy0xLjM5LDEuNzMtMS45MSwyLjY4LTEuMjdhMTIuODcsMTIuODcsMCwwLDAsNC4yLDEuNTNjMy42LjQ5LDMuMTkuMTcsMi43OS0xYTYsNiwwLDAsMC0zLjE1LTMuNThjLTQuOTUtMi41OS01LjUzLTEuODktNi4zOS0zLjU5LS4yNC0uNDktLjQ4LTMuNDQuNzEtMi41NmwwLDBhNi43Nyw2Ljc3LDAsMCwwLC44MS43Nyw1LjI5LDUuMjksMCwwLDAsNCwxYzEuNzMsMCwxLjkzLjY3LDIuNjMsMXMxLjYzLjkuNzctMS43MWE5LjY5LDkuNjksMCwwLDAtNS4zNi02LjI3LDMzLjcyLDMzLjcyLDAsMCwxLTUuOS0zLjkyQzMwOS4yMSwzOTcuNjgsMzA3Ljc1LDM5NS41LDMwOS41NCwzOTZaTTM0NCwzNjkuNDdsLTI3LjU3LDBhMTguNjIsMTguNjIsMCwwLDAtNS4zNy0zYy0zLjM2LTEtMy0yLTIuODEtMi4yNGE1Ljc4LDUuNzgsMCwwLDEsMS40Ni0uNDQsNy42NSw3LjY1LDAsMCwxLDIuNjMuMTdjMi40MS40MiwzLjQ0LS43NywxLjUxLTIuMTgtMS0uNzYtMS42OS0xLTQuNjItMi4yNy0xLjkyLS44NS0xLjY1LTMtLjkxLTMuMDcsMS4xNi0uMTIsNC4yOS44NiwyLjA5LTEuNmExMS43OCwxMS43OCwwLDAsMC0yLjk0LTIuMTVjLTEuMjMtLjQ3LDAtMS4yMS40NC0xLjQ0czItLjY2LS4xOC0yLjMyYzAsMC0zLjg0LTIuMzMtMi4zMy0zLjQzczIuMTUtMiwuNzEtMi4xMWMtMS0uMDctMi0uNDQtMS43NS0xLjQ3LjA2LS4zNi45My0xLDEuMjMtMS4zMnMuMDUtLjY1LS4xNi0uN2ExLjgxLDEuODEsMCwwLDAtLjQxLDBjLS43NiwwLTEuMi0uNDQtMS41OS0xLjQ2LS40Ny0xLjg3LS43OS0zLjU0LS43OS0zLjU0aC0uMDdjLS4zMywwLS4zNS4yMS0uNTcsMS4yMS0uNzUsMy4zLTEuMTIsNC41Ni0yLjQxLDQuNTZhMi4xNywyLjE3LDAsMCwwLS40MSwwYy0uMjEuMDYtLjU0LjIzLS4xNS43LjUzLjY2LDEuNzgsMS4yNSwxLjgsMS43MnMtLjMyLjc5LS44MiwxLjI1YTE2LjE3LDE2LjE3LDAsMCwxLTEuNzcsMS4zNSw3LjYxLDcuNjEsMCwwLDAtMS44NCwxLjVjLS4zNS44LDEuNDQuNzYsMS40NC43NiwzLjE4LjEyLDEuODUsMS4yOSwxLjMzLDEuNDdhMTIuOTEsMTIuOTEsMCwwLDAtMi4zNC45NSwxNS40NywxNS40NywwLDAsMC0yLjEsMS43Yy0yLjIsMi40Ny45MiwxLjQ5LDIuMDksMS42MS43NS4wOCwxLDIuMjMtLjkxLDMuMDdsLTIuNjgsMS4xOGE2LjM2LDYuMzYsMCwwLDAtMi4xMiwxLjc4Yy0uNzMsMS4wNSwxLjQ4LjcxLDMsLjgzLDEsLjA4LDIuMTUtLjczLDIuODYtLjY2Ljg5LjA5LDEuMTYuMjgsMS4zLjg0cy0uMjksMS4yMi0xLDEuNzZhMi4xMSwyLjExLDAsMCwxLS43Ni41NWwtLjA1LDBhMTYuNDcsMTYuNDcsMCwwLDEtMi4zNSwxLjE4Yy0zLDEuNjItNy41MSw0LjMzLTkuMzYsNi40MS0xLjM4LDEuNTUtLjI1LDIuNC4zNSwyLjEzYTQuNzIsNC43MiwwLDAsMSwzLjIzLS41NSwxMC42OSwxMC42OSwwLDAsMCw0LjMyLS41MmgwYzEuMTctLjI1LDIuMzEtMi4yMSwyLjc3LTEuNDYsMS4xLDEuODEtLjc5LDMuOTMtMS41NSw0LjY2LTEuNDcsMi01LjU1LDMuNzQtNy4xOSw1LjA3LTEuOTEsMS41NC0yLjY5LDMuNTYtMy4yMSw3LjUzczEuNTUsMS4xMywxLjU1LDEuMTNhNS41MSw1LjUxLDAsMCwxLDQuNzQtMiw2LjY1LDYuNjUsMCwwLDAsNC42OS0xLjQ4YzEuOTQtMS4xLjkzLDEuNDguOTMsMS40OC0xLjI5LDIuODctMy42LDIuODktNi4xOCw0LjUxYTkuMzEsOS4zMSwwLDAsMC0uOTMuODdjLTEuMDksMS4wNy0uNzQsMS41MS0uMTUsMS40MnMxLjUzLjI4LDIuNTIuMjVhNy44LDcuOCwwLDAsMCwzLS43NGMxLjE1LS41LDEuNzQtMS40NCwyLjQ3LTEsLjQ5LjMxLjQsMS4xMS4yOCwxLjYxYTUsNSwwLDAsMS0xLjE4LDIuMDksMzMuNTQsMzMuNTQsMCwwLDEtNS45LDMuOTNsLS41NC4yNi0uMTcuMTFhMTEuMTMsMTEuMTMsMCwwLDAtMywyLjU0Yy0uMzEuNDUtMS45MiwzLC4yOCwxLjkyczUuMTUuNzgsNi42MS4wNWMuODYtLjQyLjU2LDEuMzEuNTMsMS40N2E0LjI2LDQuMjYsMCwwLDEtLjIsMS4zNmMtLjY1LDEuMjgtMS4xNCwxLjItMy40OCwyLjJIMjc1LjgzTDI2MS4zLDM5NC45M1YzNDcuNTJsMTcuMDgtMTYuNDFoNDguNTVMMzQ0LDM0Ny41NVoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yNTYuNTUgLTMyNi4zNikiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0zMDkuODYsMzk4LjQyYTMzLjcyLDMzLjcyLDAsMCwwLDUuOSwzLjkyLDkuNjksOS42OSwwLDAsMSw1LjM2LDYuMjdjLjg2LDIuNjEtLjA4LDItLjc3LDEuNzFzLS45LTEtMi42My0xYTUuMjksNS4yOSwwLDAsMS00LTEsNi43Nyw2Ljc3LDAsMCwxLS44MS0uNzdsMCwwYy0xLjE5LS44OS0xLDIuMDctLjcxLDIuNTYuODYsMS43LDEuNDQsMSw2LjM5LDMuNTlhNiw2LDAsMCwxLDMuMTUsMy41OGMuNCwxLjEyLjgxLDEuNDQtMi43OSwxYTEyLjg3LDEyLjg3LDAsMCwxLTQuMi0xLjUzYy0uOTUtLjY0LTIuODUtLjEyLTIuNjgsMS4yN2E2LjY4LDYuNjgsMCwwLDAsNS4zNSwzLjc0YzEuOS4yNCwyLjc3LjY0LDMuMTEsMS4wNiwxLDEuMTctLjg4LDIuODctLjg4LDIuODctMSwxLjEuMDgsMi4zOS43OSwyLjc3LDEuMTYuNTgsMy40MSwxLjksNC4xNiwzLjgsMy45LDkuODYuMTMsNy0xLjczLDUuOXMtNS4zOC00LTguNi0zLjc4LTQuMjkuNDItNi4yLTEuMDctMS43Mi45Mi0xLjcyLjkyVjQ0NmMuMTEsMi42Ny42MSw1LjIxLDIuNzcsNy4zNiwxLjc3LDEuNzcsMy4xMSwxLjQ0LDUuNjEsNC40MiwxLjE1LDEuMzgsNC45LDIuODYsNy40MSwyLjg5aDQuOEwzNDQsNDQ0LjI4VjM5OWwtMTQuNTMtMTQuNTNIMzIwYTEzLjg3LDEzLjg3LDAsMCwxLDEuNiw1LjQ2YzAsMS40OS0yLC43Ni0yLjY0LjM4YTUuMzksNS4zOSwwLDAsMC0xLjgzLS43N2MtMS40NS0uMzUtNC45My0xLjg0LTUuODgtMi4xOGExLjQ5LDEuNDksMCwwLDAtMS43OS42MmgwYy0uMjQuNDUuMjYsMS4zNi4yNiwxLjM2LDEuMzcsMywzLjg4LDIuODgsNi42NSw0LjgxLDMuOCwyLjY2LDEuNzYsMy4yMiwxLDIuODJhMy44MiwzLjgyLDAsMCwwLTItLjE1Yy0zLjA3LjgzLTQtLjQyLTUuNzgtLjg5UzMwOS4yMSwzOTcuNjgsMzA5Ljg2LDM5OC40MloiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yNTYuNTUgLTMyNi4zNikiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yOTIuNTMsNDU0LjFjMS4xOC0xLjgzLDMuMjctMy4zOSw0LjYtNC43MnMxLjY1LTQuNTgsMS42OS04VjQzMi41aDB2LTEuMTVzMC0uMTUsMC0uMjdWNDI4YzAtLjcyLS44NS0uNzctMi43MSwxLjE5cy01LDEuODEtNi44LDItNywyLjgyLTguNDksNC43M2MtLjkyLDEuMTktMi4yMy4yMS0xLjctMi4xMmgwYTMzLjM3LDMzLjM3LDAsMCwxLDEuNDUtNC4zNGMxLTIuNjEsNC44OC00LjEzLDQuODgtNC4xM2EyLjg5LDIuODksMCwwLDAsLjc0LS41MUgyNjEuMzF2MTkuNWwxNy4wOCwxNi40NGg1LjQ5QzI4OSw0NjAuNDQsMjkxLDQ1Ni41MiwyOTIuNTMsNDU0LjFaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMjU2LjU1IC0zMjYuMzYpIi8+PHBhdGggY2xhc3M9ImNscy0yIiBkPSJNMjc4LjM4LDMzMS4xMSwyNjEuMywzNDcuNTJ2NDcuNDFsMTQuNTMsMTQuNTVoMTMuNjVjMi4zNC0xLDIuODMtLjkyLDMuNDgtMi4yYTQuMjYsNC4yNiwwLDAsMCwuMi0xLjM2YzAtLjE2LjMyLTEuODktLjUzLTEuNDctMS40Ni43Mi00LjQtMS4xNy02LjYxLS4wNXMtLjU5LTEuNDctLjI4LTEuOTJhMTEuMTMsMTEuMTMsMCwwLDEsMy0yLjU0bC4xNy0uMTEuNTQtLjI2YTMzLjU0LDMzLjU0LDAsMCwwLDUuOS0zLjkzLDUsNSwwLDAsMCwxLjE4LTIuMDljLjEyLS41LjIyLTEuMy0uMjgtMS42MS0uNzQtLjQ3LTEuMzIuNDYtMi40NywxYTcuOCw3LjgsMCwwLDEtMywuNzRjLTEsMC0xLjkzLS4zMy0yLjUyLS4yNXMtLjk0LS4zNS4xNS0xLjQyYTkuMzEsOS4zMSwwLDAsMSwuOTMtLjg3YzIuNTgtMS42Miw0Ljg5LTEuNjQsNi4xOC00LjUxLDAsMCwxLTIuNTgtLjkzLTEuNDhhNi42NSw2LjY1LDAsMCwxLTQuNjksMS40OCw1LjUxLDUuNTEsMCwwLDAtNC43NCwycy0yLjA2LDIuODQtMS41NS0xLjEzLDEuMy02LDMuMjEtNy41M2MxLjY0LTEuMzMsNS43Mi0zLjExLDcuMTktNS4wNy43Ni0uNzQsMi42NS0yLjg2LDEuNTUtNC42Ni0uNDYtLjc1LTEuNTksMS4yMS0yLjc3LDEuNDZoMGExMC42OSwxMC42OSwwLDAsMS00LjMyLjUyLDQuNzIsNC43MiwwLDAsMC0zLjIzLjU1Yy0uNi4yNy0xLjczLS41OC0uMzUtMi4xMywxLjg2LTIuMDgsNi4zNC00Ljc5LDkuMzYtNi40MWExNi40NywxNi40NywwLDAsMCwyLjM1LTEuMThsLjA1LDBhMi4xMSwyLjExLDAsMCwwLC43Ni0uNTVjLjY2LS41NCwxLjExLTEuMTUsMS0xLjc2cy0uNDItLjc1LTEuMy0uODRjLS43MS0uMDctMS44Ny43NC0yLjg2LjY2LTEuNTEtLjEyLTMuNzIuMjItMy0uODNhNi4zNiw2LjM2LDAsMCwxLDIuMTItMS43OGwyLjY4LTEuMThjMS45Mi0uODUsMS42NS0zLC45MS0zLjA3LTEuMTYtLjEyLTQuMjkuODYtMi4wOS0xLjYxYTE1LjQ3LDE1LjQ3LDAsMCwxLDIuMS0xLjcsMTIuOTEsMTIuOTEsMCwwLDEsMi4zNC0uOTVjLjUyLS4xOCwxLjg1LTEuMzUtMS4zMy0xLjQ3LDAsMC0xLjc5LDAtMS40NC0uNzZhNy42MSw3LjYxLDAsMCwxLDEuODQtMS41LDE2LjE3LDE2LjE3LDAsMCwwLDEuNzctMS4zNWMuNDktLjQ2Ljg0LS44My44Mi0xLjI1cy0xLjI3LTEuMDYtMS44LTEuNzJjLS4zOC0uNDgtLjA2LS42NC4xNS0uN2EyLjE3LDIuMTcsMCwwLDEsLjQxLDBjMS4yOSwwLDEuNjYtMS4yNiwyLjQxLTQuNTYuMjMtMSwuMjQtMS4yLjU3LTEuMjFoLjA3cy4zMiwxLjY4Ljc5LDMuNTRjLjM5LDEsLjgzLDEuNDcsMS41OSwxLjQ2YTEuODEsMS44MSwwLDAsMSwuNDEsMGMuMjEuMDYuNTQuMjIuMTYuN3MtMS4xNiwxLTEuMjMsMS4zMmMtLjI2LDEsLjc0LDEuNCwxLjc1LDEuNDcsMS40NC4xLjg0LDEtLjcxLDIuMTFzMi4zMywzLjQzLDIuMzMsMy40M2MyLjE5LDEuNjYuNjMsMi4wOS4xOCwyLjMycy0xLjY3LDEtLjQ0LDEuNDRhMTEuNzgsMTEuNzgsMCwwLDEsMi45NCwyLjE1YzIuMiwyLjQ2LS45MywxLjQ4LTIuMDksMS42LS43NS4wOC0xLDIuMjMuOTEsMy4wNywyLjkzLDEuMywzLjU4LDEuNTIsNC42MiwyLjI3LDEuOTMsMS40MS45MSwyLjYtMS41MSwyLjE4YTcuNjUsNy42NSwwLDAsMC0yLjYzLS4xNyw1Ljc4LDUuNzgsMCwwLDAtMS40Ni40NGMtLjE3LjI1LS41NSwxLjIzLDIuODEsMi4yNGExOC42MiwxOC42MiwwLDAsMSw1LjM3LDNsMjcuNTcsMFYzNDcuNTVsLTE3LjA4LTE2LjQ0WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTI1Ni41NSAtMzI2LjM2KSIvPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTM0OC43NiwzNDUuNTNsLTE5LjkyLTE5LjE3SDI3Ni40N0wyNTYuNTUsMzQ1LjV2NTEuNGwxNy4zMSwxNy4zM2g3Ljk0YTIuMTgsMi4xOCwwLDAsMCwuMSwyLjEyLDIuMzQsMi4zNCwwLDAsMCwyLC44NywxNy40MSwxNy40MSwwLDAsMCwyLjEyLS4xOWgwcy40MS4zNS0uODUuNzZoMGEzLjI1LDMuMjUsMCwwLDAtMi4yNiwyLDIuMTUsMi4xNSwwLDAsMCwwLC4yMkgyNTYuNTZ2MjYuMjdsMTkuOTEsMTkuMmg1Mi4zOGwxOS45Mi0xOS4xN1YzOTcuMDdsLTE3LjMyLTE3LjMxSDMxNi43M2MtLjY1LS4zOC0xLjMxLS43Ny0xLjkyLTEuMTdsLS4yMi0uMTRoMGE5LjQsOS40LDAsMCwxLTEuMDUtLjc3LDYuMzQsNi4zNCwwLDAsMS0uOC0uNzRsLS4wNi0uMDZhMTQuMjcsMTQuMjcsMCwwLDEtMS0xLjExLDI2LjMsMjYuMywwLDAsMCw2LC44NWguNDhhMy4yOCwzLjI4LDAsMCwxLC42NS4xMWwuNDEuMTguNjIuMjNhMi4xNSwyLjE1LDAsMCwwLC40NiwwLDIuMzYsMi4zNiwwLDAsMCwyLjEzLTEuMzcsMi42LDIuNiwwLDAsMCwuMTctMS42aDI2LjE5Wm0tMi4zNywyNi4zMmgtMjcuM2ExMS40OSwxMS40OSwwLDAsMSwxLjM4LDEuNjdjMS4yMiwxLjQ3LjE2LDIuMjctLjQyLDIsMCwwLS40NS0uMjEtLjc0LS4zM2ExMS44NiwxMS44NiwwLDAsMC0xLjYxLS4yMWMtMS40NSwwLTUuMzYtLjMtNy43NC0xLjY1LS45My0uNTMtMSwuNzUtLjYyLDEuNzVBMTEuNjEsMTEuNjEsMCwwLDAsMzExLjUsMzc4YTguMiw4LjIsMCwwLDAsMSwuOTMsOS41NSw5LjU1LDAsMCwwLDEuNDEsMWgwYzEuMjYuODEsMi42NCwxLjU2LDMuNjcsMi4yM2gxMi44NkwzNDYuMzgsMzk4djQ3LjI0bC0xOC41LDE3LjhIMjc3LjQybC0xOC41LTE3LjgzVjQyMi4zOGgyNy4yYTYuMiw2LjIsMCwwLDAtMS4yMy0xLjA1cy0yLjE2LTEuODMsMi44NC0yLjQ1YTYuNjgsNi42OCwwLDAsMCw1LjM0LTMuNzRjLjE3LTEuNC0xLjczLTEuOTItMi42OC0xLjI3YTEyLjgyLDEyLjgyLDAsMCwxLTQuMiwxLjUzYy0zLjYuNDktMy4xOS4xNy0yLjc5LTFhNS43Miw1LjcyLDAsMCwxLDEuNjktMi41OUgyNzQuODVsLTE1LjkyLTE1Ljk0di00OS40bDE4LjUtMTcuNzdoNTAuNDVsMTguNSwxNy44WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTI1Ni41NSAtMzI2LjM2KSIvPjwvc3ZnPgo="
-    menu: true
-    slide-number: c/t
-    slide-level: 1
-    auto-play-media: true
-    controls: true
-    embed-resources: true
-brand:
-  color:
-    foreground: "#343a40"
-    background: "#ffffff"
-    primary: "#2a7fb8"
-    secondary: "#6c757d"
-  typography:
-    headings:
-      color: foreground
-    link:
-      color: primary
-      decoration: none
-code-line-numbers: false
-highlight-style: github-light
 footer: "[BIOS 214](https://cncastillo.github.io/teaching/bios-214/) · Lecture 3 — Echo formation and relaxation"
 include-in-header:
   text: |
     <style>
-    .reveal {
-      --r-heading1-size: 60px;
-      --r-heading2-size: 60px;
-    }
-    .reveal .slides section:not(#title-slide) > h1 { font-size: var(--r-heading1-size); }
-    .reveal .title {
-      font-size: 84px;
-    }
-    .reveal .controls[data-controls-layout=edges] .navigate-left,
-    .reveal .controls[data-controls-layout=edges] .navigate-right { top: 12px; margin-top: 0; }
-    .reveal .controls .controls-arrow {
-      scale: 0.6;
-    }
-    #title-slide {
-      text-align: left;
-    }
-    #title-slide .subtitle {
-      color: #6c757d;
-    }
-    #title-slide .quarto-title-authors {
-      justify-content: flex-start;
-    }
-    #title-slide .quarto-title-author {
-      padding: 0;
-    }
-    .reveal .title .lecture-number {
-      display: block;
-      margin-bottom: 0.35em;
-      font-size: 32px;
-      font-weight: normal;
-      color: #6c757d;
-    }
-    .reveal .slide-logo {
-      height: 6vh;
-      max-width: unset;
-      max-height: unset;
-    }
-    .reveal.has-logo .slide-number {
-      top: auto;
-      bottom: 12px;
-      right: calc(4vh + 20px);
-      font-size: 12px;
-      color: #6c757d;
-    }
-    #title-slide .quarto-title-author-email a {
-      font-size: 32px;
-      color: var(--r-link-color);
-    }
-
-
-    .reveal .slides section { box-sizing: border-box; padding-bottom: 40px; }
     .reveal .slide-note { font-size: 18px; line-height: 1.2; margin-top: 10px; }
-    .reveal .figure-centered { text-align: center; }
-    .reveal .figure-centered img { object-fit: contain; margin: 0 auto; }
-    .reveal .v-center { display: flex; align-items: center; gap: 24px; }
-    .reveal .v-center > .column { min-width: 0; }
+    .reveal .figure-centered img { margin: 0 auto; }
     .reveal .math.display { font-size: 30px; }
     .reveal .bloch-overview .math.display { font-size: 35px; }
     .reveal .field-components .math.display { font-size: 25px; }
@@ -120,65 +25,47 @@ include-in-header:
     .reveal .race-layout img { height: 610px; max-height: none; width: auto; }
     .reveal .race-layout .slide-note { align-self: flex-end; }
     .reveal .source-bullets li { margin-bottom: 32px; }
-    .reveal .relaxation-curves { height: 410px; }
-    .reveal .activity-frame { width: 100%; height: 510px; border: 1px solid #cdd3d9; }
-    .reveal .lab-columns { display: flex; align-items: flex-start; gap: 24px; }
-    .reveal .lab-columns ul { font-size: 30px; line-height: 1.3; }
-    .reveal .lab-columns li { margin-bottom: 18px; }
     </style>
 ---
 
 ```{julia}
 #| output: false
-using KomaMRI
-using KomaMRI.KomaMRIPlots.PlotlyBase
+include("../common.jl")
 
 scanner = Scanner(limits=HardwareLimits(RF_dead_time=0.0, RF_ring_down_time=0.0, ADC_dead_time=0.0))
 const TE = 90e-3
 const rf_duration = 1e-3
 const demo_T1, demo_T2 = 0.45, 0.12
 
-function rf_block(angle; phase=0.0, duration=rf_duration)
+rf_block(angle; phase=0.0, duration=rf_duration) =
     PulseDesigner.build_block_pulse(angle; duration, phase_offset=phase, sys=scanner)
-end
+
 function acquire_for(duration)
     seq = Sequence(scanner)
-    addblock!(seq, ADC(ceil(Int, duration/1e-3)+1, duration))
+    addblock!(seq, ADC(ceil(Int, duration / 1e-3) + 1, duration))
     seq
 end
+
 function gradient_block(amplitude, duration)
     seq = Sequence(scanner)
-    addblock!(seq, ADC(ceil(Int, duration/1e-3)+1, duration); x=Grad(amplitude, duration))
+    addblock!(seq, ADC(ceil(Int, duration / 1e-3) + 1, duration); x=Grad(amplitude, duration))
     seq
 end
 
 # Save actual KomaMRI states at the simulation block boundaries. The browser
 # only displays these states; it does not run a separate Bloch implementation.
-function record_experiment(seq, obj; start=0.0, origin=rf_duration/2, te=TE, dt_rf=10e-6)
+function record_experiment(seq, obj; start=0.0, origin=rf_duration / 2, te=TE, dt_rf=10e-6)
     n = length(obj.x)
-    shown = unique(round.(Int, range(1, n; length=min(n,61))))
-    times = [0.0]
-    states = [hcat(zeros(length(shown)), zeros(length(shown)), ones(length(shown)))]
-    net = [[0.0,0.0,1.0]]
-    record = function(progress, blocks, data, params)
-        push!(times, data.seqd.t[last(blocks.parts[progress.block])])
-        push!(states, hcat(real.(data.Xt.xy[shown]), imag.(data.Xt.xy[shown]), data.Xt.z[shown]))
-        push!(net, [real(sum(data.Xt.xy)), imag(sum(data.Xt.xy)), sum(data.Xt.z)] ./ n)
-    end
-    simulate(obj, seq, scanner; verbose=false, callbacks=(record,),
-        sim_params=Dict("gpu"=>false, "Nthreads"=>1, "precision"=>"f64",
-            "Δt"=>1e-3, "Δt_rf"=>dt_rf, "max_block_length"=>1,
-            "max_rf_block_length"=>1, "return_type"=>"state"))
-    keep = findall(>=(start), times)
-    wave = plot_seq(seq; slider=false, show_rf_frame=false)
-    for trace in wave.data
-        get(trace, :visible, true) == "legendonly" && (trace.showlegend=false)
-        get(trace, :name, "") == "|B1|_AM" && (trace.name="B₁,x")
-    end
-    Dict("t"=>1e3 .* (times[keep] .- origin),
-        "m"=>[[collect(row) for row in eachrow(states[k])] for k in keep],
-        "net"=>net[keep],
-        "wave"=>wave, "origin_ms"=>1e3origin, "te_ms"=>1e3te)
+    shown = unique(round.(Int, range(1, n; length=min(n, 61))))
+    rec = record_states(obj, seq, scanner; Δt=1e-3, Δt_rf=dt_rf, shown, record_net=true)
+    keep = findall(>=(start), rec.times)
+    wave = clean_seq_plot(seq)
+    Dict{String,Any}(
+        "t" => 1e3 .* (rec.times[keep] .- origin),
+        "m" => rows.(rec.states[keep]),
+        "net" => rec.net[keep],
+        "wave" => wave, "origin_ms" => 1e3 * origin, "te_ms" => 1e3 * te,
+    )
 end
 
 function time_window(data, first, last; reset=false)
@@ -191,10 +78,103 @@ function time_window(data, first, last; reset=false)
     out
 end
 
+_num(v) = v isa Number && isfinite(v)
+
+function rf_intervals(d)
+    rf = only(filter(t -> get(t, :name, "") == "B₁", d["wave"].data))
+    origin = d["origin_ms"]
+    intervals, start_t = Tuple{Float64,Float64}[], nothing
+    for i in eachindex(rf.x)
+        x, y = rf.x[i], rf.y[i]
+        if _num(x) && _num(y) && abs(y) > 1e-9
+            isnothing(start_t) && (start_t = x - origin)
+        elseif !isnothing(start_t)
+            push!(intervals, (start_t, rf.x[i-1] - origin))
+            start_t = nothing
+        end
+    end
+    intervals
+end
+
+function after_excitation(d)
+    t_end = rf_intervals(d)[1][2]
+    merge(d, Dict("t" => d["t"] .- t_end, "origin_ms" => d["origin_ms"] + t_end, "te_ms" => d["te_ms"] - t_end))
+end
+
+rf_shade_shapes(d; xref="x", yref="y domain") = [
+    attr(type="rect", xref=xref, yref=yref, x0=a, x1=b, y0=0, y1=1,
+        fillcolor="rgba(155,88,207,0.15)", line=attr(width=0), layer="below")
+    for (a, b) in rf_intervals(d)
+]
+
+function echo_signal_plot(raw_d)
+    d = after_excitation(raw_d)
+    origin, te_ms, t_end = d["origin_ms"], d["te_ms"], last(d["t"])
+    traces = GenericTrace[]
+    wave_vals = Float64[0.0]
+    for tr in d["wave"].data
+        nm = get(tr, :name, "")
+        get(tr, :visible, true) == "legendonly" && continue
+        if nm == "B₁" || (nm == "Gx" && any(v -> _num(v) && abs(v) > 1e-9, tr.y))
+            col = nm == "B₁" ? "#ab63fa" : "#636efa"
+            push!(traces, scatter(x=[_num(v) ? v - origin : nothing for v in tr.x], y=[_num(v) ? v : nothing for v in tr.y],
+                name=nm, xaxis="x", yaxis="y", showlegend=true,
+                line=attr(color=col, width=2), marker=attr(color=col)))
+            append!(wave_vals, Float64[v for v in tr.y if _num(v)])
+        end
+    end
+    has_phase = false
+    for tr in d["wave"].data
+        if get(tr, :name, "") == "∠B1_AM" && any(v -> _num(v) && abs(v) > 1e-6, tr.y)
+            has_phase = true
+            push!(traces, scatter(x=[_num(v) ? v - origin : nothing for v in tr.x],
+                y=[_num(v) ? v * 180 / π : nothing for v in tr.y],
+                name="RF phase (°)", xaxis="x", yaxis="y3", showlegend=true,
+                hovertemplate="%{x:.2f} ms<br>%{y:.1f}°<extra>RF phase</extra>",
+                line=attr(color="#df7b22", width=2, dash="dot")))
+        end
+    end
+    wmin, wmax = minimum(wave_vals), maximum(wave_vals)
+    wpad = 0.05 * (wmax - wmin)
+    wrange = [wmin < 0 ? wmin - wpad : 0.0, wmax + wpad]
+    sig = [hypot(v[1], v[2]) for v in d["net"]]
+    push!(traces, scatter(x=d["t"], y=sig, xaxis="x2", yaxis="y2", name="S(t)", legend="legend2",
+        line=attr(color=BIOS_COLORS.ink, width=3)))
+    shapes = Any[
+        rf_shade_shapes(d; xref="x2", yref="y2 domain")...,
+        attr(type="line", xref="x", yref="y domain", x0=te_ms, x1=te_ms, y0=0, y1=1,
+            line=attr(color=BIOS_COLORS.gray, width=1.5, dash="dot")),
+        attr(type="line", xref="x2", yref="y2 domain", x0=te_ms, x1=te_ms, y0=0, y1=1,
+            line=attr(color=BIOS_COLORS.gray, width=1.5, dash="dot")),
+    ]
+    Plot(traces, bios_layout(; height=540, font_size=21, margin=attr(l=55, r=30, t=45, b=75),
+        xaxis=bios_axis(domain=[0, 0.43], anchor="y", title=attr(text="Time (ms)", standoff=5),
+            range=[-origin, t_end], linewidth=1.2),
+        yaxis=bios_axis(domain=[0, 1], anchor="x", autorange=false, range=wrange, linewidth=1.2),
+        yaxis3=attr(overlaying="y", anchor="x", side="right", range=wrange .* (100 / wmax),
+            visible=has_phase, tickvals=[0, 90], tickfont=attr(color="#df7b22", size=16),
+            showgrid=false, zeroline=false),
+        xaxis2=bios_axis(domain=[0.53, 1], anchor="y2", title=attr(text="Time (ms)", standoff=5), range=[-origin, t_end]),
+        yaxis2=bios_axis(domain=[0, 1], anchor="x2", title=attr(text="S", standoff=12), range=[0, 1.03]),
+        legend=attr(orientation="h", x=0, y=1.1, font=attr(size=18)),
+        legend2=attr(orientation="h", x=0.72, y=1.1, font=attr(size=18)),
+        shapes,
+        annotations=[
+            attr(text="TE", xref="x", yref="paper", x=te_ms, y=0.98, xshift=7, xanchor="left", yanchor="top", showarrow=false, font=attr(color=BIOS_COLORS.gray, size=16)),
+            attr(text="TE", xref="x2", yref="paper", x=te_ms, y=0.98, xshift=7, xanchor="left", yanchor="top", showarrow=false, font=attr(color=BIOS_COLORS.gray, size=16)),
+        ]); config=bios_config())
+end
+
+phasor_arrow(x, y, angle, col; len=17, width=2.5) = attr(
+    x=x, y=y, xref="x", yref="y",
+    xshift=len * cos(angle), yshift=len * sin(angle),
+    ax=-len * cos(angle), ay=len * sin(angle),
+    text="", showarrow=true, arrowhead=3, arrowsize=1, arrowwidth=width, arrowcolor=col)
+
 single = Phantom(x=[0.0], T1=[demo_T1], T2=[demo_T2])
 relax_seq = rf_block(π/2) + acquire_for(0.6)
 relax_data = record_experiment(relax_seq, single)
-precess_seq = rf_block(π/6) + gradient_block(40e-6, 1/(γ*40e-6*3e-3))
+precess_seq = rf_block(π/6) + gradient_block(40e-6, 1 / (γ * 40e-6 * 3e-3))
 precess_obj = Phantom(x=[3e-3], T1=[Inf], T2=[Inf])
 precess_data = record_experiment(precess_seq, precess_obj; start=rf_duration)
 
@@ -205,63 +185,48 @@ positions = repeat(collect(range(-5e-3, 5e-3; length=npositions)); inner=nfreque
 lorentzian_width = 50.0
 omega = repeat(lorentzian_width .* tan.(π .* (((1:nfrequencies) .- 0.5) ./ nfrequencies .- 0.5)); outer=npositions)
 niso = length(positions)
-ensemble = Phantom(x=positions, Δw=omega, T1=fill(demo_T1,niso), T2=fill(demo_T2,niso))
+ensemble = Phantom(x=positions, Δw=omega, T1=fill(demo_T1, niso), T2=fill(demo_T2, niso))
 fid_seq = rf_block(π/2) + acquire_for(0.24)
-fid_obj = Phantom(x=zeros(3), Δw=2π .* [0,20,-20], T1=fill(40e-3,3), T2=fill(20e-3,3))
+fid_obj = Phantom(x=zeros(3), Δw=2π .* [0, 20, -20], T1=fill(40e-3, 3), T2=fill(20e-3, 3))
 fid_data = record_experiment(fid_seq, fid_obj)
 fid_data["colors"] = ["#6e40aa", "#d62728", "#278bc3"]
 
 # RF centers are at t=0 and TE/2. Both echo experiments have the same TE.
-echo_rf_duration = rf_duration
-se_seq = rf_block(π/2; duration=echo_rf_duration) + acquire_for(TE/2 - echo_rf_duration) +
-    rf_block(π; phase=π/2, duration=echo_rf_duration) + acquire_for(TE/2 - echo_rf_duration/2) + acquire_for(TE/2)
-se_ensemble = ensemble[abs.(ensemble.Δw) .<= 2π*100]
-se_data = record_experiment(se_seq, se_ensemble; origin=echo_rf_duration/2, dt_rf=10e-6)
+se_seq = rf_block(π/2) + acquire_for(TE/2 - rf_duration) +
+    rf_block(π; phase=π/2) + acquire_for(TE/2 - rf_duration/2) + acquire_for(TE/2)
+se_ensemble = ensemble[abs.(ensemble.Δw) .<= 2π * 100]
+se_data = record_experiment(se_seq, se_ensemble; origin=rf_duration/2)
 gradient_amplitude = 0.5e-3
-ge_prephaser_duration = (TE - echo_rf_duration/2)/2
-ge_seq = rf_block(π/2; duration=echo_rf_duration) + gradient_block(-gradient_amplitude, ge_prephaser_duration) +
-    gradient_block(gradient_amplitude, 2ge_prephaser_duration) + acquire_for(echo_rf_duration/4)
-gradient_ensemble = Phantom(x=positions, T1=fill(demo_T1,niso), T2=fill(demo_T2,niso))
-ge_data = record_experiment(ge_seq, gradient_ensemble; origin=echo_rf_duration/2, dt_rf=10e-6)
+ge_pre = (TE - rf_duration/2) / 2
+ge_seq = rf_block(π/2) + gradient_block(-gradient_amplitude, ge_pre) +
+    gradient_block(gradient_amplitude, 2ge_pre) + acquire_for(rf_duration/4)
+gradient_ensemble = Phantom(x=positions, T1=fill(demo_T1, niso), T2=fill(demo_T2, niso))
+ge_data = record_experiment(ge_seq, gradient_ensemble; origin=rf_duration/2)
 
 comparison_TE = 30e-3
-comparison_rf_duration = rf_duration
-comparison_ensemble = ensemble[abs.(ensemble.Δw) .<= 2π*100]
-comparison_lobe_duration = comparison_TE/2 - comparison_rf_duration
+comparison_ensemble = ensemble[abs.(ensemble.Δw) .<= 2π * 100]
+comparison_lobe = comparison_TE/2 - rf_duration
 # Equal gradient areas before and after the 180° pulse cancel at TE.
-se_comparison_seq = rf_block(π/2; duration=comparison_rf_duration) + gradient_block(-gradient_amplitude, comparison_lobe_duration) +
-    rf_block(π; phase=π/2, duration=comparison_rf_duration) + acquire_for(comparison_rf_duration/2) +
-    gradient_block(-gradient_amplitude, comparison_lobe_duration) + gradient_block(-gradient_amplitude, comparison_TE/2)
-se_comparison_data = record_experiment(se_comparison_seq, comparison_ensemble;
-    origin=comparison_rf_duration/2, te=comparison_TE, dt_rf=10e-6)
-comparison_prephaser_duration = (comparison_TE - comparison_rf_duration/2)/2
-ge_comparison_seq = rf_block(π/2; duration=comparison_rf_duration) + gradient_block(-gradient_amplitude, comparison_prephaser_duration) +
-    gradient_block(gradient_amplitude, comparison_prephaser_duration) +
-    gradient_block(gradient_amplitude, comparison_prephaser_duration) + acquire_for(comparison_rf_duration/4)
-ge_comparison_data = record_experiment(ge_comparison_seq, comparison_ensemble;
-    origin=comparison_rf_duration/2, te=comparison_TE, dt_rf=10e-6)
+se_comparison_seq = rf_block(π/2) + gradient_block(-gradient_amplitude, comparison_lobe) +
+    rf_block(π; phase=π/2) + acquire_for(rf_duration/2) +
+    gradient_block(-gradient_amplitude, comparison_lobe) + gradient_block(-gradient_amplitude, comparison_TE/2)
+se_comparison_data = record_experiment(se_comparison_seq, comparison_ensemble; origin=rf_duration/2, te=comparison_TE)
+comparison_pre = (comparison_TE - rf_duration/2) / 2
+ge_comparison_seq = rf_block(π/2) + gradient_block(-gradient_amplitude, comparison_pre) +
+    gradient_block(gradient_amplitude, comparison_pre) +
+    gradient_block(gradient_amplitude, comparison_pre) + acquire_for(rf_duration/4)
+ge_comparison_data = record_experiment(ge_comparison_seq, comparison_ensemble; origin=rf_duration/2, te=comparison_TE)
 
-function demo_html(id, data; mode="ensemble")
-    print("```{=html}\n<div id=\"$id\" class=\"bloch-demo r-stretch\" data-mode=\"$mode\">")
-    print("<script type=\"application/json\">", PlotlyBase.JSON.json(data), "</script></div>\n```\n")
-end
-
+demo_html(id, data; mode="ensemble") = Base.HTML(
+    "<div id=\"$id\" class=\"bloch-demo\" data-mode=\"$mode\">" *
+    "<script type=\"application/json\">" * PlotlyBase.JSON.json(data) * "</script></div>"
+)
 ```
-
-
-
-
 
 # <u>Left-handed</u> rotations around the <u>effective field</u>
 
 <!-- Source: https://docs.google.com/presentation/d/1y_uOaK7ivvCFblEzcTOkpSaHLmcVK-_S6K3n8017prc/edit
 Author outline (not presented): T1/T2; off-resonance; Hahn/spin echo; T2*; GE; diffusion; scanner lab. -->
-
-```{julia}
-#| output: asis
-asset = PlotlyBase.JSON.json(read(KomaMRI.KomaMRIPlots.TIME_PLOTLY.local_path, String))
-print("```{=html}\n<script>", KomaMRI.KomaMRIPlots.plotly_loader(asset), "</script>\n```\n")
-```
 
 ::: {.figure-centered}
 ![](figures/bloch-rotation.png){height=470px fig-alt="Rotation of magnetization about the effective field"}
@@ -272,7 +237,6 @@ print("```{=html}\n<script>", KomaMRI.KomaMRIPlots.plotly_loader(asset), "</scri
 ::: {.columns .v-center}
 ::: {.column width="58%"}
 ```{julia}
-#| output: asis
 demo_html("gradient-precession", precess_data; mode="precession")
 ```
 :::
@@ -317,13 +281,11 @@ $T_1$ and $T_2$: Relaxation parameters
 ::: {.columns}
 ::: {.column width="50%"}
 ```{julia}
-#| output: asis
 demo_html("rf-excitation", time_window(relax_data, -rf_duration*500, rf_duration*500; reset=true); mode="rotation")
 ```
 :::
 ::: {.column width="50%"}
 ```{julia}
-#| output: asis
 demo_html("rf-and-relaxation", time_window(relax_data, rf_duration*500, Inf; reset=true); mode="rotation")
 ```
 :::
@@ -356,13 +318,11 @@ $$
 ::: {.columns}
 ::: {.column width="50%"}
 ```{julia}
-#| output: asis
 demo_html("fid-excitation", time_window(fid_data, -rf_duration*500, rf_duration*500; reset=true); mode="rotation")
 ```
 :::
 ::: {.column width="50%"}
 ```{julia}
-#| output: asis
 demo_html("free-induction-decay", time_window(fid_data, rf_duration*500, rf_duration*500 + 60; reset=true); mode="rotation")
 ```
 :::
@@ -372,12 +332,28 @@ demo_html("free-induction-decay", time_window(fid_data, rf_duration*500, rf_dura
 [Hahn, Nuclear Induction Due to Free Larmor Precession, *Phys Rev* (1950; received 1949)](https://doi.org/10.1103/PhysRev.77.297.2)
 :::
 
-# T1 and T2 recovery
+# T~1~ and T~2~ recovery {#t1-and-t2-recovery}
 
 $$M_{xy}(t)=M_0e^{-t/T_2},\qquad M_z(t)=M_0(1-e^{-t/T_1})$$
 
-```{=html}
-<div class="relaxation-curves r-stretch" aria-label="Transverse decay and longitudinal recovery with independent T1 and T2 sliders"></div>
+```{julia}
+t_rel = collect(range(0.0, 1600.0; length=161))
+rel_vals = [50, 100, 120, 150, 200, 300, 450, 600, 800, 1000]
+rel_steps(which) = [attr(label=string(v), method="restyle",
+    args=[attr(y=[which == 1 ? (1 .- exp.(-t_rel ./ v)) : exp.(-t_rel ./ v)]), [which]]) for v in rel_vals]
+Plot([
+    scatter(x=t_rel, y=exp.(-t_rel ./ 120), name="M<sub>xy</sub>", line=attr(color=BIOS_COLORS.purple, width=3)),
+    scatter(x=t_rel, y=1 .- exp.(-t_rel ./ 450), xaxis="x2", yaxis="y2", name="M<sub>z</sub>", line=attr(color=BIOS_COLORS.blue, width=3)),
+], bios_layout(; height=410, font_size=21, margin=attr(l=65, r=25, t=65, b=110),
+    legend=attr(orientation="h", x=0.5, xanchor="center", y=1.08, yanchor="bottom"),
+    xaxis=bios_axis(domain=[0, 0.44], anchor="y", title=attr(text="Time (ms)")),
+    yaxis=bios_axis(range=[0, 1.05], domain=[0, 1], anchor="x", title=attr(text="M<sub>xy</sub>")),
+    xaxis2=bios_axis(domain=[0.56, 1], anchor="y2", title=attr(text="Time (ms)")),
+    yaxis2=bios_axis(range=[0, 1.05], domain=[0, 1], anchor="x2", title=attr(text="M<sub>z</sub>")),
+    sliders=[
+        bios_slider(rel_steps(0), "T₂: "; suffix=" ms", active=2, x=0.0, len=0.44, y=-0.25, pad_t=30),
+        bios_slider(rel_steps(1), "T₁: "; suffix=" ms", active=6, x=0.56, len=0.44, y=-0.25, pad_t=30),
+    ]); config=bios_config())
 ```
 
 # Erwin Hahn and the spin echo (1950)
@@ -425,7 +401,6 @@ Illustration: *MRI Made Easy*, Fig. 34
 # The spin echo (SE)
 
 ```{julia}
-#| output: asis
 demo_html("spin-echo", se_data; mode="echo-magnetization")
 ```
 
@@ -436,8 +411,7 @@ demo_html("spin-echo", se_data; mode="echo-magnetization")
 # The spin-echo signal
 
 ```{julia}
-#| output: asis
-demo_html("spin-echo-signal", se_data; mode="echo-signal")
+echo_signal_plot(se_data)
 ```
 
 # Where is $T_2^*$?
@@ -459,8 +433,25 @@ What is the signal generated by this spin ensemble?
 :::
 ::: {.column width="76%"}
 
-```{=html}
-<div class="isochromat-distribution" style="height:330px" aria-label="A distribution of colored isochromats with different transverse phases"></div>
+```{julia}
+iso_counts = [1, 2, 3, 4, 3, 2, 1]
+iso_colors = ["#e53935", "#ef8a00", "#c3b800", "#22ba52", "#00b8c8", "#4184d7", "#4734d8"]
+iso_x, iso_y, iso_ann = Float64[], Float64[], Any[]
+for (j, cnt) in enumerate(iso_counts), row in 0:cnt-1
+    push!(iso_x, j - 4); push!(iso_y, row + 0.65)
+    push!(iso_ann, phasor_arrow(j - 4, row + 0.65, π/2 - (j - 4) * π/4, iso_colors[j]))
+end
+push!(iso_ann,
+    attr(text="p(ω)", x=-3.45, y=3.75, showarrow=false, font=attr(size=26)),
+    attr(text="ω", x=3.8, y=0, showarrow=false, font=attr(size=26)))
+Plot([scatter(mode="markers", x=iso_x, y=iso_y, hoverinfo="skip", showlegend=false,
+    marker=attr(symbol="circle", size=48, color="#f5f5f5", line=attr(color="#777", width=1)))],
+    bios_layout(; height=330, font_size=21, margin=attr(l=15, r=25, t=15, b=15),
+        xaxis=attr(visible=false, range=[-3.8, 4]), yaxis=attr(visible=false, range=[-0.1, 4.2]),
+        annotations=iso_ann, shapes=[
+            attr(type="line", x0=-3.65, x1=3.65, y0=0, y1=0, line=attr(color=BIOS_COLORS.gray, width=2)),
+            attr(type="line", x0=-3.65, x1=-3.65, y0=0, y1=3.6, line=attr(color=BIOS_COLORS.gray, width=2)),
+        ]); config=bios_config())
 ```
 
 ::: {.fragment .figure-centered}
@@ -481,8 +472,19 @@ $$e^{-|t|/T_2'}\quad\longrightarrow\quad p(\omega)=\frac{T_2'}{\pi\left[1+(T_2'\
 Lorentzian or Cauchy distribution
 :::
 
-```{=html}
-<div class="lorentzian-pair" style="height:260px" aria-label="Exponential decay and its Lorentzian frequency distribution"></div>
+```{julia}
+lor_T = 0.05
+lor_t = collect(range(0.0, 0.18; length=301))
+lor_w = collect(range(-150.0, 150.0; length=301))
+Plot([
+    scatter(x=lor_t, y=exp.(-lor_t ./ lor_T), line=attr(color=BIOS_COLORS.blue, width=3), showlegend=false),
+    scatter(x=lor_w, y=lor_T ./ (π .* (1 .+ (lor_T .* lor_w) .^ 2)), xaxis="x2", yaxis="y2",
+        line=attr(color=BIOS_COLORS.green, width=3), showlegend=false),
+], bios_layout(; height=260, font_size=21, margin=attr(l=65, r=25, t=15, b=60),
+    xaxis=bios_axis(title=attr(text="Time (s)"), domain=[0, 0.44], range=[0, 0.18]),
+    yaxis=bios_axis(title=attr(text="e<sup>−t/T₂′</sup>")),
+    xaxis2=bios_axis(title=attr(text="ω (rad/s)"), domain=[0.57, 1], anchor="y2"),
+    yaxis2=bios_axis(title=attr(text="p(ω)"), anchor="x2")); config=bios_config())
 ```
 
 # Inverse cumulative distribution
@@ -498,8 +500,23 @@ $$\omega=\frac{1}{T_2'}\tan\!\left[\pi\left(u-\frac12\right)\right],\quad u\sim 
 :::
 :::
 ::: {.column .figure-centered width="42%"}
-```{=html}
-<div class="inverse-cdf" style="height:420px" aria-label="Lorentzian cumulative distribution mapping uniform samples to off-resonance frequencies using the inverse tangent formula"></div>
+```{julia}
+cdf_T = 0.05
+cdf_w = collect(range(-150.0, 150.0; length=601))
+cdf_u = collect(range(0.1, 0.9; length=9))
+cdf_q = tan.(π .* (cdf_u .- 0.5)) ./ cdf_T
+cdf_shapes = reduce(vcat, [[
+    attr(type="line", x0=-150, x1=q, y0=u, y1=u, line=attr(color=BIOS_COLORS.purple, width=1.5)),
+    attr(type="line", x0=q, x1=q, y0=0, y1=u, line=attr(color=BIOS_COLORS.purple, width=1.5, dash="dot")),
+] for (q, u) in zip(cdf_q, cdf_u)])
+Plot([
+    scatter(x=cdf_w, y=0.5 .+ atan.(cdf_T .* cdf_w) ./ π, line=attr(color=BIOS_COLORS.blue, width=3),
+        showlegend=false, hovertemplate="ω = %{x:.1f} rad/s<br>P(ω) = %{y:.3f}<extra></extra>"),
+    scatter(mode="markers", x=cdf_q, y=cdf_u, marker=attr(color=BIOS_COLORS.purple, size=6),
+        showlegend=false, hovertemplate="u = %{y:.1f}<br>ω = %{x:.1f} rad/s<extra></extra>"),
+], bios_layout(; height=420, font_size=21, margin=attr(l=70, r=15, t=10, b=65), shapes=cdf_shapes,
+    xaxis=bios_axis(title=attr(text="ω (rad/s)"), range=[-150, 150], tickvals=[-100, 0, 100]),
+    yaxis=bios_axis(title=attr(text="P(ω)"), range=[0, 1], dtick=0.2)); config=bios_config())
 ```
 :::
 :::
@@ -511,30 +528,52 @@ $$\omega=\frac{1}{T_2'}\tan\!\left[\pi\left(u-\frac12\right)\right],\quad u\sim 
 # The gradient echo (GE)
 
 ```{julia}
-#| output: asis
 demo_html("gradient-echo", ge_data; mode="echo-magnetization")
 ```
 
 # The gradient-echo signal
 
 ```{julia}
-#| output: asis
-demo_html("gradient-echo-signal", ge_data; mode="echo-signal")
+echo_signal_plot(ge_data)
 ```
 
 # Comparing SE with GE
 
 ```{julia}
-#| output: asis
-demo_html("echo-comparison", Dict("se"=>se_comparison_data,"ge"=>ge_comparison_data); mode="comparison")
+demo_html("echo-comparison", Dict("se"=>se_comparison_data, "ge"=>ge_comparison_data); mode="comparison")
 ```
 
 # Comparing SE and GE signals
 
 ```{julia}
-#| output: asis
-demo_html("echo-signal-comparison", Dict("se"=>se_comparison_data,"ge"=>ge_comparison_data,
-    "T2_ms"=>1e3demo_T2,"T2star_ms"=>1e3/(inv(demo_T2)+lorentzian_width)); mode="comparison-signal")
+se_post = after_excitation(se_comparison_data)
+ge_post = after_excitation(ge_comparison_data)
+t_end_cmp = min(last(se_post["t"]), last(ge_post["t"]))
+t_env = collect(range(0.0, t_end_cmp; length=ceil(Int, t_end_cmp) + 1))
+amp0(ds) = begin
+    i = argmin(abs.(ds["t"]))
+    hypot(ds["net"][i][1], ds["net"][i][2])
+end
+T2_ms, T2star_ms = 1e3 * demo_T2, 1e3 / (inv(demo_T2) + lorentzian_width)
+
+Plot([
+    scatter(x=se_post["t"], y=[hypot(v[1], v[2]) for v in se_post["net"]], name="SE",
+        line=attr(color=BIOS_COLORS.blue, width=3)),
+    scatter(x=ge_post["t"], y=[hypot(v[1], v[2]) for v in ge_post["net"]], name="GE",
+        line=attr(color="#df7b22", width=3, dash="dash")),
+    scatter(x=t_env, y=amp0(se_post) .* exp.(-t_env ./ T2_ms), name="exp(−t/T<sub>2</sub>)",
+        line=attr(color=BIOS_COLORS.ink, width=2, dash="dot")),
+    scatter(x=t_env, y=amp0(ge_post) .* exp.(-t_env ./ T2star_ms), name="exp(−t/T<sub>2</sub><sup>*</sup>)",
+        line=attr(color=BIOS_COLORS.gray, width=2, dash="dot")),
+], bios_layout(; height=540, font_size=21, margin=attr(l=65, r=20, t=40, b=65),
+    legend=attr(orientation="h", x=0.5, xanchor="center", y=1.08, font=attr(size=18)),
+    xaxis=bios_axis(title=attr(text="Time (ms)", standoff=5), range=[se_post["t"][1], t_end_cmp]),
+    yaxis=bios_axis(title=attr(text="S"), range=[0, 1.03]),
+    shapes=vcat(rf_shade_shapes(se_post),
+        [attr(type="line", xref="x", yref="y domain", x0=se_post["te_ms"], x1=se_post["te_ms"],
+            y0=0, y1=1, line=attr(color=BIOS_COLORS.gray, width=1.5, dash="dot"))]),
+    annotations=[attr(text="TE", x=se_post["te_ms"], y=0.98, xref="x", yref="paper",
+        yanchor="top", showarrow=false, font=attr(size=17, color=BIOS_COLORS.gray))]); config=bios_config())
 ```
 
 ::: {.notes}
@@ -615,8 +654,25 @@ $$\sigma_r=\sqrt{2D\Delta}$$
 ::: {.column .figure-centered width="56%"}
 $p(r)$ — Ensemble average propagator (EAP)
 
-```{=html}
-<div class="propagator-diagram" style="height:320px" aria-label="Displacements across a Gaussian propagator accumulate different phases, reducing the net signal"></div>
+```{julia}
+prop_x = collect(range(-3.0, 3.0; length=201))
+gauss(x) = 0.72 * exp(-x^2 / 1.4)
+px = [-2.0, -1.0, 0.0, 1.0, 2.0]
+py = gauss.(px) .+ 0.22
+prop_ann = Any[phasor_arrow(x, y, -π * x / 6, BIOS_COLORS.ink; len=16) for (x, y) in zip(px, py)]
+push!(prop_ann,
+    attr(text="e<sup>−i2πqr</sup>", x=1.65, y=1.03, showarrow=false, font=attr(size=24)),
+    attr(text="r", x=2.95, y=-0.02, showarrow=false, font=attr(size=24)))
+append!(prop_ann, [phasor_arrow(4.2, 0.43, a, BIOS_COLORS.ink; len=32) for a in range(-π/2, π/2; length=33)])
+push!(prop_ann, phasor_arrow(4.2, 0.43, 0.0, "#e00000"; len=20, width=3.5))
+Plot([
+    scatter(mode="lines", x=prop_x, y=gauss.(prop_x), line=attr(color="#6788b5", width=10), showlegend=false, hoverinfo="skip"),
+    scatter(mode="markers", x=px, y=py, marker=attr(symbol="circle", size=53, color="white", line=attr(color=BIOS_COLORS.ink, width=2)), showlegend=false, hoverinfo="skip"),
+    scatter(mode="markers", x=[4.2], y=[0.43], marker=attr(symbol="circle", size=74, color="white", line=attr(color=BIOS_COLORS.ink, width=2)), showlegend=false, hoverinfo="skip"),
+], bios_layout(; height=320, font_size=21, margin=attr(l=5, r=10, t=5, b=10),
+    xaxis=attr(visible=false, range=[-3.1, 5.2]), yaxis=attr(visible=false, range=[-0.05, 1.2]),
+    annotations=prop_ann,
+    shapes=[attr(type="line", x0=-3, x1=2.9, y0=0, y1=0, line=attr(color=BIOS_COLORS.gray, width=1))]); config=bios_config())
 ```
 
 Free water has a Gaussian EAP
@@ -679,294 +735,130 @@ $$b=\gamma^2G^2\delta^2\left(\Delta-\frac{\delta}{3}\right)$$
 
 ```{=html}
 <script>
-window.addEventListener('load', async () => {
-  const Plotly = await window.komaPlotly;
-  const C={blue:'#2a7fb8',green:'#238b59',purple:'#9b58cf',yellow:'#c6a400',gray:'#89939c',ink:'#343a40'};
-  const config={displayModeBar:false,responsive:true};
-  const base={font:{size:21,color:C.ink},paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
-    margin:{l:65,r:25,t:35,b:75},legend:{orientation:'h',y:1.08,x:.5,xanchor:'center'}};
-  const axis={showgrid:true,gridcolor:'#e8ebed',zerolinecolor:'#89939c',automargin:true};
-  const animation={mode:'immediate',transition:{duration:0},frame:{duration:0,redraw:true}};
-  function slider(steps,prefix,suffix='',active=0,x=.05,len=.9,y=0) {
-    return {steps,active,x,len,y,pad:{t:30},ticklen:0,minorticklen:0,
-      font:{color:'rgba(0,0,0,0)'},currentvalue:{prefix,suffix,offset:0,font:{size:20,color:C.ink}},
-      bordercolor:C.blue,activebgcolor:C.blue,transition:{duration:0}};
-  }
-  function arrowMesh(v,color,name='',origin=[0,0,0],radius=.012,headRadius=.035,headLength=.09) {
-    const p={type:'mesh3d',x:[],y:[],z:[],i:[],j:[],k:[],color,name,hoverinfo:'skip',showlegend:!!name,
-      lighting:{ambient:1,diffuse:0,specular:0,fresnel:0}};
-    const length=Math.hypot(...v); if(length<1e-9)return p;
-    const n=v.map(a=>a/length),tip=origin.map((a,i)=>a+v[i]);
-    const u0=Math.abs(n[2])<.9?[-n[1],n[0],0]:[0,-n[2],n[1]],un=Math.hypot(...u0),u=u0.map(a=>a/un);
-    const w=[n[1]*u[2]-n[2]*u[1],n[2]*u[0]-n[0]*u[2],n[0]*u[1]-n[1]*u[0]];
-    const add=a=>{const k=p.x.length;['x','y','z'].forEach((key,i)=>p[key].push(a[i]));return k;};
-    const face=(a,b,c)=>{p.i.push(a);p.j.push(b);p.k.push(c);};
-    const ring=(o,r)=>Array.from({length:8},(_,j)=>add(o.map((a,i)=>a+r*(Math.cos(j*Math.PI/4)*u[i]+Math.sin(j*Math.PI/4)*w[i]))));
-    const end=tip.map((a,i)=>a-Math.min(headLength,.6*length)*n[i]);
-    const a=ring(origin,radius),b=ring(end,radius),c=ring(end,headRadius),d=add(tip);
-    for(let j=0;j<8;j++){const k=(j+1)%8;face(a[j],a[k],b[k]);face(a[j],b[k],b[j]);face(c[j],c[k],d);}
-    return p;
-  }
-  function axes(scene='scene') {
-    return [
-      {type:'scatter3d',mode:'lines',x:[0,1.1,null,0,0,null,0,0],y:[0,0,null,0,1.1,null,0,0],z:[0,0,null,0,0,null,0,1.1],line:{color:C.gray,width:3},scene,showlegend:false,hoverinfo:'skip'},
-      {type:'scatter3d',mode:'text',x:[1.2,0],y:[0,1.2],z:[0,0],text:['x′','y′'],textfont:{size:20,color:C.gray},scene,showlegend:false,hoverinfo:'skip'}];
-  }
-  function scene(domain,data,zoom=1) {
-    const states=data.m.flat(),ranges=[0,1,2].map(i=>{
-      if(i<2){const extent=Math.max(1.28,...states.map(v=>Math.abs(v[i])+.08));return[-extent,extent];}
-      return[Math.min(0,...states.map(v=>v[i]))-.08,Math.max(1.1,...states.map(v=>v[i]))+.08];
-    });
-    const spans=ranges.map(([lo,hi])=>hi-lo),scale=2.3*zoom/Math.max(...spans);
-    return {domain,xaxis:{visible:false,range:ranges[0]},yaxis:{visible:false,range:ranges[1]},zaxis:{visible:false,range:ranges[2]},
-      aspectmode:'manual',aspectratio:{x:spans[0]*scale,y:spans[1]*scale,z:spans[2]*scale},
-      camera:{eye:{x:1.6,y:1.6,z:.9},projection:{type:'orthographic'}},
-      annotations:[{x:0,y:0,z:1.05,text:'z',showarrow:false,xshift:-20,font:{size:20,color:C.gray}}],
-      bgcolor:'rgba(0,0,0,0)',uirevision:'view'};
-  }
-  const rainbow=['#6e40aa','#714bce','#4775de','#278bc3','#1aa59c','#3dbb65','#8cbd36','#c8ac24','#e9782d','#d94451'];
-  function vectors(data,k,sceneName='scene',showLegend=true) {
-    const m=data.m[k],out=m.map((v,j)=>({...arrowMesh(v,m.length===1?C.ink:(data.colors?.[j]??rainbow[j%10])),scene:sceneName,
-      ...(m.length>1?{name:'Isochromats',legendgroup:'isochromats',showlegend:showLegend&&j===0}:{})}));
-    if(m.length>1)out.push({...arrowMesh([data.net[k][0],data.net[k][1],0],C.ink,'Net M<sub>xy</sub>',undefined,.025,.06,.12),scene:sceneName,
-      legendgroup:'net-magnetization',showlegend:showLegend});
-    else {out[0].name='M(t)';out[0].showlegend=showLegend;}
+BIOS214.onReady(async Plotly => {
+  const {C, config, axis, baseLayout, slider, arrowMesh, onResize} = BIOS214;
+  const animation = {mode: 'immediate', transition: {duration: 0}, frame: {duration: 0, redraw: true}};
+  const rainbow = ['#6e40aa', '#714bce', '#4775de', '#278bc3', '#1aa59c', '#3dbb65', '#8cbd36', '#c8ac24', '#e9782d', '#d94451'];
+  const vec = (v, col, name = '', r = 0.012, hr = 0.035, hl = 0.09) =>
+    arrowMesh([[0, 0, 0]], [v], col, {name, radius: r, headRadius: hr, headLength: hl, sides: 8, caps: false});
+  const axes3d = (scene = 'scene') => [
+    {type: 'scatter3d', mode: 'lines', x: [0, 1.1, null, 0, 0, null, 0, 0], y: [0, 0, null, 0, 1.1, null, 0, 0],
+      z: [0, 0, null, 0, 0, null, 0, 1.1], line: {color: C.gray, width: 3}, scene, showlegend: false, hoverinfo: 'skip'},
+    {type: 'scatter3d', mode: 'text', x: [1.2, 0], y: [0, 1.2], z: [0, 0], text: ['x′', 'y′'],
+      textfont: {size: 20, color: C.gray}, scene, showlegend: false, hoverinfo: 'skip'}];
+  const scene3d = (domain, data, zoom = 1) => {
+    const states = data.m.flat(), ranges = [0, 1, 2].map(i =>
+      i < 2 ? (e => [-e, e])(Math.max(1.28, ...states.map(v => Math.abs(v[i]) + 0.08)))
+        : [Math.min(0, ...states.map(v => v[i])) - 0.08, Math.max(1.1, ...states.map(v => v[i])) + 0.08]);
+    const spans = ranges.map(([lo, hi]) => hi - lo), sc = 2.3 * zoom / Math.max(...spans);
+    return {domain, xaxis: {visible: false, range: ranges[0]}, yaxis: {visible: false, range: ranges[1]}, zaxis: {visible: false, range: ranges[2]},
+      aspectmode: 'manual', aspectratio: {x: spans[0] * sc, y: spans[1] * sc, z: spans[2] * sc},
+      camera: {eye: {x: 1.6, y: 1.6, z: 0.9}, projection: {type: 'orthographic'}},
+      annotations: [{x: 0, y: 0, z: 1.05, text: 'z', showarrow: false, xshift: -20, font: {size: 20, color: C.gray}}],
+      bgcolor: 'rgba(0,0,0,0)', uirevision: 'view'};
+  };
+  const vectors = (d, k, sc = 'scene', showLegend = true) => {
+    const m = d.m[k], out = m.map((v, j) => ({...vec(v, m.length === 1 ? C.ink : (d.colors?.[j] ?? rainbow[j % 10])),
+      scene: sc, ...(m.length > 1 ? {name: 'Isochromats', legendgroup: 'isochromats', showlegend: showLegend && j === 0} : {})}));
+    if (m.length > 1) out.push({...vec([d.net[k][0], d.net[k][1], 0], C.ink, 'Net M<sub>xy</sub>', 0.025, 0.06, 0.12),
+      scene: sc, legendgroup: 'net-magnetization', showlegend: showLegend});
+    else { out[0].name = 'M(t)'; out[0].showlegend = showLegend; }
     return out;
-  }
-  function sequenceTraces(d) {
-    const traces=d.wave.data.filter(t=>t.visible!=='legendonly' &&
-      (t.name==='B₁,x'||t.name==='|B1|_AM'||(t.name==='Gx'&&t.y?.some(v=>Number.isFinite(v)&&Math.abs(v)>1e-9))))
-      .map(t=>({...t,name:t.name==='Gx'?'Gx':'B₁',x:t.x.map(v=>v==null?v:v-d.origin_ms),xaxis:'x',yaxis:'y',showlegend:true}));
-    const phase=d.wave.data.find(t=>t.name==='∠B1_AM');
-    if(phase?.y.some(v=>Number.isFinite(v)&&Math.abs(v)>1e-6))traces.push({...phase,
-      x:phase.x.map(v=>v==null?v:v-d.origin_ms),y:phase.y.map(v=>v==null?v:v*180/Math.PI),
-      name:'RF phase (°)',visible:true,xaxis:'x',yaxis:'y3',showlegend:true,
-      hovertemplate:'%{x:.2f} ms<br>%{y:.1f}°<extra>RF phase</extra>',line:{color:'#df7b22',width:2,dash:'dot'}});
+  };
+  const sequenceTraces = d => {
+    const traces = d.wave.data.filter(t => t.visible !== 'legendonly' &&
+      (t.name === 'B₁' || (t.name === 'Gx' && t.y?.some(v => Number.isFinite(v) && Math.abs(v) > 1e-9))))
+      .map(t => ({...t, x: t.x.map(v => v == null ? v : v - d.origin_ms), xaxis: 'x', yaxis: 'y', showlegend: true}));
+    const phase = d.wave.data.find(t => t.name === '∠B1_AM');
+    if (phase?.y.some(v => Number.isFinite(v) && Math.abs(v) > 1e-6)) traces.push({...phase,
+      x: phase.x.map(v => v == null ? v : v - d.origin_ms), y: phase.y.map(v => v == null ? v : v * 180 / Math.PI),
+      name: 'RF phase (°)', visible: true, xaxis: 'x', yaxis: 'y3', showlegend: true,
+      hovertemplate: '%{x:.2f} ms<br>%{y:.1f}°<extra>RF phase</extra>', line: {color: '#df7b22', width: 2, dash: 'dot'}});
     return traces;
-  }
-  function rfShading(d,xref='x',yref='y domain') {
-    const rf=d.wave.data.find(t=>t.name==='B₁,x'),shapes=[];
-    let start=null;
-    rf.x.forEach((x,i)=>{
-      if(x!=null && Math.abs(rf.y[i])>1e-9) {
-        if(start===null)start=x-d.origin_ms;
-      } else if(start!==null) {
-        shapes.push({type:'rect',xref,yref,x0:start,x1:rf.x[i-1]-d.origin_ms,y0:0,y1:1,
-          fillcolor:'rgba(155,88,207,0.15)',line:{width:0},layer:'below'});
-        start=null;
-      }
-    });
-    return shapes;
-  }
-  function afterExcitation(d) {
-    const end=rfShading(d)[0].x1;
-    return {...d,t:d.t.map(t=>t-end),origin_ms:d.origin_ms+end,te_ms:d.te_ms-end};
-  }
-  const graphs=[];
-  for(const el of document.querySelectorAll('.bloch-demo')) {
-    const mode=el.dataset.mode;
-    let d=JSON.parse(el.querySelector('script').textContent);
-    if(mode==='echo-signal')d=afterExcitation(d);
-    if(mode==='comparison'||mode==='comparison-signal'){await comparison(el,d,mode==='comparison-signal');graphs.push(el);continue;}
-    if(mode==='rotation'||mode==='precession') {
-      const a=axes();
-      if(mode==='precession')a.push({type:'scatter3d',mode:'lines',
-        x:d.m.map(m=>m[0][0]),y:d.m.map(m=>m[0][1]),z:d.m.map(m=>m[0][2]),
-        line:{color:C.gray,width:3,dash:'dash'},showlegend:false,hoverinfo:'skip'});
-      const initial=vectors(d,0),moving=initial.map((_,j)=>a.length+j);
-      const frames=d.t.map((t,k)=>({name:String(k),traces:moving,data:vectors(d,k)}));
-      const layout={...base,margin:{l:0,r:0,t:30,b:mode==='precession'?0:75},
-        scene:scene({x:[0,1],y:[0,1]},d),legend:{orientation:'h',x:.5,xanchor:'center',y:1.02,font:{size:18}}};
-      if(mode!=='precession')layout.sliders=[slider(d.t.map((t,k)=>({label:t.toFixed(1),method:'animate',args:[[String(k)],animation]})),'Time: ',' ms')];
-      await Plotly.newPlot(el,{data:[...a,...initial],layout,frames,config});graphs.push(el);
-      if(mode==='precession') {
-        let playing=false;
-        const visible=()=>el.closest('section')?.classList.contains('present');
-        const play=async()=>{
-          if(playing||!visible())return;playing=true;
-          try {
-            while(visible())await Plotly.animate(el,null,{mode:'immediate',transition:{duration:0},frame:{duration:12.5,redraw:true},fromcurrent:false});
-          } catch {
-            // Leaving the slide interrupts the animation promise.
-          } finally {
-            playing=false;
-            if(visible())requestAnimationFrame(play);
-          }
+  };
+  const tSlider = (ts, fmt, padT = 30) => [slider(ts.map((t, k) => ({label: t.toFixed(fmt), method: 'animate', args: [[String(k)], animation]})),
+    'Time: ', ' ms', 0, {y: 0, pad: {t: padT}})];
+
+  const demos = [...document.querySelectorAll('.bloch-demo')];
+  for (const el of demos) {
+    const mode = el.dataset.mode, d = JSON.parse(el.querySelector('script').textContent);
+    if (mode === 'comparison') {
+      const {se, ge} = d, end = Math.min(se.te_ms, ge.te_ms);
+      const ts = [...new Set([...se.t, ...ge.t].filter(t => t <= end).map(t => +t.toFixed(6)))].sort((a, b) => a - b);
+      const nearest = (ds, t) => ds.t.reduce((best, x, i) => Math.abs(x - t) < Math.abs(ds.t[best] - t) ? i : best, 0);
+      const ks = ts.map(t => nearest(se, t)), kg = ts.map(t => nearest(ge, t));
+      const a = axes3d(), b = axes3d('scene2'), va = vectors(se, ks[0]), vb = vectors(ge, kg[0], 'scene2', false);
+      const moving = [...va.map((_, i) => a.length + i), ...vb.map((_, i) => a.length + va.length + b.length + i)];
+      const frames = ts.map((_, k) => ({name: String(k), traces: moving, data: [...vectors(se, ks[k]), ...vectors(ge, kg[k], 'scene2', false)]}));
+      const view = {m: [...se.m, ...ge.m]}, s1 = scene3d({x: [0, 0.48], y: [0, 1]}, view, 1.4), s2 = scene3d({x: [0.52, 1], y: [0, 1]}, view, 1.4);
+      s1.annotations[0].yshift = -25; s2.annotations[0].yshift = -25;
+      await Plotly.newPlot(el, {data: [...a, ...va, ...b, ...vb], frames, config, layout: baseLayout({
+        font: {size: 21, color: C.ink}, margin: {l: 0, r: 20, t: 40, b: 120}, scene: s1, scene2: s2,
+        legend: {orientation: 'h', x: 0.5, xanchor: 'center', y: 1.02, font: {size: 18}},
+        annotations: [{text: 'Spin echo', x: 0.24, y: 1.08, xref: 'paper', yref: 'paper', showarrow: false},
+          {text: 'Gradient echo', x: 0.77, y: 1.08, xref: 'paper', yref: 'paper', showarrow: false}],
+        sliders: tSlider(ts, 2, 25)})});
+    } else if (mode === 'rotation' || mode === 'precession') {
+      const a = axes3d();
+      if (mode === 'precession') a.push({type: 'scatter3d', mode: 'lines', x: d.m.map(m => m[0][0]),
+        y: d.m.map(m => m[0][1]), z: d.m.map(m => m[0][2]), line: {color: C.gray, width: 3, dash: 'dash'}, showlegend: false, hoverinfo: 'skip'});
+      const trails = k => {
+        if (mode !== 'rotation') return [];
+        const n = d.m[0].length, pts = d.m.slice(0, k + 1);
+        return Array.from({length: n}, (_, j) => ({
+          type: 'scatter3d', mode: 'lines',
+          x: pts.map(s => s[j][0]), y: pts.map(s => s[j][1]), z: pts.map(s => s[j][2]),
+          line: {color: n === 1 ? C.gray : (d.colors?.[j] ?? rainbow[j % 10]), width: 4},
+          opacity: n === 1 ? 0.55 : 0.45, showlegend: false, hoverinfo: 'skip'
+        }));
+      };
+      const frameData = k => [...trails(k), ...vectors(d, k)];
+      const init = frameData(0), moving = init.map((_, j) => a.length + j);
+      const frames = d.t.map((_, k) => ({name: String(k), traces: moving, data: frameData(k)}));
+      const layout = baseLayout({font: {size: 21, color: C.ink}, margin: {l: 0, r: 0, t: 30, b: mode === 'precession' ? 0 : 75},
+        scene: scene3d({x: [0, 1], y: [0, 1]}, d), legend: {orientation: 'h', x: 0.5, xanchor: 'center', y: 1.02, font: {size: 18}},
+        ...(mode === 'precession' ? {} : {sliders: tSlider(d.t, 1, 30)})});
+      await Plotly.newPlot(el, {data: [...a, ...init], layout, frames, config});
+      if (mode === 'precession') {
+        let playing = false;
+        const visible = () => el.closest('section')?.classList.contains('present');
+        const play = async () => {
+          if (playing || !visible()) return; playing = true;
+          try { while (visible()) await Plotly.animate(el, null, {mode: 'immediate', transition: {duration: 0}, frame: {duration: 12.5, redraw: true}, fromcurrent: false}); }
+          catch {} finally { playing = false; if (visible()) requestAnimationFrame(play); }
         };
-        Reveal.on('slidechanged',()=>{if(visible())play();else Plotly.animate(el,[],{mode:'immediate'});});
+        Reveal.on('slidechanged', () => { if (visible()) play(); else Plotly.animate(el, [], {mode: 'immediate'}); });
         play();
       }
-      continue;
-    }
-    const signalMode=mode==='echo-signal';
-    const showTimeSlider=el.id!=='spin-echo-signal';
-    const endTime=d.t[d.t.length-1];
-    const data=sequenceTraces(d),hasPhase=data.some(t=>t.yaxis==='y3');
-    const waveValues=data.filter(t=>t.yaxis==='y').flatMap(t=>t.y.filter(Number.isFinite));
-    const waveMin=Math.min(0,...waveValues),waveMax=Math.max(0,...waveValues),wavePad=.05*(waveMax-waveMin);
-    const waveRange=[waveMin<0?waveMin-wavePad:0,waveMax+wavePad],phaseScale=100/waveMax;
-    const layout={...base,margin:{l:55,r:30,t:45,b:120},
-      xaxis:{...axis,domain:[0,signalMode?.43:.34],anchor:'y',title:{text:'Time (ms)',standoff:5},range:[-d.origin_ms,endTime],showline:true,mirror:true,linecolor:C.gray,linewidth:1.2},
-      yaxis:{...d.wave.layout.yaxis,...axis,domain:[0,1],anchor:'x',automargin:true,autorange:false,range:waveRange,showline:true,mirror:true,linecolor:C.gray,linewidth:1.2},
-      yaxis3:{overlaying:'y',anchor:'x',side:'right',range:waveRange.map(v=>v*phaseScale),visible:hasPhase,tickvals:[0,90],tickfont:{color:'#df7b22',size:16},showgrid:false,zeroline:false},
-      legend:{orientation:'h',x:0,y:1.1,font:{size:18}}};
-    let moving=[];
-    if(signalMode) {
-      data.push({type:'scatter',mode:'lines',x:d.t,y:d.net.map(v=>Math.hypot(v[0],v[1])),xaxis:'x2',yaxis:'y2',name:'S(t)',legend:'legend2',line:{color:C.ink,width:3}});
-      layout.xaxis2={...axis,domain:[.53,1],anchor:'y2',title:{text:'Time (ms)',standoff:5},range:[-d.origin_ms,endTime]};
-      layout.yaxis2={...axis,domain:[0,1],anchor:'x2',title:{text:'S',standoff:12},range:[0,1.03]};
     } else {
-      const a=axes(),start=data.length+a.length;
-      data.push(...a,...vectors(d,0).map(t=>({...t,legend:'legend2'})));
-      moving=vectors(d,0).map((_,j)=>start+j);
-      layout.scene=scene({x:[.4,1],y:[0,1]},d,mode==='echo-magnetization'?1.4:1);
+      const data = sequenceTraces(d), hasPhase = data.some(t => t.yaxis === 'y3'), endTime = d.t.at(-1);
+      const vals = data.filter(t => t.yaxis === 'y').flatMap(t => t.y.filter(Number.isFinite));
+      const wmin = Math.min(0, ...vals), wmax = Math.max(0, ...vals), pad = 0.05 * (wmax - wmin);
+      const wrange = [wmin < 0 ? wmin - pad : 0, wmax + pad], a = axes3d(), start = data.length + a.length;
+      const v0 = vectors(d, 0).map(t => ({...t, legend: 'legend2'})), moving = v0.map((_, j) => start + j);
+      data.push(...a, ...v0);
+      const shapes = k => [
+        {type: 'line', xref: 'x', yref: 'y domain', x0: d.te_ms, x1: d.te_ms, y0: 0, y1: 1, line: {color: C.gray, width: 1.5, dash: 'dot'}},
+        {type: 'line', xref: 'x', yref: 'y domain', x0: d.t[k], x1: d.t[k], y0: 0, y1: 1, line: {color: '#d33', width: 2}}];
+      const frames = d.t.map((_, k) => ({name: String(k), traces: moving, data: vectors(d, k).map(t => ({...t, legend: 'legend2'})), layout: {shapes: shapes(k)}}));
+      await Plotly.newPlot(el, {data, frames, config, layout: baseLayout({
+        font: {size: 21, color: C.ink}, margin: {l: 55, r: 30, t: 45, b: 120}, shapes: shapes(0),
+        xaxis: {...axis, domain: [0, 0.34], anchor: 'y', title: {text: 'Time (ms)', standoff: 5}, range: [-d.origin_ms, endTime], linewidth: 1.2},
+        yaxis: {...d.wave.layout.yaxis, ...axis, domain: [0, 1], anchor: 'x', autorange: false, range: wrange, linewidth: 1.2},
+        yaxis3: {overlaying: 'y', anchor: 'x', side: 'right', range: wrange.map(v => v * 100 / wmax), visible: hasPhase, tickvals: [0, 90], tickfont: {color: '#df7b22', size: 16}, showgrid: false, zeroline: false},
+        scene: scene3d({x: [0.4, 1], y: [0, 1]}, d, 1.4),
+        legend: {orientation: 'h', x: 0, y: 1.1, font: {size: 18}}, legend2: {orientation: 'h', x: 0.72, y: 1.1, font: {size: 18}},
+        annotations: [{text: 'TE', xref: 'x', yref: 'paper', x: d.te_ms, y: 0.98, xshift: 7, xanchor: 'left', yanchor: 'top', showarrow: false, font: {color: C.gray, size: 16}}],
+        sliders: tSlider(d.t, 1, 75)})});
     }
-    layout.legend2={orientation:'h',x:.72,y:1.1,font:{size:18}};
-    const shapes=k=>[
-      ...(signalMode?rfShading(d,'x2','y2 domain'):[]),
-      {type:'line',xref:'x',yref:'y domain',x0:d.te_ms,x1:d.te_ms,y0:0,y1:1,line:{color:C.gray,width:1.5,dash:'dot'}},
-      ...(signalMode?[{type:'line',xref:'x2',yref:'y2 domain',x0:d.te_ms,x1:d.te_ms,y0:0,y1:1,line:{color:C.gray,width:1.5,dash:'dot'}}]:[]),
-      ...(showTimeSlider?[{type:'line',xref:'x',yref:'y domain',x0:d.t[k],x1:d.t[k],y0:0,y1:1,line:{color:'#d33',width:2}}]:[]),
-      ...(signalMode&&showTimeSlider?[{type:'line',xref:'x2',yref:'y2 domain',x0:d.t[k],x1:d.t[k],y0:0,y1:1,line:{color:'#d33',width:2}}]:[])];
-    const frames=showTimeSlider?d.t.map((t,k)=>({name:String(k),traces:moving,
-      data:signalMode?[]:vectors(d,k).map(t=>({...t,legend:'legend2'})),layout:{shapes:shapes(k)}})):[];
-    layout.shapes=shapes(0);
-    layout.annotations=[{text:'TE',xref:'x',yref:'paper',x:d.te_ms,y:.98,xshift:7,xanchor:'left',yanchor:'top',showarrow:false,font:{color:C.gray,size:16}},
-      ...(signalMode?[{text:'TE',xref:'x2',yref:'paper',x:d.te_ms,y:.98,xshift:7,xanchor:'left',yanchor:'top',showarrow:false,font:{color:C.gray,size:16}}]:[])];
-    if(showTimeSlider) {
-      layout.sliders=[slider(d.t.map((t,k)=>({label:t.toFixed(1),method:'animate',args:[[String(k)],animation]})),'Time: ',' ms')];
-      layout.sliders[0].pad.t=75;
-    }
-    await Plotly.newPlot(el,{data,layout,frames,config});graphs.push(el);
   }
-  async function comparison(el,d,signalMode=false) {
-    const se=signalMode?afterExcitation(d.se):d.se,ge=signalMode?afterExcitation(d.ge):d.ge;
-    const end=signalMode?Math.min(se.t.at(-1),ge.t.at(-1)):Math.min(se.te_ms,ge.te_ms);
-    const ts=[...new Set([...se.t,...ge.t].filter(t=>t<=end).map(t=>+t.toFixed(6)))].sort((a,b)=>a-b);
-    const nearest=(ds,t)=>ds.t.reduce((best,x,i)=>Math.abs(x-t)<Math.abs(ds.t[best]-t)?i:best,0);
-    const ks=ts.map(t=>nearest(se,t)),kg=ts.map(t=>nearest(ge,t));
-    let data,frames=[];
-    const layout={...base,margin:{l:signalMode?65:0,r:20,t:40,b:signalMode?65:120},
-      legend:{orientation:'h',x:.5,xanchor:'center',y:1.08,font:{size:18}}};
-    if(signalMode) {
-      const excitationEnd=0;
-      const envelopeCount=Math.ceil(end-excitationEnd)+1;
-      const envelopeTimes=Array.from({length:envelopeCount},(_,i)=>excitationEnd+(end-excitationEnd)*i/(envelopeCount-1));
-      const postExcitation=ds=>{const v=ds.net[nearest(ds,excitationEnd)];return Math.hypot(v[0],v[1]);};
-      data=[{type:'scatter',mode:'lines',x:se.t,y:se.net.map(v=>Math.hypot(v[0],v[1])),name:'SE',line:{color:C.blue,width:3}},
-        {type:'scatter',mode:'lines',x:ge.t,y:ge.net.map(v=>Math.hypot(v[0],v[1])),name:'GE',line:{color:'#df7b22',width:3,dash:'dash'}},
-        {type:'scatter',mode:'lines',x:envelopeTimes,y:envelopeTimes.map(t=>postExcitation(se)*Math.exp(-(t-excitationEnd)/d.T2_ms)),name:'exp(−t/T<sub>2</sub>)',line:{color:C.ink,width:2,dash:'dot'}},
-        {type:'scatter',mode:'lines',x:envelopeTimes,y:envelopeTimes.map(t=>postExcitation(ge)*Math.exp(-(t-excitationEnd)/d.T2star_ms)),name:'exp(−t/T<sub>2</sub><sup>*</sup>)',line:{color:C.gray,width:2,dash:'dot'}}];
-      layout.xaxis={...axis,domain:[0,1],anchor:'y',title:{text:'Time (ms)',standoff:5},range:[se.t[0],end]};
-      layout.yaxis={...axis,domain:[0,1],anchor:'x',range:[0,1.03],title:{text:'S'}};
-      layout.annotations=[{text:'TE',x:se.te_ms,y:.98,xref:'x',yref:'paper',yanchor:'top',showarrow:false,font:{size:17,color:C.gray}}];
-      layout.shapes=[...rfShading(se),{type:'line',xref:'x',yref:'y domain',x0:se.te_ms,x1:se.te_ms,y0:0,y1:1,line:{color:C.gray,width:1.5,dash:'dot'}}];
-    } else {
-      const a=axes(),b=axes('scene2'),va=vectors(se,ks[0]),vb=vectors(ge,kg[0],'scene2',false);
-      data=[...a,...va,...b,...vb];
-      const ia=a.length,ib=a.length+va.length+b.length;
-      const moving=[...va.map((_,i)=>ia+i),...vb.map((_,i)=>ib+i)];
-      frames=ts.map((t,k)=>({name:String(k),traces:moving,data:[...vectors(se,ks[k]),...vectors(ge,kg[k],'scene2',false)]}));
-      const view={m:[...se.m,...ge.m]};
-      layout.scene=scene({x:[0,.48],y:[0,1]},view,1.4);
-      layout.scene2=scene({x:[.52,1],y:[0,1]},view,1.4);
-      layout.scene.annotations[0].yshift=-25;
-      layout.scene2.annotations[0].yshift=-25;
-      layout.annotations=[{text:'Spin echo',x:.24,y:1.08,xref:'paper',yref:'paper',showarrow:false},{text:'Gradient echo',x:.77,y:1.08,xref:'paper',yref:'paper',showarrow:false}];
-      layout.legend.y=1.02;
-      layout.sliders=[slider(ts.map((t,k)=>({label:t.toFixed(2),method:'animate',args:[[String(k)],animation]})),'Time: ',' ms')];
-      layout.sliders[0].pad.t=25;
-    }
-    await Plotly.newPlot(el,{data,layout,frames,config});
-  }
-  const linspace=(a,b,n)=>Array.from({length:n},(_,i)=>a+(b-a)*i/(n-1));
-  for(const el of document.querySelectorAll('.inverse-cdf')) {
-    const T2prime=.05,w=linspace(-150,150,601),u=linspace(.1,.9,9);
-    const quantiles=u.map(p=>Math.tan(Math.PI*(p-.5))/T2prime);
-    const shapes=quantiles.flatMap((q,j)=>[
-      {type:'line',x0:-150,x1:q,y0:u[j],y1:u[j],line:{color:C.purple,width:1.5}},
-      {type:'line',x0:q,x1:q,y0:0,y1:u[j],line:{color:C.purple,width:1.5,dash:'dot'}}]);
-    await Plotly.newPlot(el,[
-      {type:'scatter',mode:'lines',x:w,y:w.map(x=>.5+Math.atan(T2prime*x)/Math.PI),
-        line:{color:C.blue,width:3},showlegend:false,
-        hovertemplate:'ω = %{x:.1f} rad/s<br>P(ω) = %{y:.3f}<extra></extra>'},
-      {type:'scatter',mode:'markers',x:quantiles,y:u,marker:{color:C.purple,size:6},showlegend:false,
-        hovertemplate:'u = %{y:.1f}<br>ω = %{x:.1f} rad/s<extra></extra>'}],
-      {...base,margin:{l:70,r:15,t:10,b:65},shapes,
-        xaxis:{...axis,title:{text:'ω (rad/s)'},range:[-150,150],tickvals:[-100,0,100]},
-        yaxis:{...axis,title:{text:'P(ω)'},range:[0,1],dtick:.2}},config);
-    graphs.push(el);
-  }
-  for(const el of document.querySelectorAll('.relaxation-curves')) {
-    const t=linspace(0,1600,161),values=[50,100,120,150,200,300,450,600,800,1000];
-    const traces=[{type:'scatter',mode:'lines',x:t,y:t.map(x=>Math.exp(-x/120)),name:'M<sub>xy</sub>',line:{color:C.purple,width:3}},
-      {type:'scatter',mode:'lines',x:t,y:t.map(x=>1-Math.exp(-x/450)),xaxis:'x2',yaxis:'y2',name:'Mz',line:{color:C.blue,width:3}}];
-    const steps=(which)=>values.map(v=>({label:String(v),method:'restyle',args:[{y:[t.map(x=>which?1-Math.exp(-x/v):Math.exp(-x/v))]},[which]]}));
-    await Plotly.newPlot(el,traces,{...base,margin:{l:65,r:25,t:65,b:110},
-      legend:{...base.legend,y:1.08,yanchor:'bottom'},
-      xaxis:{...axis,domain:[0,.44],anchor:'y',title:{text:'Time (ms)'}},yaxis:{...axis,range:[0,1.05],domain:[0,1],anchor:'x',title:{text:'M<sub>xy</sub>'}},
-      xaxis2:{...axis,domain:[.56,1],anchor:'y2',title:{text:'Time (ms)'}},yaxis2:{...axis,range:[0,1.05],domain:[0,1],anchor:'x2',title:{text:'M<sub>z</sub>'}},
-      sliders:[slider(steps(0),'T₂: ',' ms',2,0,.44,-.25),slider(steps(1),'T₁: ',' ms',6,.56,.44,-.25)]},config);graphs.push(el);
-  }
-  for(const el of document.querySelectorAll('.isochromat-distribution,.lorentzian-pair,.propagator-diagram')) {
-    const phasor=(x,y,angle,color,length=17)=>({x,y,xref:'x',yref:'y',
-      xshift:length*Math.cos(angle),yshift:length*Math.sin(angle),
-      ax:-length*Math.cos(angle),ay:length*Math.sin(angle),
-      text:'',showarrow:true,arrowhead:3,arrowsize:1,arrowwidth:2.5,arrowcolor:color});
-    if(el.classList.contains('isochromat-distribution')) {
-      const x=[],y=[],annotations=[],counts=[1,2,3,4,3,2,1],colors=['#e53935','#ef8a00','#c3b800','#22ba52','#00b8c8','#4184d7','#4734d8'];
-      counts.forEach((count,j)=>{for(let row=0;row<count;row++){
-        x.push(j-3);y.push(row+.65);
-        annotations.push(phasor(j-3,row+.65,Math.PI/2-(j-3)*Math.PI/4,colors[j]));
-      }});
-      annotations.push({text:'p(ω)',x:-3.45,y:3.75,showarrow:false,font:{size:26}},
-        {text:'ω',x:3.8,y:0,showarrow:false,font:{size:26}});
-      await Plotly.newPlot(el,[{type:'scatter',mode:'markers',x,y,
-        marker:{symbol:'circle',size:48,color:'#f5f5f5',line:{color:'#777',width:1}},
-        hoverinfo:'skip',showlegend:false}],{...base,margin:{l:15,r:25,t:15,b:15},
-        xaxis:{visible:false,range:[-3.8,4]},yaxis:{visible:false,range:[-.1,4.2]},
-        annotations,shapes:[{type:'line',x0:-3.65,x1:3.65,y0:0,y1:0,line:{color:C.gray,width:2}},
-          {type:'line',x0:-3.65,x1:-3.65,y0:0,y1:3.6,line:{color:C.gray,width:2}}]},config);
-      graphs.push(el);continue;
-    }
-    if(el.classList.contains('propagator-diagram')) {
-      const x=linspace(-3,3,201),gaussian=x=>.72*Math.exp(-x*x/1.4),px=[-2,-1,0,1,2],py=px.map(x=>gaussian(x)+.22);
-      const annotations=px.map((x,j)=>phasor(x,py[j],-Math.PI*x/6,C.ink,16));
-      annotations.push({text:'e<sup>−i2πqr</sup>',x:1.65,y:1.03,showarrow:false,font:{size:24}},
-        {text:'r',x:2.95,y:-.02,showarrow:false,font:{size:24}});
-      annotations.push(...linspace(-Math.PI/2,Math.PI/2,33).map(angle=>phasor(4.2,.43,angle,C.ink,32)),
-        {...phasor(4.2,.43,0,'#e00000',20),arrowwidth:3.5});
-      await Plotly.newPlot(el,[{type:'scatter',mode:'lines',x,y:x.map(gaussian),line:{color:'#6788b5',width:10},showlegend:false,hoverinfo:'skip'},
-        {type:'scatter',mode:'markers',x:px,y:py,marker:{symbol:'circle',size:53,color:'white',line:{color:C.ink,width:2}},showlegend:false,hoverinfo:'skip'},
-        {type:'scatter',mode:'markers',x:[4.2],y:[.43],marker:{symbol:'circle',size:74,color:'white',line:{color:C.ink,width:2}},showlegend:false,hoverinfo:'skip'}],
-        {...base,margin:{l:5,r:10,t:5,b:10},xaxis:{visible:false,range:[-3.1,5.2]},yaxis:{visible:false,range:[-.05,1.2]},annotations,
-          shapes:[{type:'line',x0:-3,x1:2.9,y0:0,y1:0,line:{color:C.gray,width:1}}]},config);
-      graphs.push(el);continue;
-    }
-    const w=linspace(-150,150,301),T=.05,t=linspace(0,.18,301);
-    const data=[{type:'scatter',mode:'lines',x:t,y:t.map(x=>Math.exp(-x/T)),line:{color:C.blue,width:3},showlegend:false},
-      {type:'scatter',mode:'lines',x:w,y:w.map(x=>T/(Math.PI*(1+(T*x)**2))),xaxis:'x2',yaxis:'y2',line:{color:C.green,width:3},showlegend:false}];
-    const layout={...base,margin:{l:65,r:25,t:15,b:60},xaxis:{...axis,title:{text:'Time (s)'},domain:[0,.44],range:[0,.18]},
-      yaxis:{...axis,title:{text:'e<sup>−t/T₂′</sup>'}},xaxis2:{...axis,title:{text:'ω (rad/s)'},domain:[.57,1],anchor:'y2'},yaxis2:{...axis,title:{text:'p(ω)'},anchor:'x2'}};
-    await Plotly.newPlot(el,data,layout,config);graphs.push(el);
-  }
-  // Reveal scales the slide canvas. Resize only when a plot becomes visible,
-  // preserving each plot's native slider state and the chosen 3D camera.
-  function resizeCurrent(){requestAnimationFrame(()=>{
-    const current=window.Reveal?.getCurrentSlide();
-    graphs.filter(g=>current?.contains(g)).forEach(g=>{
-      if(g.classList.contains('bloch-demo')){
-        const slide=current.getBoundingClientRect(),scale=slide.height/current.clientHeight;
-        const top=(g.getBoundingClientRect().top-slide.top)/scale;
-        g.style.height=Math.min(g.closest('.column')?580:565,current.clientHeight-top-70)+'px';
-      }
-      Plotly.relayout(g,{autosize:false,width:g.clientWidth,height:g.clientHeight});
-    });
-  });}
-  if(window.Reveal){Reveal.on('slidechanged',resizeCurrent);Reveal.on('ready',resizeCurrent);}
-  window.addEventListener('resize',resizeCurrent);
-  resizeCurrent();
-});
 
+  onResize(slide => demos.filter(g => slide.contains(g)).forEach(g => {
+    const rect = slide.getBoundingClientRect(), scale = rect.height / slide.clientHeight;
+    const top = (g.getBoundingClientRect().top - rect.top) / scale;
+    g.style.height = Math.min(g.closest('.column') ? 580 : 565, slide.clientHeight - top - 70) + 'px';
+    Plotly.relayout(g, {autosize: false, width: g.clientWidth, height: g.clientHeight});
+  }));
+});
 </script>
 ```

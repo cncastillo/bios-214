@@ -5,3 +5,39 @@ project:
     - julia ../export/lecture-previews.jl
   render:
     - "*/*.qmd"
+
+subtitle: "BIOS 214: Open-Source MRI Sequence Development"
+author:
+  name: Carlos Castillo-Passi
+  email: cacp@stanford.edu
+toc: false
+toc-depth: 1
+toc-title: Outline
+code-line-numbers: false
+highlight-style: github-light
+execute:
+  daemon: 86400
+  echo: false
+  warning: false
+format:
+  revealjs:
+    date-format: "DD MMM YYYY"
+    html-math-method: katex
+    width: 1280
+    height: 720
+    margin: 0.04
+    center: false
+    center-title-slide: false
+    menu: true
+    slide-number: c/t
+    slide-level: 1
+    auto-play-media: true
+    controls: true
+    embed-resources: true
+    include-in-header:
+      - text: |
+          <link rel="stylesheet" href="../assets/styles.css">
+          <script src="../assets/plots.js"></script>
+    include-before-body:
+      - text: |
+          <img src="../assets/stanford-logo.svg" class="slide-logo" alt="Stanford University">
