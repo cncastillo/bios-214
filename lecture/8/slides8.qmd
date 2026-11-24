@@ -40,7 +40,7 @@ brand:
       decoration: none
 code-line-numbers: false
 highlight-style: github-light
-footer: "BIOS 214 · Lecture 8 — Accelerated imaging and reconstruction"
+footer: "[BIOS 214](https://cncastillo.github.io/teaching/bios-214/) · Lecture 8 — Accelerated imaging and reconstruction"
 include-in-header:
   text: |
     <style>

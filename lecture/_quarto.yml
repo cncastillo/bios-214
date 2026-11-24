@@ -1,5 +1,7 @@
 project:
   type: default
   output-dir: ../_site/lecture
+  post-render:
+    - julia ../export/lecture-previews.jl
   render:
     - "*/*.qmd"

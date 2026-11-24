@@ -46,7 +46,7 @@ brand:
       decoration: none
 code-line-numbers: false
 highlight-style: github-light
-footer: "BIOS 214 · Lecture 2 — Spatially selective RF excitation"
+footer: "[BIOS 214](https://cncastillo.github.io/teaching/bios-214/) · Lecture 2 — Spatially selective RF excitation"
 include-in-header:
   text: |
     <style>

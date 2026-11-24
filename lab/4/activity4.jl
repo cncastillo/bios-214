@@ -133,10 +133,11 @@ md"""
 Simulate a brain acquisition with balanced steady-state free precession (bSSFP). Connect the gradient waveforms to the order, spacing, and extent of the acquired k-space samples.
 """
 
+# ╔═╡ 4be1aefe-5c49-48bd-a8bc-201d18bb2b89
+TableOfContents(aside=false, depth=2)
+
 # ╔═╡ a53ec7d2-e1de-11f1-bbdc-9ff39102966e
 md"""
-## Setup
-
 The image grid is fixed at $N_x\times N_y=64\times64$, with a $256\times256$ mm field of view. Acquisition parameters may change; the reconstruction grid and physical image FOV must stay fixed throughout the activity.
 """
 
@@ -2176,6 +2177,7 @@ version = "1.7.12+0"
 # ╔═╡ Cell order:
 # ╟─25bd45a0-dbd6-11f1-a8a1-5b411ca021eb
 # ╟─25bd460e-dbd6-11f1-a8a1-5b411ca021eb
+# ╟─4be1aefe-5c49-48bd-a8bc-201d18bb2b89
 # ╟─a53ec7d2-e1de-11f1-bbdc-9ff39102966e
 # ╠═a53ec84a-e1de-11f1-bbdc-9ff39102966e
 # ╟─a53ec868-e1de-11f1-bbdc-9ff39102966e

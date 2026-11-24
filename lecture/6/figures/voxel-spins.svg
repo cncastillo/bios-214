@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 420" role="img" aria-label="Five equal magnetization vectors distributed along z within one voxel, with different transverse phases" style="width:100%;height:420px">
+<defs><marker id="voxel-spin-arrow" viewBox="0 0 10 10" refX="8.2" refY="5" markerWidth="3.8" markerHeight="3.8" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#2a7fb8"/></marker></defs>
+<path d="M110 100 230 40 370 100 250 160Z M110 100V345L250 405V160 M250 405 370 345V100" fill="none" stroke="#adb5bd" stroke-width="2.3" stroke-linejoin="round"/>
+<path d="M110 345 230 285 370 345 M230 40V285" fill="none" stroke="#d4d9dd" stroke-width="1.8" stroke-dasharray="5 5"/>
+<path d="M240 352V78" fill="none" stroke="#c3cbd1" stroke-width="1.3" stroke-dasharray="4 5"/>
+<ellipse cx="240" cy="292" rx="30" ry="10" fill="none" stroke="#dce1e5" stroke-width="1.2"/>
+<circle cx="240" cy="335" r="3.3" fill="#89939c"/>
+<path d="M240 335 268.98 294.59" fill="none" stroke="#2a7fb8" stroke-width="4.6" stroke-linecap="round" marker-end="url(#voxel-spin-arrow)"/>
+<ellipse cx="240" cy="242" rx="30" ry="10" fill="none" stroke="#dce1e5" stroke-width="1.2"/>
+<circle cx="240" cy="285" r="3.3" fill="#89939c"/>
+<path d="M240 285 241.57 251.99" fill="none" stroke="#2a7fb8" stroke-width="4.6" stroke-linecap="round" marker-end="url(#voxel-spin-arrow)"/>
+<ellipse cx="240" cy="192" rx="30" ry="10" fill="none" stroke="#dce1e5" stroke-width="1.2"/>
+<circle cx="240" cy="235" r="3.3" fill="#89939c"/>
+<path d="M240 235 211.99 195.58" fill="none" stroke="#2a7fb8" stroke-width="4.6" stroke-linecap="round" marker-end="url(#voxel-spin-arrow)"/>
+<ellipse cx="240" cy="142" rx="30" ry="10" fill="none" stroke="#dce1e5" stroke-width="1.2"/>
+<circle cx="240" cy="185" r="3.3" fill="#89939c"/>
+<path d="M240 185 221.12 134.23" fill="none" stroke="#2a7fb8" stroke-width="4.6" stroke-linecap="round" marker-end="url(#voxel-spin-arrow)"/>
+<ellipse cx="240" cy="92" rx="30" ry="10" fill="none" stroke="#dce1e5" stroke-width="1.2"/>
+<circle cx="240" cy="135" r="3.3" fill="#89939c"/>
+<path d="M240 135 256.34 83.61" fill="none" stroke="#2a7fb8" stroke-width="4.6" stroke-linecap="round" marker-end="url(#voxel-spin-arrow)"/>
+<path d="M421 132V62 M415 72 421 62 427 72" fill="none" stroke="#343a40" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="433" y="74" font-family="sans-serif" font-size="25" fill="#343a40">z</text>
+</svg>

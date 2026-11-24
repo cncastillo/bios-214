@@ -1,7 +1,8 @@
 ---
 title: |
   [Lecture 1]{.lecture-number}
-  Open-source, AI agents, and MRI simulation
+  Open-source, AI agents, and\
+  MRI simulation
 subtitle: "BIOS 214: Open-Source MRI Sequence Development"
 author:
   name: Carlos Castillo-Passi
@@ -47,7 +48,7 @@ brand:
 code-line-numbers: false
 code-overflow: wrap
 highlight-style: github-light
-footer: "BIOS 214 · Lecture 1 — Open-source, AI agents, and MRI simulation"
+footer: "[BIOS 214](https://cncastillo.github.io/teaching/bios-214/) · Lecture 1 — Open-source, AI agents, and MRI simulation"
 include-in-header:
   text: |
     <style>

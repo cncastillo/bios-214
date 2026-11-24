@@ -1,7 +1,8 @@
 ---
 title: |
   [Lecture 4]{.lecture-number}
-  Spatial encoding and Cartesian imaging
+  Spatial encoding and\
+  Cartesian imaging
 subtitle: "BIOS 214: Open-Source MRI Sequence Development"
 author:
   name: Carlos Castillo-Passi
@@ -47,7 +48,7 @@ execute:
   daemon: 86400
 code-line-numbers: false
 highlight-style: github-light
-footer: "BIOS 214 · Lecture 4 — Spatial encoding and Cartesian imaging"
+footer: "[BIOS 214](https://cncastillo.github.io/teaching/bios-214/) · Lecture 4 — Spatial encoding and Cartesian imaging"
 include-in-header:
   text: |
     <style>

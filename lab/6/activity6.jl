@@ -23,7 +23,8 @@ begin
 end
 
 # ╔═╡ 14dad99e-e4a2-11f1-8f07-79e3835201ec
-HTML("""
+let
+    header = HTML("""
 <style>
     .bios214-header {
         display: flex;
@@ -122,13 +123,18 @@ HTML("""
     </div>
 </header>
 """)
-
-# ╔═╡ 14dad9f8-e4a2-11f1-8f07-79e3835201ec
-md"""
+    introduction = md"""
 # Activity 6: Acquire and reconstruct radial data
+
+**Scanner laboratory · November 20, 2026 · Cima.X (3T3), Lucas Center**
 
 Test the radial bSSFP sequence you designed in Activity 5 on the resolution phantom. Use this notebook to record your experiment and compare the acquired image with your simulated reconstruction.
 """
+    PlutoUI.@htl("$(header)$(introduction)")
+end
+
+# ╔═╡ a17707bd-a257-4107-a5d2-6f37ca5e5f12
+TableOfContents(aside=false, depth=2)
 
 # ╔═╡ 14dada34-e4a2-11f1-8f07-79e3835201ec
 md"""
@@ -165,7 +171,7 @@ md"""
 | Number of dummy shots | [fill in] |
 | Number of acquired radial spokes | [fill in] |
 | Field of view (mm) | [fill in] |
-| Reconstructed matrix | [fill in] |
+| Reconstructed matrix ($N_x\times N_y$) | [fill in] |
 | In-plane resolution (mm) | [fill in] |
 
 **Changes made at the scanner**
@@ -529,7 +535,7 @@ version = "1.70.0+0"
 
 # ╔═╡ Cell order:
 # ╟─14dad99e-e4a2-11f1-8f07-79e3835201ec
-# ╟─14dad9f8-e4a2-11f1-8f07-79e3835201ec
+# ╟─a17707bd-a257-4107-a5d2-6f37ca5e5f12
 # ╟─14dada34-e4a2-11f1-8f07-79e3835201ec
 # ╠═14dada48-e4a2-11f1-8f07-79e3835201ec
 # ╠═14dada52-e4a2-11f1-8f07-79e3835201ec

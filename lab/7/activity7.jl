@@ -71,6 +71,12 @@ md"""
 # Activity 7: Simulate spoiling and banding
 """
 
+# ╔═╡ 78ec4eea-e8ed-440e-8d79-9989bd4f0bc2
+begin
+    using PlutoUI
+    TableOfContents(aside=false, depth=2)
+end
+
 # ╔═╡ 25bd8b0a-dbd6-11f1-a8a1-5b411ca021eb
 md"""
 To be uploaded soon!
@@ -79,4 +85,5 @@ To be uploaded soon!
 # ╔═╡ Cell order:
 # ╟─25bd8a06-dbd6-11f1-a8a1-5b411ca021eb
 # ╟─25bd8ab0-dbd6-11f1-a8a1-5b411ca021eb
+# ╟─78ec4eea-e8ed-440e-8d79-9989bd4f0bc2
 # ╟─25bd8b0a-dbd6-11f1-a8a1-5b411ca021eb

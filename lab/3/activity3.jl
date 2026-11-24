@@ -133,6 +133,9 @@ Test the custom 2D excitation you designed in Activity 2 on a physical phantom i
     PlutoUI.@htl("$(header)$(introduction)")
 end
 
+# ╔═╡ 6da9a77c-e14b-4740-96fd-b63370b01d18
+TableOfContents(aside=false, depth=2)
+
 # ╔═╡ 46e643ac-ded9-11f1-8296-71bfeafed268
 md"""
 ## Part 1: Record your experiment
@@ -545,6 +548,7 @@ version = "1.70.0+0"
 
 # ╔═╡ Cell order:
 # ╟─a762c10a-ec64-470b-b21c-da08a6340466
+# ╟─6da9a77c-e14b-4740-96fd-b63370b01d18
 # ╟─46e643ac-ded9-11f1-8296-71bfeafed268
 # ╠═039beeb5-9139-4740-9721-c9bf1aa3c61d
 # ╠═46e643d4-ded9-11f1-8296-71bfeafed268

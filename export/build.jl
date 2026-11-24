@@ -22,12 +22,6 @@ end
 run(addenv(`quarto render $(joinpath(root, "lecture"))`,
     "QUARTO_JULIA" => joinpath(Sys.BINDIR, Base.julia_exename())))
 
-for lecture in readdir(joinpath(site_output, "lecture"); join=true)
-    html = joinpath(lecture, "slides$(basename(lecture)).html")
-    isfile(html) || continue
-    cp(html, joinpath(lecture, "index.html"))
-end
-
 function write_material_index(kind, title, label, prefix, extension)
     folders = filter(readdir(joinpath(root, kind); join=true)) do folder
         isfile(joinpath(folder, "$(prefix)$(basename(folder)).$(extension)"))
@@ -36,18 +30,21 @@ function write_material_index(kind, title, label, prefix, extension)
     cards = map(folders) do folder
         number = basename(folder)
         source = read(joinpath(folder, "$(prefix)$number.$extension"), String)
+        page = joinpath(site_output, kind, number, "index.html")
+        version = string(mtime(page))
         name = if kind == "lecture"
-            html = read(joinpath(site_output, kind, number, "index.html"), String)
+            html = read(page, String)
             replace(match(r"<title>(.*?)</title>"s, html)[1], r"^Lecture \d+\s+" => "")
         else
             replace(match(r"(?m)^# Activity \d+: (.+)$", source)[1], "&" => "&amp;", "<" => "&lt;")
         end
+        preview = kind == "lecture" ? "$number/preview.html?v=$version" : "$number/?v=$version"
         """
         <article class="material">
           <div class="preview">
-            <iframe src="$number/" title="$label $number preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
+            <iframe src="$preview" title="$label $number preview" loading="lazy" tabindex="-1" aria-hidden="true"></iframe>
           </div>
-          <a class="material-link" href="$number/" aria-label="$label $number: $(replace(name, '\"' => "&quot;"))"></a>
+          <a class="material-link" href="$number/?v=$version" aria-label="$label $number: $(replace(name, '\"' => "&quot;"))"></a>
         </article>
         """
     end
@@ -71,6 +68,7 @@ function write_material_index(kind, title, label, prefix, extension)
                    background: #fff; color-scheme: only light; }
         .preview iframe { position: absolute; width: 300%; height: 300%; border: 0;
                           transform: scale(0.333333); transform-origin: top left; pointer-events: none; }
+        .introduction { margin-bottom: 1.5rem; }
         .material-link { position: absolute; inset: 0; }
         @media (max-width: 640px) { .materials { grid-template-columns: 1fr; } }
       </style>
@@ -82,7 +80,8 @@ function write_material_index(kind, title, label, prefix, extension)
       </nav>
       <main>
         <h1>BIOS 214 · $title</h1>
-        <div class="materials">$(join(cards, "\n"))</div>
+        <div class="materials introduction">$(first(cards))</div>
+        <div class="materials">$(join(cards[2:end], "\n"))</div>
       </main>
     </body>
     </html>

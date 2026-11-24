@@ -68,8 +68,14 @@ HTML("""
 
 # ╔═╡ 25bda5b8-dbd6-11f1-a8a1-5b411ca021eb
 md"""
-# Activity 8: Build and validate a 2× accelerated EPI experiment
+# Activity 8: Build and validate a 2× accelerated 2D sequence
 """
+
+# ╔═╡ e9ce9e6f-2a26-46b6-a135-7c5077f7a748
+begin
+    using PlutoUI
+    TableOfContents(aside=false, depth=2)
+end
 
 # ╔═╡ 25bda612-dbd6-11f1-a8a1-5b411ca021eb
 md"""
@@ -79,4 +85,5 @@ To be uploaded soon!
 # ╔═╡ Cell order:
 # ╟─25bda554-dbd6-11f1-a8a1-5b411ca021eb
 # ╟─25bda5b8-dbd6-11f1-a8a1-5b411ca021eb
+# ╟─e9ce9e6f-2a26-46b6-a135-7c5077f7a748
 # ╟─25bda612-dbd6-11f1-a8a1-5b411ca021eb
