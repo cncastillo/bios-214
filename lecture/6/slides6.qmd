@@ -3,610 +3,238 @@ title: |
   [Lecture 6]{.lecture-number}
   Steady-state signal and\
   image contrast
-subtitle: "BIOS 214: Open-Source MRI Sequence Development"
-author:
-  name: Carlos Castillo-Passi
-  email: cacp@stanford.edu
 date: 2026-11-20
 output-file: slides6.html
-toc: false
-toc-depth: 1
-toc-title: Outline
-format:
-  revealjs:
-    date-format: "DD MMM YYYY"
-    width: 1280
-    height: 720
-    margin: 0.04
-    center: false
-    center-title-slide: false
-    menu: true
-    slide-number: c/t
-    slide-level: 1
-    auto-play-media: true
-    controls: true
-    embed-resources: true
-    html-math-method: katex
-brand:
-  color:
-    foreground: "#343a40"
-    background: "#ffffff"
-    primary: "#2a7fb8"
-    secondary: "#6c757d"
-  typography:
-    headings:
-      color: foreground
-    link:
-      color: primary
-      decoration: none
 engine: julia
-execute:
-  echo: false
-  warning: false
-code-line-numbers: false
-highlight-style: github-light
 footer: "[BIOS 214](https://cncastillo.github.io/teaching/bios-214/) · Lecture 6 — Steady-state signal and image contrast"
-include-after-body:
-  text: |
-    <img src="figures/stanford-medicine.svg" class="slide-logo" alt="Stanford Medicine">
 include-in-header:
   text: |
     <style>
-    .reveal {
-      --r-heading1-size: 60px;
-      --r-heading2-size: 60px;
-    }
-    .reveal .slides section:not(#title-slide) > h1 { font-size: var(--r-heading1-size); }
-    .reveal .title {
-      font-size: 84px;
-    }
-    .reveal .controls[data-controls-layout=edges] .navigate-left,
-    .reveal .controls[data-controls-layout=edges] .navigate-right { top: 12px; margin-top: 0; }
-    .reveal .controls .controls-arrow {
-      scale: 0.6;
-    }
-    #title-slide {
-      text-align: left;
-    }
-    #title-slide .subtitle {
-      color: #6c757d;
-    }
-    #title-slide .quarto-title-authors {
-      justify-content: flex-start;
-    }
-    #title-slide .quarto-title-author {
-      padding: 0;
-    }
-    .reveal .title .lecture-number {
-      display: block;
-      margin-bottom: 0.35em;
-      font-size: 32px;
-      font-weight: normal;
-      color: #6c757d;
-    }
-    .reveal .slide-logo {
-      height: 6vh;
-      max-width: unset;
-      max-height: unset;
-    }
-    .reveal.has-logo .slide-number {
-      top: auto;
-      bottom: 12px;
-      right: calc(4vh + 20px);
-      font-size: 12px;
-      color: #6c757d;
-    }
-    #title-slide .quarto-title-author-email a {
-      font-size: 32px;
-      color: var(--r-link-color);
-    }
-
     .reveal #image-contrast h1, .reveal #single-voxel h1 { font-size: 52px; }
     .reveal .encoding-panels {
-      display: grid;
-      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.3fr);
-      text-align: center;
-      gap: 20px;
-      margin: 10px 0 16px;
+      display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.3fr);
+      text-align: center; gap: 20px; margin: 10px 0 16px;
     }
     .reveal .encoding-panels > div { min-width: 0; }
     .reveal .encoding-panels .katex-display { margin: 0.35em 0; font-size: 0.8em; }
-    .reveal #encoding-trajectory, .reveal #encoding-reconstruction { height: 284px; }
     .reveal .reconstruction-panel { position: relative; }
     .reveal .inverse-ft {
-      position: absolute;
-      top: 178px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 24px;
-      pointer-events: none;
+      position: absolute; top: 178px; left: 50%; transform: translateX(-50%);
+      font-size: 24px; pointer-events: none;
     }
     .reveal #image-contrast > .fragment { margin: 6px 0; font-size: 32px; text-align: center; }
     .reveal #voxel-simulation { height: 540px; }
     .reveal .slide-note { font-size: 16px; line-height: 1.2; margin: 2px 0 0; color: #6c757d; }
-    .reveal #rf-center h1, .reveal #rf-phase h1, .reveal #slr-minphase h1, .reveal #refocusing-pulse h1, .reveal #slr-refocusing h1, .reveal #spin-echo-moment h1 { font-size: 46px; margin-bottom: 0; }
+    .reveal #rf-center h1, .reveal #rf-phase h1, .reveal #slr-minphase h1,
+    .reveal #refocusing-pulse h1, .reveal #slr-refocusing h1, .reveal #spin-echo-moment h1 { font-size: 46px; margin-bottom: 0; }
     .reveal #rf-center-plot, .reveal #rf-phase-plot, .reveal #slr-minphase-plot { height: 635px; }
-    .reveal #refocusing-plot, .reveal #slr-refocusing-plot, .reveal #spin-echo-moment-plot { height: 590px; }
-    .reveal .activity-frame { width: 100%; height: 510px; border: 1px solid #cdd3d9; }
-    .reveal .lab-columns { display: flex; align-items: flex-start; gap: 24px; }
-    .reveal .lab-columns ul { font-size: 30px; line-height: 1.3; }
-    .reveal .lab-columns li { margin-bottom: 18px; }
+    .reveal #refocusing-plot, .reveal #slr-refocusing-plot { height: 590px; }
     .reveal .lesson-slide h1 { font-size: 46px; margin-bottom: 10px; }
     .reveal .lesson-plot { height: 540px; }
-    .reveal #catalysis-plot { height: 600px; }
     .reveal .lesson-equation { text-align: center; font-size: 28px; margin: 4px 0; }
     .reveal #ernst-angle .lesson-plot { height: 500px; }
+    .reveal #timing-contrast .lesson-equation { min-height: 68px; display: flex; align-items: center; justify-content: center; margin: 0 0 2px; }
+    .reveal #timing-contrast .lesson-plot { height: 470px; }
     .reveal #voxel-uses .columns { align-items: center; }
     .reveal #voxel-uses ul { font-size: 32px; line-height: 1.45; }
     .reveal #voxel-uses li { margin-bottom: .45em; }
-    .reveal #one-rf, .reveal #assume-steady-state { text-align: center; }
+    .reveal #one-rf, .reveal #assume-steady-state, .reveal #questions { text-align: center; }
     .reveal #one-rf h1, .reveal #assume-steady-state h1 { margin: 0; }
-    .reveal #questions { text-align: center; }
-
     </style>
 ---
 
-~~~{julia}
+```{julia}
 #| output: false
+include("../common.jl")
+include("../../openrecon/OpenReconClient.jl")
 using Base64
 using FFTW
-using PNGFiles
-using KomaMRI
-using KomaMRI.KomaMRIPlots.PlotlyBase
+import MRISequenceBuildingBlocks as SBB
+
+const LECTURE6_TISSUES = Dict(
+    "WM"  => [0.77, 0.832, 0.080, 0.045, 0.0],
+    "GM"  => [0.86, 1.330, 0.110, 0.050, 0.0],
+    "CSF" => [1.0,  4.0,   1.5,   0.20,  0.0],
+)
+const LECTURE6_COLORS = ["#2a7fb8", "#d77630", "#31966b"]
+const OPENRECON_IMAGE = "ghcr.io/mcgrathcm/bios214-radial:0.1.3"
 
 # The 96 × 96 Cartesian example from Lecture 4.
-
 scanner = Scanner(limits=HardwareLimits(Gmax=20e-3, Smax=40.0,
     RF_dead_time=0.0, RF_ring_down_time=0.0, ADC_dead_time=0.0))
 N, fov, dwell = 96, 0.24, 5e-6
-dk = 1/fov
+dk = 1 / fov
 excitation = PulseDesigner.build_sinc_pulse(π/4; duration=1e-3, time_bw_product=4.0,
     slice_thickness=10e-3, apodization=0.5, use=Excitation(), sys=scanner)
-
-function cartesian_line(ky)
-    seq = deepcopy(excitation)
-    readout = PulseDesigner.make_trapezoid(; flat_area=(N-1)*dk, flat_time=(N-1)*dwell, sys=scanner)
-    pre_area = -N/2*dk - γ*readout.A*readout.rise/2
-    pre_x = PulseDesigner.make_trapezoid(; area=pre_area, sys=scanner)
-    pre_y = PulseDesigner.make_trapezoid(; area=ky, sys=scanner)
-    encoding_duration = max(dur(pre_x), dur(pre_y)) + 0.25e-3
-    addblock!(seq; x=PulseDesigner.make_trapezoid(; area=pre_area, duration=encoding_duration, sys=scanner),
-        y=PulseDesigner.make_trapezoid(; area=ky, duration=encoding_duration, sys=scanner))
-    addblock!(seq, ADC(N, (N-1)*dwell, readout.rise); x=readout)
-    seq
-end
-
-function five_shots()
-    seq = Sequence(scanner)
-    for line in (-48, -24, 0, 24, 47)
-        shot = cartesian_line(line*dk)
-        addblock!(shot, Delay(12e-3-dur(shot)))
-        seq += shot
-    end
-    seq
-end
+line_seq(ky; tr=nothing) = cartesian_line(ky, scanner; excitation, nx=N, fov, dwell, tr)
+five_shots() = reduce(+, (line_seq(line * dk; tr=12e-3) for line in (-48, -24, 0, 24, 47)))
 
 function excitation_train()
-    rf = deepcopy(excitation.RF[1,1])
-    rf.A .*= 10/45
+    rf = deepcopy(excitation.RF[1, 1])
+    rf.A .*= 10 / 45
     shot = Sequence(scanner)
     addblock!(shot, rf)
-    addblock!(shot, Delay(5e-3-dur(shot)))
-    seq = Sequence(scanner)
-    for _ in 1:100
-        seq += shot
-    end
-    seq
+    addblock!(shot, Delay(5e-3 - dur(shot)))
+    reduce(+, (deepcopy(shot) for _ in 1:100))
 end
 
-rows(matrix) = [collect(row) for row in eachrow(matrix)]
-sim_params = Dict{String,Any}("gpu"=>false, "Nthreads"=>1, "precision"=>"f64",
-    "Δt"=>20e-6, "Δt_rf"=>20e-6)
+sim_params = Dict{String,Any}("gpu"=>false, "Nthreads"=>1, "precision"=>"f64", "Δt"=>20e-6, "Δt_rf"=>20e-6)
 
 function cartesian_images()
-    density = Float64.(PNGFiles.load(joinpath(@__DIR__, "figures", "brain-density.png")))
-    coordinates = ((0:N-1) .- N÷2) .* (fov/N)
-    x = repeat(coordinates; inner=N)
-    y = repeat(coordinates; outer=N)
-    inside = vec(density) .> 0
+    density = load_brain_96x96()
+    coords = ((0:N-1) .- N ÷ 2) .* (fov / N)
+    x, y, inside = repeat(coords; inner=N), repeat(coords; outer=N), vec(density) .> 0
     brain = Phantom(x=x[inside], y=y[inside], ρ=vec(density)[inside],
-        T1=fill(Inf,count(inside)), T2=fill(Inf,count(inside)))
+        T1=fill(Inf, count(inside)), T2=fill(Inf, count(inside)))
     spectrum = zeros(ComplexF64, N, N)
     for (row, ky) in enumerate((-N÷2:N÷2-1) .* dk)
-        spectrum[row,:] .= vec(simulate(brain, cartesian_line(ky), scanner; verbose=false,
+        spectrum[row, :] .= vec(simulate(brain, line_seq(ky), scanner; verbose=false,
             sim_params=merge(sim_params, Dict("return_type"=>"mat"))))
     end
     image = abs.(fftshift(ifft(ifftshift(spectrum))))
-    log_spectrum = log10.(1 .+ 1000 .* abs.(spectrum) ./ maximum(abs.(spectrum)))
-    (; k=rows(log_spectrum), image=rows(image ./ maximum(image)),
-        x=1e3 .* coordinates, kaxis=(-N÷2:N÷2-1) .* dk)
+    log_spec = log10.(1 .+ 1000 .* abs.(spectrum) ./ maximum(abs.(spectrum)))
+    (; k=rows(log_spec), image=rows(image ./ maximum(image)),
+        x=1e3 .* coords, kaxis=(-N÷2:N÷2-1) .* dk)
 end
 
-function rf_center_demo()
-    rf = excitation.RF[1, 1]
-    T = rf.T
-    T_rew = 0.5e-3
-    T_total = T + T_rew
-    tbw = 4.0
-    slice_thickness = 10e-3
-    gz_T_m = (tbw / T) / (γ * slice_thickness)
-    z_mm = collect(range(-2.0, 2.0; length=9))
-    z_m = z_mm .* 1e-3
-    omega = 2π * γ * gz_T_m .* z_m
-    spins = Phantom(x=zeros(length(z_m)), y=zeros(length(z_m)), z=z_m,
-        T1=fill(Inf, length(z_m)), T2=fill(Inf, length(z_m)))
+# ---- Unified 1D slice-selective RF pulse demos (rf_center, rf_phase, slr_minphase, refocusing) ----
 
-    # Normalize the KomaMRI sinc RF waveform (from PulseDesigner.build_sinc_pulse) to 1 rad.
-    a_raw = real.(rf.A)
+function unit_rf_envelope(a_raw, T)
     m = length(a_raw)
-    dt_rf = T / max(m - 1, 1)
-    area_rad = 2π * γ * (m == 1 ? a_raw[1] * T : sum(0.5 .* (a_raw[1:end-1] .+ a_raw[2:end])) * dt_rf)
-    a_unit = a_raw ./ area_rad
-    t_wave_ms = collect(range(0.0, 1e3 * T; length=m))
-    b1_unit_uT = round.(1e6 .* a_unit; digits=3)
-
-    # 61 slider time points (0.00 -> 1.50 ms, step 0.025 ms) simulated with KomaMRI.simulate.
-    n_frames = 61
-    t_grid_s = collect(range(0.0, T_total; length=n_frames))
-    t_ms = round.(1e3 .* t_grid_s; digits=4)
-    rf_sim_params = Dict{String,Any}("gpu"=>false, "Nthreads"=>1, "precision"=>"f64",
-        "Δt"=>25e-6, "Δt_rf"=>10e-6, "max_block_length"=>1, "max_rf_block_length"=>1,
-        "return_type"=>"state")
-
-    function sample_koma(seq; t_offset=0.0)
-        ts = Float64[0.0]
-        xs = Vector{Vector{Float64}}([zeros(length(z_m))])
-        ys = Vector{Vector{Float64}}([zeros(length(z_m))])
-        record = function(progress, blocks, data, _)
-            part = blocks.parts[progress.block]
-            push!(ts, data.seqd.t[last(part)])
-            push!(xs, real.(data.Xt.xy))
-            push!(ys, imag.(data.Xt.xy))
-        end
-        simulate(spins, seq, scanner; verbose=false, callbacks=(record,), sim_params=rf_sim_params)
-        frames = Vector{Vector{Vector{Float64}}}(undef, n_frames)
-        for (i, tg) in enumerate(t_grid_s)
-            idx = findlast(<=(tg + t_offset + 1e-9), ts)
-            idx = idx === nothing ? 1 : idx
-            frames[i] = [[round(xs[idx][j]; digits=4), round(ys[idx][j]; digits=4)] for j in eachindex(z_m)]
-        end
-        frames, complex.(xs[end], ys[end])
-    end
-
-    function extract_plot_seq(seq, names)
-        traces = plot_seq(seq; slider=false, show_rf_frame=false).data
-        Dict(t.name => (; x=collect(t.x), y=collect(t.y), line=t.line)
-             for t in traces if haskey(t, :name) && t.name in names)
-    end
-
-    dt_imp = 1e-6
-    flip_degs = collect(10:10:90)
-    cases = map(flip_degs) do deg
-        flip_rad = deg2rad(deg)
-        # Step 1: Simulate RF + Gz (no rewinder) to measure passband phase slope at t = T -> exact t_c.
-        seq_no_rew = Sequence(scanner)
-        addblock!(seq_no_rew, RF(flip_rad .* a_unit, T); z=Grad(gz_T_m, T))
-        _, xy_rf_end = sample_koma(seq_no_rew)
-
-        phi = angle.(xy_rf_end)
-        for j in 2:length(phi)
-            d = phi[j] - phi[j - 1]
-            while d > π; d -= 2π; end
-            while d < -π; d += 2π; end
-            phi[j] = phi[j - 1] + d
-        end
-        phi_c = phi .- (sum(phi) / length(phi))
-        t_iso = -sum(omega .* phi_c) / sum(omega .^ 2)
-        tc = clamp(T - t_iso, 0.0, T)
-        gz_rew_T_m = -gz_T_m * (t_iso / T_rew)
-
-        # Step 2: Actual sequence with exact Gz rewinder over [T, T + T_rew].
-        seq_actual = Sequence(scanner)
-        addblock!(seq_actual, RF(flip_rad .* a_unit, T); z=Grad(gz_T_m, T))
-        addblock!(seq_actual; z=Grad(gz_rew_T_m, T_rew))
-        hist_actual, _ = sample_koma(seq_actual)
-        wave_actual = extract_plot_seq(seq_actual, ("|B1|_AM", "Gz"))
-
-        # Step 3: Equivalent sequence: Delay(tc) + hard RF(α) + square Gz [tc, T] + same Gz rewinder.
-        t_rem = max(T - tc - dt_imp / 2, 1e-6)
-        seq_equiv = Sequence(scanner)
-        tc > dt_imp && addblock!(seq_equiv, Delay(tc - dt_imp / 2))
-        addblock!(seq_equiv, RF(flip_rad / (2π * γ * dt_imp), dt_imp))
-        addblock!(seq_equiv; z=Grad(gz_T_m, t_rem))
-        addblock!(seq_equiv; z=Grad(gz_rew_T_m, T_rew))
-        hist_equiv, _ = sample_koma(seq_equiv)
-        wave_equiv = extract_plot_seq(seq_equiv, ("Gz",))
-
-        peak_uT = maximum(abs, filter(isfinite, Float64[v for v in wave_actual["|B1|_AM"].y if v isa Number]))
-        (; deg, amp=round(sin(flip_rad); digits=4), tc_ms=round(1e3 * tc; digits=4),
-            gz_rew_mTm=round(1e3 * gz_rew_T_m; digits=3), peak_uT=round(peak_uT; digits=3),
-            wave_actual, wave_equiv, hist_actual, hist_equiv)
-    end
-    (; rf_dur_ms=1e3 * T, duration_ms=1e3 * T_total, t_ms,
-        gz_mTm=round(1e3 * gz_T_m; digits=3), z_mm, flip_degs, cases)
+    dt = T / max(m - 1, 1)
+    area_rad = 2π * γ * (m == 1 ? a_raw[1] * T : sum(0.5 .* (a_raw[1:end-1] .+ a_raw[2:end])) * dt)
+    a_raw ./ area_rad
 end
 
-function refocusing_demo(kind::Symbol)
-    T_nom = 10e-3
-    tbw = 8.0
-    slice_thickness = 10e-3
+function extract_wave(seq, names)
+    traces = plot_seq(seq; slider=false, show_rf_frame=false).data
+    Dict(t.name => (; x=collect(t.x), y=collect(t.y), line=t.line)
+        for t in traces if haskey(t, :name) && t.name in names)
+end
+
+function sample_slice_spins(spins, seq, t_grid_s; Δt=25e-6, t_offset=0.0)
+    rec = record_states(spins, seq, scanner; Δt, Δt_rf=10e-6)
+    frames = [begin
+        idx = something(findlast(<=(tg + t_offset + 1e-9), rec.times), 1)
+        [[round(rec.states[idx][j, 1]; digits=4), round(rec.states[idx][j, 2]; digits=4)] for j in eachindex(spins.z)]
+    end for tg in t_grid_s]
+    last_s = rec.states[end]
+    frames, complex.(last_s[:, 1], last_s[:, 2])
+end
+
+function measure_tc(xy_end, omega, T)
+    phi = angle.(xy_end)
+    for j in 2:length(phi)
+        d = phi[j] - phi[j - 1]
+        while d > π; d -= 2π; end
+        while d < -π; d += 2π; end
+        phi[j] = phi[j - 1] + d
+    end
+    t_iso = -sum(omega .* (phi .- sum(phi) / length(phi))) / sum(omega .^ 2)
+    clamp(T - t_iso, 0.0, T), t_iso
+end
+
+function rf_excitation_demo(; slr=false, phi_deg=0)
+    T_nom, tbw, slice_thickness, dt_imp = 1e-3, 4.0, 10e-3, 1e-6
+    T_total = slr ? 1.4e-3 : 1.5e-3
+    n_frames = slr ? 57 : 61
     gz_T_m = (tbw / T_nom) / (γ * slice_thickness)
-    if kind === :slr
-        rf_slr, _, _ = PulseDesigner.make_slr_pulse(π; duration=T_nom, time_bw_product=tbw,
-            slice_thickness=slice_thickness, use=Refocusing(), filter_type=:ls,
-            passband_ripple=0.005, stopband_ripple=0.005, dwell=10e-6, sys=scanner)
-        T = rf_slr.T
-        a_pi = real.(rf_slr.A)
-    else
-        ref_seq = PulseDesigner.build_sinc_pulse(π; duration=1e-3, time_bw_product=tbw,
-            slice_thickness=slice_thickness, apodization=0.5, use=Excitation(), sys=scanner)
-        T = T_nom
-        a_raw = real.(ref_seq.RF[1, 1].A)
-        m = length(a_raw)
-        dt_rf = T / max(m - 1, 1)
-        area_rad = 2π * γ * (m == 1 ? a_raw[1] * T : sum(0.5 .* (a_raw[1:end-1] .+ a_raw[2:end])) * dt_rf)
-        a_pi = π .* (a_raw ./ area_rad)
-    end
-
-    z_mm = collect(range(-2.0, 2.0; length=9))
-    z_m = z_mm .* 1e-3
-    spins = Phantom(x=zeros(length(z_m)), y=zeros(length(z_m)), z=z_m,
-        T1=fill(Inf, length(z_m)), T2=fill(Inf, length(z_m)))
-    n_frames = 41
-    t_grid_s = collect(range(0.0, T; length=n_frames))
-    t_ms = round.(1e3 .* t_grid_s; digits=4)
-    ref_sim_params = Dict{String,Any}("gpu"=>false, "Nthreads"=>1, "precision"=>"f64",
-        "Δt"=>250e-6, "Δt_rf"=>10e-6, "max_block_length"=>1, "max_rf_block_length"=>1,
-        "return_type"=>"state")
-
-    dt_imp = 1e-6
-    prep90 = Sequence(scanner)
-    addblock!(prep90, RF((π / 2) / (2π * γ * dt_imp), dt_imp))
-
-    function sample_refocus(seq)
-        ts = Float64[0.0]
-        xs = Vector{Vector{Float64}}([zeros(length(z_m))])
-        ys = Vector{Vector{Float64}}([zeros(length(z_m))])
-        record = function(progress, blocks, data, _)
-            part = blocks.parts[progress.block]
-            push!(ts, data.seqd.t[last(part)])
-            push!(xs, real.(data.Xt.xy))
-            push!(ys, imag.(data.Xt.xy))
-        end
-        simulate(spins, prep90 + seq, scanner; verbose=false, callbacks=(record,), sim_params=ref_sim_params)
-        frames = Vector{Vector{Vector{Float64}}}(undef, n_frames)
-        for (i, tg) in enumerate(t_grid_s)
-            idx = findlast(<=(tg + dt_imp + 1e-9), ts)
-            idx = idx === nothing ? 1 : idx
-            frames[i] = [[round(xs[idx][j]; digits=4), round(ys[idx][j]; digits=4)] for j in eachindex(z_m)]
-        end
-        frames
-    end
-
-    function extract_plot_seq(seq, names)
-        traces = plot_seq(seq; slider=false, show_rf_frame=false).data
-        Dict(t.name => (; x=collect(t.x), y=collect(t.y), line=t.line)
-             for t in traces if haskey(t, :name) && t.name in names)
-    end
-
-    tc = T / 2
-    seq_actual = Sequence(scanner)
-    addblock!(seq_actual, RF(a_pi, T); z=Grad(gz_T_m, T))
-    hist_actual = sample_refocus(seq_actual)
-    wave_actual = extract_plot_seq(seq_actual, ("|B1|_AM", "Gz"))
-
-    seq_equiv = Sequence(scanner)
-    addblock!(seq_equiv; z=Grad(gz_T_m, tc - dt_imp / 2))
-    addblock!(seq_equiv, RF(π / (2π * γ * dt_imp), dt_imp))
-    addblock!(seq_equiv; z=Grad(gz_T_m, T - tc - dt_imp / 2))
-    hist_equiv = sample_refocus(seq_equiv)
-    wave_equiv = extract_plot_seq(seq_equiv, ("Gz",))
-
-    peak_uT = maximum(abs, filter(isfinite, Float64[v for v in wave_actual["|B1|_AM"].y if v isa Number]))
-    (; duration_ms=1e3 * T, tc_ms=round(1e3 * tc; digits=4), t_ms,
-        gz_mTm=round(1e3 * gz_T_m; digits=3), peak_uT=round(peak_uT; digits=3),
-        z_mm, wave_actual, wave_equiv, hist_actual, hist_equiv)
-end
-
-function rf_phase_demo()
-    rf = excitation.RF[1, 1]
-    T = rf.T
-    T_rew = 0.5e-3
-    T_total = T + T_rew
-    tbw = 4.0
-    slice_thickness = 10e-3
-    gz_T_m = (tbw / T) / (γ * slice_thickness)
     z_mm = collect(range(-2.0, 2.0; length=9))
     z_m = z_mm .* 1e-3
     omega = 2π * γ * gz_T_m .* z_m
-    spins = Phantom(x=zeros(length(z_m)), y=zeros(length(z_m)), z=z_m,
-        T1=fill(Inf, length(z_m)), T2=fill(Inf, length(z_m)))
-
-    a_raw = real.(rf.A)
-    m = length(a_raw)
-    dt_rf = T / max(m - 1, 1)
-    area_rad = 2π * γ * (m == 1 ? a_raw[1] * T : sum(0.5 .* (a_raw[1:end-1] .+ a_raw[2:end])) * dt_rf)
-    a_unit = a_raw ./ area_rad
-
-    n_frames = 61
+    spins = Phantom(x=zeros(9), y=zeros(9), z=z_m, T1=fill(Inf, 9), T2=fill(Inf, 9))
     t_grid_s = collect(range(0.0, T_total; length=n_frames))
-    t_ms = round.(1e3 .* t_grid_s; digits=4)
-    ph_sim_params = Dict{String,Any}("gpu"=>false, "Nthreads"=>1, "precision"=>"f64",
-        "Δt"=>25e-6, "Δt_rf"=>10e-6, "max_block_length"=>1, "max_rf_block_length"=>1,
-        "return_type"=>"state")
-
-    function sample_koma(seq)
-        ts = Float64[0.0]
-        xs = Vector{Vector{Float64}}([zeros(length(z_m))])
-        ys = Vector{Vector{Float64}}([zeros(length(z_m))])
-        record = function(progress, blocks, data, _)
-            part = blocks.parts[progress.block]
-            push!(ts, data.seqd.t[last(part)])
-            push!(xs, real.(data.Xt.xy))
-            push!(ys, imag.(data.Xt.xy))
-        end
-        simulate(spins, seq, scanner; verbose=false, callbacks=(record,), sim_params=ph_sim_params)
-        frames = Vector{Vector{Vector{Float64}}}(undef, n_frames)
-        for (i, tg) in enumerate(t_grid_s)
-            idx = findlast(<=(tg + 1e-9), ts)
-            idx = idx === nothing ? 1 : idx
-            frames[i] = [[round(xs[idx][j]; digits=4), round(ys[idx][j]; digits=4)] for j in eachindex(z_m)]
-        end
-        frames, complex.(xs[end], ys[end])
-    end
-
-    function extract_plot_seq(seq, names)
-        traces = plot_seq(seq; slider=false, show_rf_frame=false).data
-        Dict(t.name => (; x=collect(t.x), y=collect(t.y), line=t.line)
-             for t in traces if haskey(t, :name) && t.name in names)
-    end
-
-    phi_deg = 60
+    a_unit = slr ? Float64[] : unit_rf_envelope(real.(excitation.RF[1, 1].A), excitation.RF[1, 1].T)
     ph = deg2rad(phi_deg)
-    dt_imp = 1e-6
     flip_degs = collect(10:10:90)
+    T_rf_ref = Ref(T_nom)
+
     cases = map(flip_degs) do deg
         flip_rad = deg2rad(deg)
-        seq_no_rew = Sequence(scanner)
-        addblock!(seq_no_rew, RF(flip_rad .* a_unit, T); z=Grad(gz_T_m, T))
-        _, xy_rf_end = sample_koma(seq_no_rew)
-        phi0 = angle.(xy_rf_end)
-        for j in 2:length(phi0)
-            d = phi0[j] - phi0[j - 1]
-            while d > π; d -= 2π; end
-            while d < -π; d += 2π; end
-            phi0[j] = phi0[j - 1] + d
+        if slr
+            rf_slr, _, _ = PulseDesigner.make_slr_pulse(flip_rad; duration=T_nom, time_bw_product=tbw,
+                slice_thickness, use=Excitation(), filter_type=:min,
+                passband_ripple=0.001, stopband_ripple=0.001, dwell=10e-6, sys=scanner)
+            T, a_real = rf_slr.T, real.(rf_slr.A)
+        else
+            T, a_real = excitation.RF[1, 1].T, flip_rad .* a_unit
         end
-        t_iso = -sum(omega .* (phi0 .- sum(phi0) / length(phi0))) / sum(omega .^ 2)
-        tc = clamp(T - t_iso, 0.0, T)
+        T_rf_ref[] = T
+        T_rew = T_total - T
+
+        seq_no_rew = Sequence(scanner)
+        addblock!(seq_no_rew, RF(a_real, T); z=Grad(gz_T_m, T))
+        _, xy_rf_end = sample_slice_spins(spins, seq_no_rew, t_grid_s)
+        tc, t_iso = measure_tc(xy_rf_end, omega, T)
         gz_rew_T_m = -gz_T_m * (t_iso / T_rew)
+
+        seq_wave = Sequence(scanner)
+        addblock!(seq_wave, RF(a_real, T); z=Grad(gz_T_m, T))
+        addblock!(seq_wave; z=Grad(gz_rew_T_m, T_rew))
+        wave_actual = extract_wave(seq_wave, ("|B1|_AM", "Gz"))
+
+        seq_actual = phi_deg == 0 ? seq_wave : begin
+            s = Sequence(scanner)
+            addblock!(s, RF(cis(ph) .* a_real, T); z=Grad(gz_T_m, T))
+            addblock!(s; z=Grad(gz_rew_T_m, T_rew))
+            s
+        end
+        hist_actual, _ = sample_slice_spins(spins, seq_actual, t_grid_s)
+
         t_rem = max(T - tc - dt_imp / 2, 1e-6)
-
-        # Signed B1 envelope + Gz via plot_seq; KomaMRI simulation uses complex RF * exp(i*phi).
-        seq_wave_actual = Sequence(scanner)
-        addblock!(seq_wave_actual, RF(flip_rad .* a_unit, T); z=Grad(gz_T_m, T))
-        addblock!(seq_wave_actual; z=Grad(gz_rew_T_m, T_rew))
-        wave_actual = extract_plot_seq(seq_wave_actual, ("|B1|_AM", "Gz"))
-
-        seq_actual = Sequence(scanner)
-        addblock!(seq_actual, RF((flip_rad * cis(ph)) .* a_unit, T); z=Grad(gz_T_m, T))
-        addblock!(seq_actual; z=Grad(gz_rew_T_m, T_rew))
-        hist_actual, _ = sample_koma(seq_actual)
-
         seq_equiv = Sequence(scanner)
         tc > dt_imp && addblock!(seq_equiv, Delay(tc - dt_imp / 2))
         addblock!(seq_equiv, RF((flip_rad * cis(ph)) / (2π * γ * dt_imp), dt_imp))
         addblock!(seq_equiv; z=Grad(gz_T_m, t_rem))
         addblock!(seq_equiv; z=Grad(gz_rew_T_m, T_rew))
-        hist_equiv, _ = sample_koma(seq_equiv)
-        wave_equiv = extract_plot_seq(seq_equiv, ("Gz",))
+        hist_equiv, _ = sample_slice_spins(spins, seq_equiv, t_grid_s)
+        wave_equiv = extract_wave(seq_equiv, ("Gz",))
 
         peak_uT = maximum(abs, filter(isfinite, Float64[v for v in wave_actual["|B1|_AM"].y if v isa Number]))
         (; deg, amp=round(sin(flip_rad); digits=4), tc_ms=round(1e3 * tc; digits=4),
             gz_rew_mTm=round(1e3 * gz_rew_T_m; digits=3), peak_uT=round(peak_uT; digits=3),
             wave_actual, wave_equiv, hist_actual, hist_equiv)
     end
-
-    (; rf_dur_ms=1e3 * T, duration_ms=1e3 * T_total, t_ms, phi_deg,
-        gz_mTm=round(1e3 * gz_T_m; digits=3), z_mm, flip_degs, cases)
+    (; rf_dur_ms=1e3 * T_rf_ref[], duration_ms=1e3 * T_total, t_ms=round.(1e3 .* t_grid_s; digits=4),
+        phi_deg, gz_mTm=round(1e3 * gz_T_m; digits=3), z_mm, flip_degs, cases)
 end
 
-function slr_minphase_demo()
-    T_nom = 1e-3
-    T_total = 1.4e-3
-    tbw = 4.0
-    slice_thickness = 10e-3
+function refocusing_demo(kind::Symbol)
+    T_nom, tbw, slice_thickness, dt_imp = 10e-3, 8.0, 10e-3, 1e-6
     gz_T_m = (tbw / T_nom) / (γ * slice_thickness)
+    if kind === :slr
+        rf_slr, _, _ = PulseDesigner.make_slr_pulse(π; duration=T_nom, time_bw_product=tbw,
+            slice_thickness, use=Refocusing(), filter_type=:ls,
+            passband_ripple=0.005, stopband_ripple=0.005, dwell=10e-6, sys=scanner)
+        T, a_pi = rf_slr.T, real.(rf_slr.A)
+    else
+        ref_seq = PulseDesigner.build_sinc_pulse(π; duration=1e-3, time_bw_product=tbw,
+            slice_thickness, apodization=0.5, use=Excitation(), sys=scanner)
+        T, a_pi = T_nom, π .* unit_rf_envelope(real.(ref_seq.RF[1, 1].A), T_nom)
+    end
     z_mm = collect(range(-2.0, 2.0; length=9))
-    z_m = z_mm .* 1e-3
-    omega = 2π * γ * gz_T_m .* z_m
-    spins = Phantom(x=zeros(length(z_m)), y=zeros(length(z_m)), z=z_m,
-        T1=fill(Inf, length(z_m)), T2=fill(Inf, length(z_m)))
+    spins = Phantom(x=zeros(9), y=zeros(9), z=z_mm .* 1e-3, T1=fill(Inf, 9), T2=fill(Inf, 9))
+    t_grid_s = collect(range(0.0, T; length=41))
+    prep90 = Sequence(scanner)
+    addblock!(prep90, RF((π / 2) / (2π * γ * dt_imp), dt_imp))
 
-    n_frames = 57
-    t_grid_s = collect(range(0.0, T_total; length=n_frames))
-    t_ms = round.(1e3 .* t_grid_s; digits=4)
-    sim_p = Dict{String,Any}("gpu"=>false, "Nthreads"=>1, "precision"=>"f64",
-        "Δt"=>25e-6, "Δt_rf"=>10e-6, "max_block_length"=>1, "max_rf_block_length"=>1,
-        "return_type"=>"state")
+    tc = T / 2
+    seq_actual = Sequence(scanner)
+    addblock!(seq_actual, RF(a_pi, T); z=Grad(gz_T_m, T))
+    hist_actual, _ = sample_slice_spins(spins, prep90 + seq_actual, t_grid_s; Δt=250e-6, t_offset=dt_imp)
+    wave_actual = extract_wave(seq_actual, ("|B1|_AM", "Gz"))
 
-    function sample_koma(seq)
-        ts = Float64[0.0]
-        xs = Vector{Vector{Float64}}([zeros(length(z_m))])
-        ys = Vector{Vector{Float64}}([zeros(length(z_m))])
-        record = function(progress, blocks, data, _)
-            part = blocks.parts[progress.block]
-            push!(ts, data.seqd.t[last(part)])
-            push!(xs, real.(data.Xt.xy))
-            push!(ys, imag.(data.Xt.xy))
-        end
-        simulate(spins, seq, scanner; verbose=false, callbacks=(record,), sim_params=sim_p)
-        frames = Vector{Vector{Vector{Float64}}}(undef, n_frames)
-        for (i, tg) in enumerate(t_grid_s)
-            idx = findlast(<=(tg + 1e-9), ts)
-            idx = idx === nothing ? 1 : idx
-            frames[i] = [[round(xs[idx][j]; digits=4), round(ys[idx][j]; digits=4)] for j in eachindex(z_m)]
-        end
-        frames, complex.(xs[end], ys[end])
-    end
+    seq_equiv = Sequence(scanner)
+    addblock!(seq_equiv; z=Grad(gz_T_m, tc - dt_imp / 2))
+    addblock!(seq_equiv, RF(π / (2π * γ * dt_imp), dt_imp))
+    addblock!(seq_equiv; z=Grad(gz_T_m, T - tc - dt_imp / 2))
+    hist_equiv, _ = sample_slice_spins(spins, prep90 + seq_equiv, t_grid_s; Δt=250e-6, t_offset=dt_imp)
+    wave_equiv = extract_wave(seq_equiv, ("Gz",))
 
-    function extract_plot_seq(seq, names)
-        traces = plot_seq(seq; slider=false, show_rf_frame=false).data
-        Dict(t.name => (; x=collect(t.x), y=collect(t.y), line=t.line)
-             for t in traces if haskey(t, :name) && t.name in names)
-    end
-
-    dt_imp = 1e-6
-    flip_degs = collect(10:10:90)
-    T_rf_ref = Ref(T_nom)
-    cases = map(flip_degs) do deg
-        flip_rad = deg2rad(deg)
-        rf_slr, _, _ = PulseDesigner.make_slr_pulse(flip_rad; duration=T_nom, time_bw_product=tbw,
-            slice_thickness=slice_thickness, use=Excitation(), filter_type=:min,
-            passband_ripple=0.001, stopband_ripple=0.001, dwell=10e-6, sys=scanner)
-        T = rf_slr.T
-        T_rf_ref[] = T
-        T_rew = T_total - T
-        a_rf = real.(rf_slr.A)
-
-        seq_no_rew = Sequence(scanner)
-        addblock!(seq_no_rew, RF(a_rf, T); z=Grad(gz_T_m, T))
-        _, xy_rf_end = sample_koma(seq_no_rew)
-
-        phi = angle.(xy_rf_end)
-        for j in 2:length(phi)
-            d = phi[j] - phi[j - 1]
-            while d > π; d -= 2π; end
-            while d < -π; d += 2π; end
-            phi[j] = phi[j - 1] + d
-        end
-        phi_c = phi .- (sum(phi) / length(phi))
-        t_iso = -sum(omega .* phi_c) / sum(omega .^ 2)
-        tc = clamp(T - t_iso, 0.0, T)
-        gz_rew_T_m = -gz_T_m * (t_iso / T_rew)
-
-        seq_actual = Sequence(scanner)
-        addblock!(seq_actual, RF(a_rf, T); z=Grad(gz_T_m, T))
-        addblock!(seq_actual; z=Grad(gz_rew_T_m, T_rew))
-        hist_actual, _ = sample_koma(seq_actual)
-        wave_actual = extract_plot_seq(seq_actual, ("|B1|_AM", "Gz"))
-
-        t_rem = max(T - tc - dt_imp / 2, 1e-6)
-        seq_equiv = Sequence(scanner)
-        tc > dt_imp && addblock!(seq_equiv, Delay(tc - dt_imp / 2))
-        addblock!(seq_equiv, RF(flip_rad / (2π * γ * dt_imp), dt_imp))
-        addblock!(seq_equiv; z=Grad(gz_T_m, t_rem))
-        addblock!(seq_equiv; z=Grad(gz_rew_T_m, T_rew))
-        hist_equiv, _ = sample_koma(seq_equiv)
-        wave_equiv = extract_plot_seq(seq_equiv, ("Gz",))
-
-        peak_uT = maximum(abs, filter(isfinite, Float64[v for v in wave_actual["|B1|_AM"].y if v isa Number]))
-        (; deg, amp=round(sin(flip_rad); digits=4), tc_ms=round(1e3 * tc; digits=4),
-            gz_rew_mTm=round(1e3 * gz_rew_T_m; digits=3), peak_uT=round(peak_uT; digits=3),
-            wave_actual, wave_equiv, hist_actual, hist_equiv)
-    end
-    (; rf_dur_ms=1e3 * T_rf_ref[], duration_ms=1e3 * T_total, t_ms,
-        gz_mTm=round(1e3 * gz_T_m; digits=3), z_mm, flip_degs, cases)
+    peak_uT = maximum(abs, filter(isfinite, Float64[v for v in wave_actual["|B1|_AM"].y if v isa Number]))
+    (; duration_ms=1e3 * T, tc_ms=round(1e3 * tc; digits=4), t_ms=round.(1e3 .* t_grid_s; digits=4),
+        gz_mTm=round(1e3 * gz_T_m; digits=3), peak_uT=round(peak_uT; digits=3),
+        z_mm, wave_actual, wave_equiv, hist_actual, hist_equiv)
 end
 
 function spin_echo_sequence()
@@ -615,832 +243,449 @@ function spin_echo_sequence()
     refoc, gz, _ = PulseDesigner.make_slr_pulse(π; duration=10e-3,
         time_bw_product=8.0, slice_thickness=10e-3, use=Refocusing(), filter_type=:ls,
         passband_ripple=0.005, stopband_ripple=0.005, dwell=10e-6, sys=scanner)
-    crusher = PulseDesigner.make_trapezoid(; area=γ*8e-6, duration=2e-3, sys=scanner)
+    crusher = PulseDesigner.make_trapezoid(; area=γ * 8e-6, duration=2e-3, sys=scanner)
     te = 40e-3
-    t90 = seq.RF[1,1].delay + seq.RF[1,1].center
-    t180 = t90 + te/2
+    t90 = seq.RF[1, 1].delay + seq.RF[1, 1].center
+    t180 = t90 + te / 2
     addblock!(seq, Delay(t180 - refoc.delay - refoc.center - dur(crusher) - dur(seq)))
     addblock!(seq; z=crusher)
     addblock!(seq, refoc; z=gz)
-    before_post = plot_M0(seq; slider=false)
-    post_area = -last(before_post.data[3].y)
+    post_area = -last(plot_M0(seq; slider=false).data[3].y)
     addblock!(seq; z=PulseDesigner.make_trapezoid(; area=post_area, duration=2e-3, sys=scanner))
     readout = 2e-3
-    echo = t90 + te
-    addblock!(seq, Delay(echo - readout/2 - dur(seq)))
+    addblock!(seq, Delay(t90 + te - readout / 2 - dur(seq)))
     addblock!(seq, ADC(64, readout))
     seq
 end
 
-lecture_tissues = Dict(
-    "WM" => [0.77, 0.832, 0.080, 0.045, 0.0],
-    "GM" => [0.86, 1.330, 0.110, 0.050, 0.0],
-    "CSF" => [1.0, 4.0, 1.5, 0.20, 0.0])
+# ---- Single-voxel & bSSFP image simulations ----
 
 function lecture_brain_maps()
-    obj = brain_phantom2D(ss=4, tissue_properties=lecture_tissues)
+    obj = brain_phantom2D(ss=4, tissue_properties=LECTURE6_TISSUES)
     xs, ys = sort(unique(obj.x)), sort(unique(obj.y))
-    xi, yi = Dict(v=>i for (i,v) in enumerate(xs)), Dict(v=>i for (i,v) in enumerate(ys))
-    props = unique(collect(zip(obj.ρ,obj.T1,obj.T2,obj.T2s)))
-    labels = zeros(Int,length(ys),length(xs))
+    xi, yi = Dict(v => i for (i, v) in enumerate(xs)), Dict(v => i for (i, v) in enumerate(ys))
+    props = unique(collect(zip(obj.ρ, obj.T1, obj.T2, obj.T2s)))
+    labels = zeros(Int, length(ys), length(xs))
     for i in eachindex(obj.x)
-        labels[yi[obj.y[i]],xi[obj.x[i]]] = findfirst(==((obj.ρ[i],obj.T1[i],obj.T2[i],obj.T2s[i])),props)
+        labels[yi[obj.y[i]], xi[obj.x[i]]] = findfirst(==((obj.ρ[i], obj.T1[i], obj.T2[i], obj.T2s[i])), props)
     end
-    (; x=1e3xs, y=1e3ys, labels=rows(labels), tissues=[(;rho=p[1],t1=1e3p[2],t2=1e3p[3],t2s=1e3p[4]) for p in props])
+    (; x=1e3 .* xs, y=1e3 .* ys, labels=rows(labels),
+        tissues=[(; rho=p[1], t1=1e3 * p[2], t2=1e3 * p[3], t2s=1e3 * p[4]) for p in props])
 end
 
-function lecture_voxel_cases()
-    tissues=lecture_brain_maps().tissues
-    n=length(tissues)
-    voxel=Phantom(x=zeros(n),y=zeros(n),z=zeros(n),ρ=ones(n),
-        T1=[t.t1*1e-3 for t in tissues],T2=[t.t2*1e-3 for t in tissues],Δw=zeros(n))
-    flips=collect(3:40)
-    train=excitation_train()
-    cases=[];common_time=Float64[]
+function lecture_voxel_cases(brain_maps)
+    tissues = brain_maps.tissues
+    n = length(tissues)
+    voxel = Phantom(x=zeros(n), y=zeros(n), z=zeros(n), ρ=ones(n),
+        T1=[t.t1 * 1e-3 for t in tissues], T2=[t.t2 * 1e-3 for t in tissues], Δw=zeros(n))
+    flips = collect(3:40)
+    train = excitation_train()
+    cases, common_time = [], Float64[]
     for flip in flips
-        seq=Complex(flip/10)*train
-        rf_blocks=findall(is_RF_on.(seq))
-        @assert length(rf_blocks)==100 && all(==(Float64(flip)),get_flip_angles(seq)[rf_blocks])
-        block_starts=cumsum([0.0;seq.DUR])[rf_blocks]
-        starts=block_starts.+delay.(seq.RF[1,rf_blocks])
-        ends=block_starts.+dur.(seq.RF[1,rf_blocks])
-        boundaries=Set(round.(Int,1e9.*[starts;ends;dur(seq)]))
-        time=[0.0];xy=[Float32[0.0] for _ in 1:n];z=[Float32[1.0] for _ in 1:n]
-        last_time=Ref(0.0)
-        record=function(progress,blocks,data,_)
-            t=data.seqd.t[last(blocks.parts[progress.block])]
-            if !blocks.excitation_bool[progress.block] || t-last_time[]>=.20e-3-1e-12 || round(Int,1e9*t) in boundaries
-                push!(time,1e3t)
+        seq = Complex(flip / 10) * train
+        rf_blocks = findall(is_RF_on.(seq))
+        b_starts = cumsum([0.0; seq.DUR])[rf_blocks]
+        boundaries = Set(round.(Int, 1e9 .* [b_starts .+ delay.(seq.RF[1, rf_blocks]); b_starts .+ dur.(seq.RF[1, rf_blocks]); dur(seq)]))
+        time, xy, z = [0.0], [Float32[0.0] for _ in 1:n], [Float32[1.0] for _ in 1:n]
+        last_t = Ref(0.0)
+        record = function (progress, blocks, data, _)
+            t = data.seqd.t[last(blocks.parts[progress.block])]
+            if !blocks.excitation_bool[progress.block] || t - last_t[] >= 0.20e-3 - 1e-12 || round(Int, 1e9 * t) in boundaries
+                push!(time, 1e3 * t)
                 for i in 1:n
-                    push!(xy[i],Float32(abs(data.Xt.xy[i])))
-                    push!(z[i],Float32(data.Xt.z[i]))
+                    push!(xy[i], Float32(abs(data.Xt.xy[i])))
+                    push!(z[i], Float32(data.Xt.z[i]))
                 end
-                last_time[]=t
+                last_t[] = t
             end
         end
-        simulate(voxel,seq,scanner;verbose=false,callbacks=(record,),sim_params=Dict{String,Any}(
-            "gpu"=>false,"Nthreads"=>1,"precision"=>"f64","Δt"=>.20e-3,"Δt_rf"=>20e-6,
-            "max_block_length"=>1,"max_rf_block_length"=>1,"return_type"=>"state"))
-        if isempty(common_time)
-            common_time=time
-        else
-            @assert length(common_time)==length(time) && maximum(abs,common_time.-time)<1e-8
-        end
-        @assert all(b->minimum(abs.(time.-1e-6b))<1e-7,boundaries)
-        push!(cases,(;flip,xy,z))
+        simulate(voxel, seq, scanner; verbose=false, callbacks=(record,), sim_params=Dict{String,Any}(
+            "gpu"=>false, "Nthreads"=>1, "precision"=>"f64", "Δt"=>0.20e-3, "Δt_rf"=>20e-6,
+            "max_block_length"=>1, "max_rf_block_length"=>1, "return_type"=>"state"))
+        isempty(common_time) && (common_time = time)
+        push!(cases, (; flip, xy, z))
     end
-    (;time=common_time,flips,tissues,cases)
+    (; time=common_time, flips, tissues, cases)
 end
 
+bssfp_sys() = Scanner(limits=HardwareLimits(B0=3.0, B1=20e-6, Gmax=30e-3, Smax=180,
+    ADC_Δt=1e-6, DUR_Δt=10e-6, GR_Δt=10e-6, RF_Δt=1e-6,
+    RF_dead_time=120e-6, RF_ring_down_time=50e-6, ADC_dead_time=10e-6))
+
+function bssfp_brain()
+    obj = brain_phantom2D(ss=4, tissue_properties=LECTURE6_TISSUES)
+    obj.Δw .= 0
+    obj
+end
+
+function pad_readout(shot, half, echo_padding, sys)
+    before, after = half + max(0.0, -echo_padding), half + max(0.0, echo_padding)
+    before > 0 && (shot = PulseDesigner.build_delay(before; sys) + shot)
+    after > 0 && (shot += PulseDesigner.build_delay(after; sys))
+    shot
+end
+
+function reconstruct_cartesian_2d(raw, s, line_order)
+    spectrum = zeros(ComplexF64, s.n_image, s.n_adc)
+    for (profile, line) in zip(raw.profiles, line_order)
+        spectrum[line + 65, :] .= vec(profile.data)
+    end
+    crop = (s.n_adc - s.n_image) ÷ 2 .+ (1:s.n_image)
+    (; spectrum, image=abs.(fftshift(ifft(ifftshift(spectrum)))[:, crop]))
+end
+
+function lecture_gm_echo_envelope(seq, sys, n_dummy)
+    probe = deepcopy(seq)
+    probe.GR .= 0 .* probe.GR
+    rf_blocks = findall(is_RF_on.(seq))
+    first_adc = findfirst(is_ADC_on, seq.ADC)
+    offset, template = first_adc - rf_blocks[n_dummy + 1], seq.ADC[first_adc]
+    for block in rf_blocks
+        probe.ADC[block + offset] = deepcopy(template)
+    end
+    voxel = Phantom(x=[0.0], y=[0.0], z=[0.0], ρ=[1.0], T1=[1.330], T2=[0.110])
+    vals = simulate(voxel, probe, sys; verbose=false, sim_params=Dict{String,Any}(
+        "gpu"=>false, "Nthreads"=>1, "precision"=>"f64", "Δt"=>50e-6, "Δt_rf"=>20e-6, "return_type"=>"mat"))
+    abs.(reshape(vec(vals), template.N, :)[129, :])
+end
 
 function lecture_cartesian_setup()
-    sys=Scanner(limits=HardwareLimits(B0=3.0,B1=20e-6,Gmax=30e-3,Smax=180,
-        ADC_Δt=1e-6,DUR_Δt=10e-6,GR_Δt=10e-6,RF_Δt=1e-6,
-        RF_dead_time=120e-6,RF_ring_down_time=50e-6,ADC_dead_time=10e-6))
-    n_adc,n_image=256,128
-    fov=.256
-    excitation=PulseDesigner.build_sinc_pulse(deg2rad(35);duration=1.2e-3,
-        time_bw_product=4.0,slice_thickness=10e-3,apodization=.5,use=Excitation(),sys)
-    kernel=SBB.bssfp_readout_kernel((2fov,fov),(n_adc,n_image),sys,1/(n_adc*2e-6);
-        fixed_area=(0.0,0.0,area(excitation.GR[3,2])))
-    rf=excitation.RF[1,1]
-    te0=dur(excitation[1])+kernel.center_time()-delay(rf)-rf_center(rf)
-    tr0=dur(excitation[1])+dur(kernel.readout(-64))
-    raster=sys.limits.DUR_Δt
-    echo_padding=round_to_raster(2te0-tr0,raster)
-    tr=tr0+abs(echo_padding)
-    (;sys,n_adc,n_image,fov,excitation,kernel,raster,echo_padding,tr)
+    sys = bssfp_sys()
+    n_adc, n_image, fov = 256, 128, 0.256
+    exc = PulseDesigner.build_sinc_pulse(deg2rad(35); duration=1.2e-3,
+        time_bw_product=4.0, slice_thickness=10e-3, apodization=0.5, use=Excitation(), sys)
+    kernel = SBB.bssfp_readout_kernel((2fov, fov), (n_adc, n_image), sys, 1 / (n_adc * 2e-6);
+        fixed_area=(0.0, 0.0, area(exc.GR[3, 2])))
+    rf = exc.RF[1, 1]
+    te0 = dur(exc[1]) + kernel.center_time() - delay(rf) - rf_center(rf)
+    tr0 = dur(exc[1]) + dur(kernel.readout(-64))
+    raster = sys.limits.DUR_Δt
+    echo_padding = round_to_raster(2te0 - tr0, raster)
+    (; sys, n_adc, n_image, fov, excitation=exc, kernel, raster, echo_padding, tr=tr0 + abs(echo_padding))
 end
 
-function lecture_cartesian_sequence(s,tr_multiplier,n_dummy,order)
-    (;sys,excitation,kernel,echo_padding,raster,tr,fov)=s
-    half=round_to_raster((tr_multiplier-1)*tr/2,raster)
-    function readout(i)
-        shot=kernel.readout(i)
-        before=half+max(0.0,-echo_padding)
-        after=half+max(0.0,echo_padding)
-        before>0 && (shot=PulseDesigner.build_delay(before;sys)+shot)
-        after>0 && (shot+=PulseDesigner.build_delay(after;sys))
-        shot
+function lecture_cartesian_sequence(s, tr_multiplier, n_dummy, order; constant_dummies=false)
+    (; sys, excitation, kernel, echo_padding, raster, tr, fov) = s
+    half = round_to_raster((tr_multiplier - 1) * tr / 2, raster)
+    readout(i) = pad_readout(kernel.readout(i), half, echo_padding, sys)
+    seq = SBB.build_cartesian_bssfp(excitation, (; readout, encodings=kernel.encodings), sys;
+        trigger=nothing, n_ramp_shots=max(1, n_dummy), view_order=order)
+    if n_dummy == 0
+        blocks = length(excitation[1]) + length(readout(0))
+        seq = cispi(1) * seq[(blocks + 1):end]
+    elseif constant_dummies
+        rf_blocks = findall(is_RF_on.(seq))
+        full_A = seq.RF[1, rf_blocks[n_dummy + 1]].A
+        for b in rf_blocks[1:n_dummy]; seq.RF[1, b].A = copy(full_A); end
     end
-    padded=(;readout,encodings=kernel.encodings)
-    seq=SBB.build_cartesian_bssfp(excitation,padded,sys;trigger=nothing,
-        n_ramp_shots=max(1,n_dummy),view_order=order)
-    if n_dummy==0
-        blocks=length(excitation[1])+length(readout(0))
-        seq=cispi(1)*seq[(blocks+1):end]
-    end
-    seq.DEF["FOV"]=[fov,fov,10e-3]
-    seq
-end
-
-function lecture_cartesian_check(seq,s,order)
-    adc_blocks=findall(is_ADC_on,seq.ADC)
-    @assert length(adc_blocks)==s.n_image
-    @assert all(a.N==s.n_adc && isapprox(KomaMRI.dwell(a),2e-6;atol=1e-12) for a in seq.ADC[adc_blocks])
-    sampled=reshape(get_kspace(seq)[2],s.n_adc,s.n_image,3)
-    line_order=only(SBB.cartesian_line_order(-64:63,128;view_order=order))
-    kx=(-128:127)./(2s.fov)
-    ky=line_order./s.fov
-    error=max(maximum(abs,sampled[:,:,1].-kx),maximum(abs,sampled[:,:,2].-ky'))
-    @assert error<=.01 && maximum(abs,sampled[:,:,3])<=.01
-    @assert [get_labels(seq)[b].LIN for b in adc_blocks]==line_order.+64
-    rf_blocks=findall(is_RF_on.(seq))
-    rf_events=seq.RF[1,rf_blocks]
-    rf_times=cumsum([0.0;seq.DUR])[rf_blocks].+delay.(rf_events).+rf_center.(rf_events)
-    tr=first(diff(rf_times))
-    @assert maximum(abs,diff(rf_times).-tr)<1e-8
-    adc_times=reshape(get_adc_sampling_times(seq),s.n_adc,s.n_image)
-    acquired_rf=rf_times[searchsortedlast.(Ref(rf_times),adc_times[1,:])]
-    te=adc_times[129,:].-acquired_rf
-    @assert maximum(abs,te.-tr/2)<=s.raster/2+1e-9
-    stops=[rf_blocks[2:end].-1;length(seq)]
-    balance_error=maximum(abs(sum(area,seq.GR[axis,first:last])) for (first,last) in zip(rf_blocks,stops) for axis in 1:3)
-    @assert balance_error<1e-11
-    (;TR_ms=1e3tr,TE_ms=1e3first(te),trajectory_error=error,balance_error,line_order)
-end
-
-function lecture_cartesian_case(raw,s,line_order)
-    spectrum=zeros(ComplexF64,s.n_image,s.n_adc)
-    for (profile,line) in zip(raw.profiles,line_order)
-        spectrum[line+65,:].=vec(profile.data)
-    end
-    reconstructed=fftshift(ifft(ifftshift(spectrum)))
-    crop=(s.n_adc-s.n_image)÷2 .+ (1:s.n_image)
-    image=abs.(reconstructed[:,crop])
-    image .*=4095/maximum(image)
-    (;spectrum,image)
-end
-
-function lecture_gm_echo_envelope(seq,sys,n_dummy)
-    probe=deepcopy(seq)
-    probe.GR .= 0 .* probe.GR
-    rf_blocks=findall(is_RF_on.(seq))
-    first_adc=findfirst(is_ADC_on,seq.ADC)
-    offset=first_adc-rf_blocks[n_dummy+1]
-    template=seq.ADC[first_adc]
-    for block in rf_blocks
-        probe.ADC[block+offset]=deepcopy(template)
-    end
-    voxel=Phantom(x=[0.0],y=[0.0],z=[0.0],ρ=[1.0],T1=[1.330],T2=[.110])
-    values=simulate(voxel,probe,sys;verbose=false,sim_params=Dict{String,Any}(
-        "gpu"=>false,"Nthreads"=>1,"precision"=>"f64","Δt"=>50e-6,
-        "Δt_rf"=>20e-6,"return_type"=>"mat"))
-    abs.(reshape(vec(values),template.N,:)[129,:])
-end
-
-function lecture_cartesian_constant_sequence(s,tr_multiplier,n_dummy,order)
-    seq=lecture_cartesian_sequence(s,tr_multiplier,n_dummy,order)
-    rf_blocks=findall(is_RF_on.(seq))
-    full=seq.RF[1,rf_blocks[n_dummy+1]]
-    for block in rf_blocks[1:n_dummy]
-        original=seq.RF[1,block]
-        @assert original.delay==full.delay && original.center==full.center
-        seq.RF[1,block].A=copy(full.A)
-    end
-    @assert all(==(35.0),get_flip_angles(seq)[rf_blocks])
-    @assert all(isapprox(cis(seq.RF[1,b].ϕ),cispi(i-1);atol=1e-10) for (i,b) in enumerate(rf_blocks))
+    seq.DEF["FOV"] = [fov, fov, 10e-3]
     seq
 end
 
 function lecture_cartesian_images()
-    lecture_tissues=Dict("WM"=>[.77,.832,.080,.045,0.0],"GM"=>[.86,1.330,.110,.050,0.0],"CSF"=>[1.0,4.0,1.5,.20,0.0])
-    s=lecture_cartesian_setup()
-    obj=brain_phantom2D(ss=4,tissue_properties=lecture_tissues)
-    obj.Δw .=0
-    dummy=collect(0:10:50);trs=round.(1e3s.tr.*[1,2];digits=3)
-    all_cases=Dict("linear"=>[],"center_out"=>[]);validation=[]
-    for order in (:linear,:center_out),multiplier in [1,2],d in dummy
-        seq=lecture_cartesian_constant_sequence(s,multiplier,d,order)
-        measured=lecture_cartesian_check(seq,s,order)
-        check_timing(seq,s.sys);check_hw_limits(seq,s.sys)
-        raw=simulate(obj,seq,s.sys;verbose=false,sim_params=Dict{String,Any}(
-            "gpu"=>false,"Nthreads"=>4,"precision"=>"f32","Δt"=>50e-6,"Δt_rf"=>20e-6))
-        @assert length(raw.profiles)==128 && all(size(p.data)==(256,1) for p in raw.profiles)
-        result=lecture_cartesian_case(raw,s,measured.line_order)
-        envelope=lecture_gm_echo_envelope(seq,s.sys,d)
-        @assert length(envelope)==d+128
-        case=(;tr=trs[multiplier],dummy=d,image=[Float32.(r) for r in eachrow(result.image)],
-            kspace=[Float32.(r) for r in eachrow(abs.(result.spectrum))],signal=envelope,envelope,
-            actualEcho=[abs(p.data[129,1]) for p in raw.profiles],acquiredStart=d+1,
-            signalRFoffset=0,kyOrder=measured.line_order)
-        push!(all_cases[string(order)],case)
-        push!(validation,(;order,tr=case.tr,dummy=d,measured...,image_size=[128,128],kspace_size=[128,256],fov_mm=[256,256],echo_count=length(envelope)))
+    s, obj = lecture_cartesian_setup(), bssfp_brain()
+    dummy, trs = collect(0:10:50), round.(1e3 * s.tr .* [1, 2]; digits=3)
+    all_cases = Dict("linear" => [], "center_out" => [])
+    for order in (:linear, :center_out), multiplier in (1, 2), d in dummy
+        seq = lecture_cartesian_sequence(s, multiplier, d, order; constant_dummies=true)
+        line_order = only(SBB.cartesian_line_order(-64:63, 128; view_order=order))
+        raw = simulate(obj, seq, s.sys; verbose=false, sim_params=Dict{String,Any}(
+            "gpu"=>false, "Nthreads"=>4, "precision"=>"f32", "Δt"=>50e-6, "Δt_rf"=>20e-6))
+        res = reconstruct_cartesian_2d(raw, s, line_order)
+        img = res.image .* (4095 / maximum(res.image))
+        envelope = lecture_gm_echo_envelope(seq, s.sys, d)
+        push!(all_cases[string(order)], (; tr=trs[multiplier], dummy=d,
+            image=[Float32.(r) for r in eachrow(img)],
+            kspace=[Float32.(r) for r in eachrow(abs.(res.spectrum))],
+            signal=envelope, acquiredStart=d + 1))
     end
-    coords=1e3.*collect((-64:63).*s.fov/s.n_image)
-    kx=collect(-128:127)./(2s.fov);ky=collect(-64:63)./s.fov
-    kScale=maximum(maximum(maximum,case.kspace) for cases in values(all_cases) for case in cases)
-    data=Dict(order=>(;x=coords,y=coords,kx,ky,trs,dummy,cases,scale=4095.0,kScale,samples=256,lines=128) for (order,cases) in all_cases)
-    data
-end
-
-module LectureRadialOpenRecon
-using Sockets
-using KomaMRI.KomaMRIFiles: MRIFiles
-export start, recon, stop
-
-const server = Ref{Any}(nothing)
-const MRD_MESSAGE_CONFIG_FILE = UInt16(1)
-const MRD_MESSAGE_METADATA_XML_TEXT = UInt16(3)
-const MRD_MESSAGE_CLOSE = UInt16(4)
-const MRD_MESSAGE_TEXT = UInt16(5)
-const MRD_MESSAGE_ISMRMRD_ACQUISITION = UInt16(1008)
-const MRD_MESSAGE_ISMRMRD_IMAGE = UInt16(1022)
-const MRD_CONFIG_NAME_LENGTH = 1024
-const ISMRMRD_IMAGE_HEADER_SIZE = 198
-const ISMRMRD_DATA_TYPES = (UInt16, Int16, UInt32, Int32, Float32, Float64, ComplexF32, ComplexF64)
-const ISMRMRD_IMAGE_HEADER = (
-    version=UInt16, data_type=UInt16, flags=UInt64, measurement_uid=UInt32,
-    matrix_size=NTuple{3,UInt16}, field_of_view=NTuple{3,Float32}, channels=UInt16,
-    position=NTuple{3,Float32}, read_dir=NTuple{3,Float32}, phase_dir=NTuple{3,Float32},
-    slice_dir=NTuple{3,Float32}, patient_table_position=NTuple{3,Float32},
-    average=UInt16, slice=UInt16, contrast=UInt16, phase=UInt16, repetition=UInt16, set=UInt16,
-    acquisition_time_stamp=UInt32, physiology_time_stamp=NTuple{3,UInt32},
-    image_type=UInt16, image_index=UInt16, image_series_index=UInt16,
-    user_int=NTuple{8,Int32}, user_float=NTuple{8,Float32}, attribute_string_len=UInt32,
-)
-
-_running(container) = strip(read(pipeline(ignorestatus(`docker inspect --format "{{.State.Running}}" $container`); stderr=devnull), String)) == "true"
-function _ready(port)
-    socket = try connect(ip"127.0.0.1", port) catch; return false end
-    probe = @async try eof(socket) catch; true end
-    try
-        return timedwait(() -> istaskdone(probe), 0.1; pollint=0.01) == :timed_out || !fetch(probe)
-    finally
-        close(socket)
-        wait(probe)
-    end
-end
-
-function start(; image=nothing, port=nothing)
-    current = server[]
-    if current !== nothing && _running(current.container)
-        (image === nothing || image == current.image) && (port === nothing || port == current.port) ||
-            error("Call OpenReconClient.stop() before changing image or port")
-        _ready(current.port) || error("OpenRecon is not accepting TCP connections")
-        return nothing
-    end
-    image === nothing && (image = current === nothing ? "ghcr.io/mcgrathcm/bios214-radial:0.1.3" : current.image)
-    server[] = nothing
-    container = strip(read(`docker run --rm -d --platform linux/amd64 -p 127.0.0.1:$(something(port, "")):9002 $image`, String))
-    try
-        port = parse(Int, last(split(strip(read(`docker port $container 9002/tcp`, String)), ':')))
-        ready = timedwait(60; pollint=0.5) do
-            _running(container) || error("OpenRecon container exited during startup")
-            _ready(port)
-        end
-        ready == :ok || error("OpenRecon did not start accepting TCP connections")
-        server[] = (; container, port, image)
-    catch
-        @error "OpenRecon" log=read(ignorestatus(`docker logs $container`), String)
-        run(pipeline(ignorestatus(`docker stop $container`); stdout=devnull))
-        rethrow()
-    end
-    return nothing
-end
-
-function _image(socket)
-    io = IOBuffer(read(socket, ISMRMRD_IMAGE_HEADER_SIZE))
-    header = map(T -> read(io, T), ISMRMRD_IMAGE_HEADER)
-    1 <= header.data_type <= length(ISMRMRD_DATA_TYPES) || error("Unsupported MRD data type: $(header.data_type)")
-    T = ISMRMRD_DATA_TYPES[Int(header.data_type)]
-    metadata = rstrip(String(read(socket, Int(read(socket, UInt64)))), '\0')
-    pixels = Array{T}(undef, Int.(header.matrix_size)..., Int(header.channels))
-    read!(socket, pixels)
-    return (; image=permutedims(pixels, (4, 3, 2, 1)), header, metadata)
-end
-
-function recon(raw; config="bios214radial", config_additional=nothing, full=false, timeout=180)
-    current = server[]
-    current === nothing && error("Call OpenReconClient.start() first")
-    socket = connect(ip"127.0.0.1", current.port)
-    timer = Timer(_ -> close(socket), timeout)
-    sender = @async try
-        name = zeros(UInt8, MRD_CONFIG_NAME_LENGTH)
-        name[1:ncodeunits(config)] .= codeunits(config)
-        write(socket, MRD_MESSAGE_CONFIG_FILE, name)
-        xml = MRIFiles.GeneralParametersToXML(deepcopy(raw.params)) * '\0'
-        write(socket, MRD_MESSAGE_METADATA_XML_TEXT, UInt32(ncodeunits(xml)), xml)
-        if config_additional !== nothing
-            text = config_additional * '\0'
-            write(socket, MRD_MESSAGE_TEXT, UInt32(ncodeunits(text)), text)
-        end
-        for profile in raw.profiles
-            header = IOBuffer()
-            write(header, profile.head)
-            write(socket, MRD_MESSAGE_ISMRMRD_ACQUISITION, take!(header), profile.traj, profile.data)
-        end
-        write(socket, MRD_MESSAGE_CLOSE)
-    catch
-        close(socket)
-        rethrow()
-    end
-    images = NamedTuple[]
-    try
-        while (message = read(socket, UInt16)) != MRD_MESSAGE_CLOSE
-            if message == MRD_MESSAGE_ISMRMRD_IMAGE
-                push!(images, _image(socket))
-            elseif message == MRD_MESSAGE_TEXT
-                @info rstrip(String(read(socket, Int(read(socket, UInt32)))), '\0')
-            else
-                error("Unexpected MRD message: $message")
-            end
-        end
-        wait(sender)
-        isempty(images) && error("OpenRecon returned no images")
-        full && return images
-        image = only(images).image
-        return size(image, 1) == size(image, 2) == 1 ? dropdims(image; dims=(1, 2)) : image
-    finally
-        close(timer)
-        close(socket)
-    end
-end
-
-function stop()
-    current = server[]
-    current === nothing && return nothing
-    _running(current.container) && run(pipeline(`docker stop $(current.container)`; stdout=devnull))
-    server[] = nothing
-    return nothing
-end
-end
-
-import MRISequenceBuildingBlocks as SBB
-
-function lecture_lab_radial_setup()
-    sys=Scanner(limits=HardwareLimits(B0=3.0,B1=20e-6,Gmax=30e-3,Smax=180,
-        ADC_Δt=1e-6,DUR_Δt=10e-6,GR_Δt=10e-6,RF_Δt=1e-6,
-        RF_dead_time=120e-6,RF_ring_down_time=50e-6,ADC_dead_time=10e-6))
-    n_adc,n_spokes=256,202
-    kr=(-128:127).*(250/128)
-    angles=(0:n_spokes-1).*(π/n_spokes)
-    target=cat(kr.*cos.(angles'),kr.*sin.(angles'),zeros(n_adc,n_spokes);dims=3)
-    resolution=1/(2maximum(abs,kr))
-    supported_fov=min(1/(kr[2]-kr[1]),1/(maximum(abs,kr)*(angles[2]-angles[1])))
-    n_image=floor(Int,supported_fov/resolution)
-    fov=n_image*resolution
-    oversampling=n_adc÷n_image
-    excitation=PulseDesigner.build_sinc_pulse(deg2rad(35);duration=1.2e-3,
-        time_bw_product=4.0,slice_thickness=10e-3,apodization=.5,use=Excitation(),sys)
-    kernel=SBB.bssfp_readout_kernel((oversampling*fov,),(n_adc,),sys,1/(n_adc*2e-6);
-        fixed_area=(0.0,0.0,area(excitation.GR[3,2])))
-    rf=excitation.RF[1,1]
-    te_unpadded=dur(excitation[1])+kernel.center_time()-delay(rf)-rf_center(rf)
-    tr_unpadded=dur(excitation[1])+dur(kernel.readout())
-    raster=sys.limits.DUR_Δt
-    echo_padding=round_to_raster(2te_unpadded-tr_unpadded,raster)
-    tr=tr_unpadded+abs(echo_padding)
-    (;sys,n_adc,n_spokes,n_image,fov,angles,target,excitation,kernel,raster,echo_padding,tr)
-end
-
-function lecture_lab_radial_sequence(setup,tr_multiplier,n_dummy)
-    (;sys,excitation,kernel,angles,echo_padding,raster,tr,fov,n_spokes)=setup
-    half_padding=round_to_raster((tr_multiplier-1)*tr/2,raster)
-    function spoke_readout(lin)
-        spoke=rotz(angles[lin+1])*kernel.readout()
-        adc_block=only(findall(is_ADC_on,spoke.ADC))
-        push!(spoke.EXT[adc_block],PulseDesigner.make_label(:SET,:LIN,lin))
-        before=half_padding+max(0.0,-echo_padding)
-        after=half_padding+max(0.0,echo_padding)
-        before>0 && (spoke=PulseDesigner.build_delay(before;sys)+spoke)
-        after>0 && (spoke+=PulseDesigner.build_delay(after;sys))
-        spoke
-    end
-    radial_kernel=(;readout=spoke_readout,encodings=[(lin,) for lin in 0:n_spokes-1])
-    seq=SBB.build_cartesian_bssfp(excitation,radial_kernel,sys;trigger=nothing,n_ramp_shots=max(1,n_dummy))
-    rf_blocks=findall(is_RF_on.(seq))
-    full_amplitude=seq.RF[1,rf_blocks[max(1,n_dummy)+1]].A
-    for block in rf_blocks[1:n_dummy]
-        seq.RF[1,block].A=copy(full_amplitude)
-    end
-    if n_dummy==0
-        blocks=length(excitation[1])+length(spoke_readout(0))
-        seq=cispi(1)*seq[(blocks+1):end]
-    end
-    seq.DEF["FOV"]=[fov,fov,10e-3]
-    rf_blocks=findall(is_RF_on.(seq))
-    @assert all(get_flip_angles(seq)[rf_blocks].==35)
-    @assert all(isapprox(cis(seq.RF[1,b].ϕ),cispi(i-1);atol=1e-12) for (i,b) in enumerate(rf_blocks))
-    seq
-end
-
-function lecture_lab_radial_check(seq,setup)
-    adc_blocks=findall(is_ADC_on,seq.ADC)
-    @assert length(adc_blocks)==setup.n_spokes
-    @assert all(a.N==setup.n_adc && isapprox(KomaMRI.dwell(a),2e-6;atol=1e-12) for a in seq.ADC[adc_blocks])
-    sampled=reshape(get_kspace(seq)[2],size(setup.target))
-    trajectory_error=maximum(abs,sampled.-setup.target)
-    @assert trajectory_error<=.01
-    rf_blocks=findall(is_RF_on.(seq))
-    rf_events=seq.RF[1,rf_blocks]
-    rf_times=cumsum([0.0;seq.DUR])[rf_blocks].+delay.(rf_events).+rf_center.(rf_events)
-    tr=first(diff(rf_times))
-    @assert maximum(abs,diff(rf_times).-tr)<1e-8
-    adc_times=reshape(get_adc_sampling_times(seq),setup.n_adc,setup.n_spokes)
-    acquired_rf=rf_times[searchsortedlast.(Ref(rf_times),adc_times[1,:])]
-    te=adc_times[129,:].-acquired_rf
-    @assert maximum(abs,te.-tr/2)<=setup.raster/2+1e-9
-    @assert maximum(abs,sampled[129,:,:])<=.01
-    @assert [get_labels(seq)[b].LIN for b in adc_blocks]==collect(0:setup.n_spokes-1)
-    (;TR_ms=1e3tr,TE_ms=1e3first(te),trajectory_error)
+    coords = 1e3 .* collect((-64:63) .* s.fov / s.n_image)
+    kx, ky = collect(-128:127) ./ (2s.fov), collect(-64:63) ./ s.fov
+    kScale = maximum(maximum(maximum, c.kspace) for cases in values(all_cases) for c in cases)
+    Dict(order => (; x=coords, y=coords, kx, ky, trs, dummy, cases, scale=4095.0, kScale, samples=256, lines=128)
+        for (order, cases) in all_cases)
 end
 
 function lecture_radial_images()
-    LectureRadialOpenRecon.start()
+    OpenReconClient.start(; image=OPENRECON_IMAGE)
     try
-        tissues=Dict("WM"=>[.77,.832,.080,.045,0.0],"GM"=>[.86,1.330,.110,.050,0.0],"CSF"=>[1.0,4.0,1.5,.20,0.0])
-        setup=lecture_lab_radial_setup()
-        obj=brain_phantom2D(ss=4,tissue_properties=tissues)
-        obj.Δw .= 0
-        dummy=collect(0:10:50);trs=[3.28,6.56];cases=[]
-        common_k=nothing
-        global_min,global_max=Inf,0.0
-        for target_tr in trs,d in dummy
-            seq=lecture_lab_radial_sequence(setup,target_tr/(1e3setup.tr),d)
-            measured=lecture_lab_radial_check(seq,setup)
-            @assert abs(measured.TR_ms-target_tr)<1e-6
-            check_timing(seq,setup.sys);check_hw_limits(seq,setup.sys)
-            raw=simulate(obj,seq,setup.sys;verbose=false,sim_params=Dict{String,Any}(
-                "gpu"=>false,"Nthreads"=>2,"precision"=>"f32","Δt"=>50e-6,"Δt_rf"=>20e-6))
-            @assert length(raw.profiles)==setup.n_spokes
-            @assert all(size(p.data)==(setup.n_adc,1) for p in raw.profiles)
-            sampled=get_kspace(seq)[2]
-            if common_k===nothing
-                common_k=sampled
-            else
-                @assert maximum(abs,sampled.-common_k)<1e-7
+        sys, obj = bssfp_sys(), bssfp_brain()
+        n_adc, n_spokes, n_image, fov = 256, 202, 128, 0.256
+        angles = (0:n_spokes-1) .* (π / n_spokes)
+        exc = PulseDesigner.build_sinc_pulse(deg2rad(35); duration=1.2e-3,
+            time_bw_product=4.0, slice_thickness=10e-3, apodization=0.5, use=Excitation(), sys)
+        kernel = SBB.bssfp_readout_kernel((2fov,), (n_adc,), sys, 1 / (n_adc * 2e-6);
+            fixed_area=(0.0, 0.0, area(exc.GR[3, 2])))
+        rf = exc.RF[1, 1]
+        te0 = dur(exc[1]) + kernel.center_time() - delay(rf) - rf_center(rf)
+        tr0 = dur(exc[1]) + dur(kernel.readout())
+        raster = sys.limits.DUR_Δt
+        echo_padding = round_to_raster(2te0 - tr0, raster)
+        tr = tr0 + abs(echo_padding)
+
+        dummy, trs = collect(0:10:50), [3.28, 6.56]
+        cases, common_k, global_max = [], nothing, 0.0
+        for target_tr in trs, d in dummy
+            half = round_to_raster((target_tr / (1e3 * tr) - 1) * tr / 2, raster)
+            function spoke_readout(lin)
+                spoke = rotz(angles[lin + 1]) * kernel.readout()
+                adc_b = only(findall(is_ADC_on, spoke.ADC))
+                push!(spoke.EXT[adc_b], PulseDesigner.make_label(:SET, :LIN, lin))
+                pad_readout(spoke, half, echo_padding, sys)
             end
-            magnitude=vec(hcat((abs.(p.data[:,1]) for p in raw.profiles)...))
-            actualEcho=magnitude[129:setup.n_adc:end]
-            @assert actualEcho==[abs(p.data[129,1]) for p in raw.profiles]
-            @assert length(magnitude)==setup.n_adc*setup.n_spokes && all(isfinite,magnitude)
-            result=only(LectureRadialOpenRecon.recon(raw;full=true))
-            img=dropdims(result.image;dims=(1,2))
-            @assert size(img)==(128,128) && all(isfinite,img)
-            @assert result.header.field_of_view==(256.0f0,256.0f0,10.0f0)
-            image=[collect(r) for r in eachrow(img)]
-            signal=lecture_gm_echo_envelope(seq,setup.sys,d)
-            @assert length(signal)==d+setup.n_spokes
-            push!(cases,(;tr=target_tr,dummy=d,image,signal,signalRFoffset=0,actualEcho,acquiredStart=d+1,kspace_magnitude=magnitude))
-            global_min=min(global_min,minimum(magnitude))
-            global_max=max(global_max,maximum(magnitude))
+            seq = SBB.build_cartesian_bssfp(exc, (; readout=spoke_readout, encodings=[(lin,) for lin in 0:n_spokes-1]),
+                sys; trigger=nothing, n_ramp_shots=max(1, d))
+            rf_blocks = findall(is_RF_on.(seq))
+            full_A = seq.RF[1, rf_blocks[max(1, d) + 1]].A
+            for b in rf_blocks[1:d]; seq.RF[1, b].A = copy(full_A); end
+            if d == 0
+                blocks = length(exc[1]) + length(spoke_readout(0))
+                seq = cispi(1) * seq[(blocks + 1):end]
+            end
+            seq.DEF["FOV"] = [fov, fov, 10e-3]
+            raw = simulate(obj, seq, sys; verbose=false, sim_params=Dict{String,Any}(
+                "gpu"=>false, "Nthreads"=>2, "precision"=>"f32", "Δt"=>50e-6, "Δt_rf"=>20e-6))
+            common_k === nothing && (common_k = get_kspace(seq)[2])
+            magnitude = vec(hcat((abs.(p.data[:, 1]) for p in raw.profiles)...))
+            img = dropdims(only(OpenReconClient.recon(raw; full=true)).image; dims=(1, 2))
+            signal = lecture_gm_echo_envelope(seq, sys, d)
+            push!(cases, (; tr=target_tr, dummy=d, image=[collect(r) for r in eachrow(img)],
+                signal, acquiredStart=d + 1, kspace_magnitude=magnitude))
+            global_max = max(global_max, maximum(magnitude))
         end
-        coords=1e3.*collect((-64:63).*setup.fov/setup.n_image)
-        kspace=(;kx=common_k[:,1],ky=common_k[:,2],echo_indices=collect(128:setup.n_adc:setup.n_adc*setup.n_spokes-1),
-            min_magnitude=global_min,max_magnitude=global_max,log_min=log10(global_min),log_max=log10(global_max))
-        (;x=coords,y=coords,trs,dummy,cases,scale=4095.0,spokes=202,samples=256,kspace)
+        coords = 1e3 .* collect((-64:63) .* fov / n_image)
+        (; x=coords, y=coords, trs, dummy, cases, scale=4095.0, spokes=n_spokes, samples=n_adc,
+            kspace=(; kx=common_k[:, 1], ky=common_k[:, 2], max_magnitude=global_max))
     finally
-        LectureRadialOpenRecon.stop()
+        OpenReconClient.stop()
     end
-end
-
-function lecture_catalysis_image(raw,s,line_order)
-    spectrum=zeros(ComplexF64,s.n_image,s.n_adc)
-    for (profile,line) in zip(raw.profiles,line_order)
-        spectrum[line+65,:].=vec(profile.data)
-    end
-    image=fftshift(ifft(ifftshift(spectrum)))
-    crop=(s.n_adc-s.n_image)÷2 .+ (1:s.n_image)
-    abs.(image[:,crop])
-end
-
-function lecture_catalysis_sequences()
-    s=lecture_cartesian_setup()
-    s=merge(s,(;excitation=Complex(40/35)*s.excitation))
-    multiplier=5e-3/s.tr
-    abrupt=lecture_cartesian_sequence(s,multiplier,0,:linear)
-    ramp=lecture_cartesian_sequence(s,multiplier,14,:linear)
-    prep=Complex(-.5)*s.excitation
-    gap=round_to_raster(2.5e-3-dur(prep),s.raster)
-    @assert gap>=0
-    half=prep+PulseDesigner.build_delay(gap;sys=s.sys)+abrupt
-    half.DEF["FOV"]=[s.fov,s.fov,10e-3]
-    (;s,abrupt,half,ramp)
 end
 
 function lecture_catalysis()
-    (;s,abrupt,half,ramp)=lecture_catalysis_sequences()
-    tissues=Dict("WM"=>[.77,.832,.080,.045,0.0],"GM"=>[.86,1.330,.110,.050,0.0],"CSF"=>[1.0,4.0,1.5,.20,0.0])
-    obj=brain_phantom2D(ss=4,tissue_properties=tissues)
-    obj.Δw .=0
-    voxel=Phantom(x=[0.0],y=[0.0],z=[0.0],ρ=[1.0],T1=[1.330],T2=[.110])
-    cases=[];checks=[]
-    for (name,seq,n_dummy) in [("No preparation",abrupt,0),("α/2 preparation",half,1),("14-pulse linear ramp",ramp,14)]
-        check_timing(seq,s.sys);check_hw_limits(seq,s.sys)
-        adc_blocks=findall(is_ADC_on,seq.ADC)
-        @assert length(adc_blocks)==128
-        rf_blocks=findall(is_RF_on.(seq));rf_events=seq.RF[1,rf_blocks]
-        rf_times=cumsum([0.0;seq.DUR])[rf_blocks].+delay.(rf_events).+rf_center.(rf_events)
-        adc_times=reshape(get_adc_sampling_times(seq),256,128)
-        acquired_rf=rf_times[searchsortedlast.(Ref(rf_times),adc_times[1,:])]
-        @assert maximum(abs,adc_times[129,:].-acquired_rf.-2.5e-3)<1e-8
-        @assert maximum(abs,diff(acquired_rf).-5e-3)<1e-8
-        name=="α/2 preparation" && @assert isapprox(rf_times[2]-rf_times[1],2.5e-3;atol=1e-8)
-        line_order=only(SBB.cartesian_line_order(-64:63,128;view_order=:linear))
-        sampled=reshape(get_kspace(seq)[2],256,128,3)
-        kx=collect(-128:127)./(2s.fov);ky=line_order./s.fov
-        k_error=max(maximum(abs,sampled[:,:,1].-kx),maximum(abs,sampled[:,:,2].-ky'))
-        @assert k_error<.01 && maximum(abs,sampled[:,:,3])<.01
-        raw=simulate(obj,seq,s.sys;verbose=false,sim_params=Dict{String,Any}(
-            "gpu"=>false,"Nthreads"=>4,"precision"=>"f32","Δt"=>50e-6,"Δt_rf"=>20e-6))
-        image=lecture_catalysis_image(raw,s,line_order)
-        if name=="α/2 preparation"
-            probe=deepcopy(seq);probe.GR .=0 .*probe.GR
-            values=simulate(voxel,probe,s.sys;verbose=false,sim_params=Dict{String,Any}(
-                "gpu"=>false,"Nthreads"=>1,"precision"=>"f64","Δt"=>50e-6,"Δt_rf"=>20e-6,"return_type"=>"mat"))
-            signal=abs.(reshape(vec(values),256,:)[129,:])
-            rf_x=[.5;collect(1:128)];signal_x=collect(1:128);acquiredStart=1
+    s = lecture_cartesian_setup()
+    s = merge(s, (; excitation=Complex(40 / 35) * s.excitation))
+    mult = 5e-3 / s.tr
+    abrupt = lecture_cartesian_sequence(s, mult, 0, :linear)
+    ramp = lecture_cartesian_sequence(s, mult, 14, :linear)
+    prep = Complex(-0.5) * s.excitation
+    half = prep + PulseDesigner.build_delay(round_to_raster(2.5e-3 - dur(prep), s.raster); sys=s.sys) + abrupt
+    half.DEF["FOV"] = [s.fov, s.fov, 10e-3]
+
+    obj = bssfp_brain()
+    voxel = Phantom(x=[0.0], y=[0.0], z=[0.0], ρ=[1.0], T1=[1.330], T2=[0.110])
+    line_order = only(SBB.cartesian_line_order(-64:63, 128; view_order=:linear))
+    cases = map([("No preparation", abrupt, 0), ("α/2 preparation", half, 1), ("14-pulse linear ramp", ramp, 14)]) do (name, seq, n_dummy)
+        rf_blocks = findall(is_RF_on.(seq))
+        rf_events = seq.RF[1, rf_blocks]
+        raw = simulate(obj, seq, s.sys; verbose=false, sim_params=Dict{String,Any}(
+            "gpu"=>false, "Nthreads"=>4, "precision"=>"f32", "Δt"=>50e-6, "Δt_rf"=>20e-6))
+        image = reconstruct_cartesian_2d(raw, s, line_order).image
+        if name == "α/2 preparation"
+            probe = deepcopy(seq); probe.GR .= 0 .* probe.GR
+            vals = simulate(voxel, probe, s.sys; verbose=false, sim_params=Dict{String,Any}(
+                "gpu"=>false, "Nthreads"=>1, "precision"=>"f64", "Δt"=>50e-6, "Δt_rf"=>20e-6, "return_type"=>"mat"))
+            signal, rf_x, shot = abs.(reshape(vec(vals), 256, :)[129, :]), [0.5; collect(1:128)], collect(1:128)
         else
-            signal=lecture_gm_echo_envelope(seq,s.sys,n_dummy)
-            rf_x=collect(1:length(rf_blocks));signal_x=rf_x;acquiredStart=n_dummy+1
+            signal = lecture_gm_echo_envelope(seq, s.sys, n_dummy)
+            rf_x = shot = collect(1:length(rf_blocks))
         end
-        rf_angles=get_flip_angles(seq)[rf_blocks].*sign.(cos.(getproperty.(rf_events,:ϕ)))
-        push!(cases,(;name,signal,shot=signal_x,rf_x,rf_angles,acquiredStart,image))
-        push!(checks,(;name,TR_ms=5.0,TE_ms=2.5,k_error,rf_count=length(rf_blocks),signal_count=length(signal),acquiredStart,
-            first_acquired_flip=rf_angles[n_dummy+1],B0_Hz=extrema(obj.Δw./2π),total_offset_Hz=extrema(obj.Δw./2π),line_order))
+        rf_angles = get_flip_angles(seq)[rf_blocks] .* sign.(cos.(getproperty.(rf_events, :ϕ)))
+        (; name, signal, shot, rf_x, rf_angles, image)
     end
-    imageScale=maximum(maximum(c.image) for c in cases)
-    packed=map(cases) do c
-        scaled=Float32.(c.image.*(4095/imageScale))
-        values=sort(vec(scaled))
-        percentile=p->begin
-            position=1+(length(values)-1)*p
-            lo,hi=floor(Int,position),ceil(Int,position)
-            values[lo]+(position-lo)*(values[hi]-values[lo])
-        end
-        merge(c,(;image=[collect(row) for row in eachrow(scaled)],
-            window_min=0.0,window_max=percentile(.95)))
+    img_scale = maximum(maximum(c.image) for c in cases)
+    packed = map(cases) do c
+        scaled = Float32.(c.image .* (4095 / img_scale))
+        vals = sort(vec(scaled))
+        pos = 1 + (length(vals) - 1) * 0.95
+        lo, hi = floor(Int, pos), ceil(Int, pos)
+        merge(c, (; image=rows(scaled), window_max=vals[lo] + (pos - lo) * (vals[hi] - vals[lo])))
     end
-    coords=1e3.*collect((-64:63).*s.fov/s.n_image)
-    (;x=coords,y=coords,cases=packed,scale=4095.0,imageScale,checks)
+    coords = 1e3 .* collect((-64:63) .* s.fov / s.n_image)
+    (; x=coords, y=coords, cases=packed)
 end
 
 function lecture_profile()
-    rf,gz,gzr=PulseDesigner.make_sinc_pulse(deg2rad(70);duration=0.8e-3,
-        time_bw_product=2.0,slice_thickness=6e-3,apodization=0.5,
-        use=Excitation(),sys=scanner)
-    n=241; counts=[1,2,8,32,64,160,512,1024,2048]; repetitions=last(counts); tr=5e-3
-    obj=Phantom(x=zeros(n),z=collect(range(-9e-3,9e-3;length=n)),
-        T1=fill(1.115,n),T2=fill(.041,n))
-    seq=Sequence(scanner)
-    echo_times=Float64[]
-    for j in 1:repetitions
-        r=deepcopy(rf);r.ϕ=isodd(j) ? 0.0 : π
-        shot=Sequence(scanner)
-        addblock!(shot,r;z=gz)
-        addblock!(shot;z=gzr)
-        echo=r.delay+r.center+tr/2
-        addblock!(shot,Delay(echo-0.5e-6-dur(shot)))
-        addblock!(shot,ADC(1,1e-6))
-        push!(echo_times,dur(seq)+echo)
-        addblock!(shot;z=gzr)
-        addblock!(shot,Delay(tr-dur(shot)))
-        seq+=shot
+    rf, gz, gzr = PulseDesigner.make_sinc_pulse(deg2rad(70); duration=0.8e-3,
+        time_bw_product=2.0, slice_thickness=6e-3, apodization=0.5, use=Excitation(), sys=scanner)
+    n, counts, tr = 241, [1, 2, 8, 32, 64, 160, 512, 1024, 2048], 5e-3
+    obj = Phantom(x=zeros(n), z=collect(range(-9e-3, 9e-3; length=n)), T1=fill(1.115, n), T2=fill(0.041, n))
+    seq = Sequence(scanner)
+    for j in 1:last(counts)
+        r = deepcopy(rf); r.ϕ = isodd(j) ? 0.0 : π
+        shot = Sequence(scanner)
+        addblock!(shot, r; z=gz); addblock!(shot; z=gzr)
+        addblock!(shot, Delay(r.delay + r.center + tr / 2 - 0.5e-6 - dur(shot)))
+        addblock!(shot, ADC(1, 1e-6)); addblock!(shot; z=gzr)
+        addblock!(shot, Delay(tr - dur(shot)))
+        seq += shot
     end
-    profiles=Vector{Vector{Float64}}()
-    recorded=Float64[]; shot_number=Ref(0)
-    record=function(progress,blocks,data,_)
-        p=blocks.parts[progress.block]
+    profiles, shot_num = Vector{Vector{Float64}}(), Ref(0)
+    record = function (progress, blocks, data, _)
+        p = blocks.parts[progress.block]
         if data.seqd.ADC[last(p)]
-            shot_number[]+=1
-            if shot_number[] in counts
-                push!(profiles,abs.(collect(data.Xt.xy)))
-                push!(recorded,data.seqd.t[last(p)])
-            end
+            shot_num[] += 1
+            shot_num[] in counts && push!(profiles, abs.(collect(data.Xt.xy)))
         end
     end
-    simulate(obj,seq,scanner;verbose=false,callbacks=(record,),
-        sim_params=merge(sim_params,Dict("return_type"=>"state",
-            "max_block_length"=>1,"max_rf_block_length"=>2000,"Δt_rf"=>5e-6)))
-    @assert length(profiles)==length(counts)
-    @assert maximum(abs.(recorded.-echo_times[counts]))<1e-8
-    (;z=1e3obj.z,counts,profiles)
+    simulate(obj, seq, scanner; verbose=false, callbacks=(record,), sim_params=merge(sim_params,
+        Dict("return_type"=>"state", "max_block_length"=>1, "max_rf_block_length"=>2000, "Δt_rf"=>5e-6)))
+    (; z=1e3 .* obj.z, counts, profiles)
 end
-
-
-
-
 
 module LectureCMRA
 using KomaMRI
-const sys=Scanner(limits=HardwareLimits(B0=0.55,Gmax=40e-3,Smax=25.0))
-const Trf=500e-6
-const B1=1/(360*γ*Trf)
-const Tadc=1e-6
-const Tfatsat=26.624e-3
-const TR=5.3e-3
-const TE=TR/2
-const fat_freq=γ*sys.limits.B0*(-3.4e-6)
-const Niso=200
-const dx=collect(range(-.75e-3,.75e-3;length=Niso))
+const sys = Scanner(limits=HardwareLimits(B0=0.55, Gmax=40e-3, Smax=25.0))
+const Trf = 500e-6
+const B1 = 1 / (360 * γ * Trf)
+const Tadc = 1e-6
+const Tfatsat = 26.624e-3
+const TR = 5.3e-3
+const TE = TR / 2
+const fat_freq = γ * sys.limits.B0 * (-3.4e-6)
+const Niso = 200
+const dx = collect(range(-0.75e-3, 0.75e-3; length=Niso))
 
-	function FatSat(α, Δf; sample=false)
-	    # FatSat design
-		# cutoff_freq = sqrt(log(2) / 2) / a where B1(t) = exp(-(π t / a)^2)
-		cutoff = fat_freq / π 			      # cutoff [Hz] => ≈1/10 RF power to water
-		a = sqrt(log(2) / 2) / cutoff         # a [s]
-		τ = range(-Tfatsat/2, Tfatsat/2, 64) # time [s]
-		gauss_pulse = exp.(-(π * τ / a) .^ 2) # B1(t) [T]
-		# FatSat prepulse
-	    seq = Sequence()
-	    seq += Grad(-8e-3, 3000e-6, 500e-6) #Spoiler1
-	    seq += RF(gauss_pulse, Tfatsat, Δf)
-	    α_ref = get_flip_angles(seq)[2]
-	    seq = (α/α_ref+0im) * seq
-	    if sample
-	        seq += ADC(1, 1e-6)
-	    end
-	    seq += Grad(8e-3, 3000e-6, 500e-6) #Spoiler2
-	    if sample
-	        seq += ADC(1, 1e-6)
-	    end
-	    return seq
-	end
+function FatSat(α, Δf; sample=false)
+    a = sqrt(log(2) / 2) / (fat_freq / π)
+    τ = range(-Tfatsat / 2, Tfatsat / 2, 64)
+    seq = Sequence() + Grad(-8e-3, 3000e-6, 500e-6) + RF(exp.(-(π .* τ ./ a) .^ 2), Tfatsat, Δf)
+    seq = (α / get_flip_angles(seq)[2] + 0im) * seq
+    sample && (seq += ADC(1, 1e-6))
+    seq += Grad(8e-3, 3000e-6, 500e-6)
+    sample && (seq += ADC(1, 1e-6))
+    seq
+end
 
-	function T2prep(TE; sample=false)
-	    seq = Sequence()
-	    seq += RF(90 * B1, Trf)
-	    seq += sample ? ADC(20, TE/2 - 1.5Trf) : Delay(TE/2 - 1.5Trf)
-	    seq += RF(180im * B1 / 2, Trf*2)
-	    seq += sample ? ADC(20, TE/2 - 1.5Trf) : Delay(TE/2 - 1.5Trf)
-	    seq += RF(-90 * B1, Trf)
-	    seq += Grad(8e-3, 6000e-6, 600e-6)
-	    if sample
-	        seq += ADC(1, 1e-6)
-	    end
-	    return seq
-	end
+function T2prep(TE; sample=false)
+    gap = sample ? ADC(20, TE / 2 - 1.5Trf) : Delay(TE / 2 - 1.5Trf)
+    seq = Sequence() + RF(90 * B1, Trf) + gap + RF(180im * B1 / 2, 2Trf) + deepcopy(gap) +
+        RF(-90 * B1, Trf) + Grad(8e-3, 6000e-6, 600e-6)
+    sample && (seq += ADC(1, 1e-6))
+    seq
+end
 
-	function bSSFP(iNAV_lines, im_segments, iNAV_flip_angle, im_flip_angle; sample=false)
-	    k = 0
-	    seq = Sequence()
-	    for i = 0 : iNAV_lines + im_segments - 1
-	        if iNAV_lines != 0
-	            m = (im_flip_angle - iNAV_flip_angle) / iNAV_lines
-	            α = min( m * i + iNAV_flip_angle, im_flip_angle ) * (-1)^k
-	        else
-	            α = im_flip_angle * (-1)^k
-	        end
-	        seq += RF(α * B1, Trf)
-	        if i < iNAV_lines && !sample
-	            seq += Delay(TR - Trf)
-	        else
-	            seq += Delay(TE - Trf/2 - Tadc/2)
-	            seq += ADC(1, Tadc)
-	            seq += Delay(TR - TE - Tadc/2 - Trf/2)
-	        end
-	        k += 1
-	    end
-	    return seq
-	end
+function bSSFP(iNAV_lines, im_segments, iNAV_flip, im_flip; sample=false)
+    seq = Sequence()
+    for i in 0:(iNAV_lines + im_segments - 1)
+        α = (iNAV_lines != 0 ? min(((im_flip - iNAV_flip) / iNAV_lines) * i + iNAV_flip, im_flip) : im_flip) * (-1)^i
+        seq += RF(α * B1, Trf)
+        if i < iNAV_lines && !sample
+            seq += Delay(TR - Trf)
+        else
+            seq += Delay(TE - Trf / 2 - Tadc / 2)
+            seq += ADC(1, Tadc)
+            seq += Delay(TR - TE - Tadc / 2 - Trf / 2)
+        end
+    end
+    seq
+end
 
-	function CMRA(
-				dummy_heart_beats,
-				iNAV_lines,
-				im_segments,
-				iNAV_flip_angle,
-				im_flip_angle,
-				T2prep_duration=50e-3,
-				FatSat_flip_angle=180,
-				RR=1.0;
-				sample_recovery=zeros(Bool, dummy_heart_beats+1)
-				)
-		# Seq init
-	    seq = Sequence()
-	    for hb = 1 : dummy_heart_beats + 1
-			sample = sample_recovery[hb] # Sampling recovery curve for hb
-			# Generating seq blocks
-	        t2p = T2prep(T2prep_duration; sample)
-	        fatsat = FatSat(FatSat_flip_angle, fat_freq; sample)
-	        bssfp = bSSFP(iNAV_lines, im_segments, iNAV_flip_angle, im_flip_angle; sample)
-	        # Concatenating seq blocks
-	        seq += t2p
-	        seq += fatsat
-	        seq += bssfp
-			# RR interval consideration
-			RRdelay = RR  - dur(bssfp) - dur(t2p) - dur(fatsat)
-	        seq += sample ? ADC(80, RRdelay) : Delay(RRdelay)
-	    end
-	    return seq
-	end
+function CMRA(dummy_hb, iNAV_lines, im_segments, iNAV_flip, im_flip, t2p_dur=50e-3, fs_flip=180, RR=1.0;
+        sample_recovery=zeros(Bool, dummy_hb + 1))
+    seq = Sequence()
+    for hb in 1:(dummy_hb + 1)
+        sample = sample_recovery[hb]
+        t2p, fs, bs = T2prep(t2p_dur; sample), FatSat(fs_flip, fat_freq; sample), bSSFP(iNAV_lines, im_segments, iNAV_flip, im_flip; sample)
+        rr_delay = RR - dur(bs) - dur(t2p) - dur(fs)
+        seq += t2p
+        seq += fs
+        seq += bs
+        seq += sample ? ADC(80, rr_delay) : Delay(rr_delay)
+    end
+    seq
+end
 
-	function cardiac_phantom(off; off_fat=fat_freq)
-	    myocard = Phantom(x=dx, ρ=0.6*ones(Niso), T1=701e-3*ones(Niso),
-	                               T2=58e-3*ones(Niso),    Δw=2π*off*ones(Niso))
-	    blood =   Phantom(x=dx, ρ=0.7*ones(Niso), T1=1122e-3*ones(Niso),
-	                               T2=263e-3*ones(Niso),   Δw=2π*off*ones(Niso))
-	    fat1 =    Phantom(x=dx, ρ=1.0*ones(Niso), T1=183e-3*ones(Niso),
-	                               T2=93e-3*ones(Niso),    Δw=2π*(off_fat + off)*ones(Niso))
-	    fat2 =    Phantom(x=dx, ρ=1.0*ones(Niso), T1=130e-3*ones(Niso),
-	                               T2=93e-3*ones(Niso),    Δw=2π*(off_fat + off)*ones(Niso))
-	    obj = myocard + blood + fat1 + fat2
-	    return obj
-	end
+function cardiac_phantom(off; off_fat=fat_freq)
+    Phantom(x=dx, ρ=fill(0.6, Niso), T1=fill(701e-3, Niso), T2=fill(58e-3, Niso), Δw=fill(2π * off, Niso)) +
+    Phantom(x=dx, ρ=fill(0.7, Niso), T1=fill(1122e-3, Niso), T2=fill(263e-3, Niso), Δw=fill(2π * off, Niso)) +
+    Phantom(x=dx, ρ=fill(1.0, Niso), T1=fill(183e-3, Niso), T2=fill(93e-3, Niso), Δw=fill(2π * (off_fat + off), Niso)) +
+    Phantom(x=dx, ρ=fill(1.0, Niso), T1=fill(130e-3, Niso), T2=fill(93e-3, Niso), Δw=fill(2π * (off_fat + off), Niso))
+end
 end
 
 function lecture_cmra()
-    cases=[]
-    for flip in [40,70,110]
-        seq=LectureCMRA.CMRA(3,6,20,3.2,flip,50e-3,180,1.0;sample_recovery=ones(Bool,4))
-        obj=LectureCMRA.cardiac_phantom(0)
-        mag=simulate(obj,seq,LectureCMRA.sys;verbose=false,sim_params=Dict{String,Any}("return_type"=>"mat","sim_method"=>BlochDict(save_Mz=true),"Δt_rf"=>LectureCMRA.Trf,"gpu"=>false,"Nthreads"=>1))
-        groups=[(j-1)*LectureCMRA.Niso .+ (1:LectureCMRA.Niso) for j in 1:3]
-        xy=[vec(abs.(sum(mag[:,ii,1,1];dims=2)./length(ii))) for ii in groups]
-        z=[vec(real.(sum(mag[:,ii,2,1];dims=2)./length(ii))) for ii in groups]
-        t=get_adc_sampling_times(seq)
-        t2=dur(LectureCMRA.T2prep(.050;sample=true));fat=dur(LectureCMRA.FatSat(180,LectureCMRA.fat_freq;sample=true))
-        regions=[[hb,hb+t2,hb+t2+fat,hb+t2+fat+6LectureCMRA.TR,hb+t2+fat+26LectureCMRA.TR] for hb in 0:3]
-        wave=plot_seq(seq;slider=false,show_rf_frame=false).data
-        wave=[w for w in wave if w.name=="|B1|_AM"]
-        for w in wave
-            w.x=[isnothing(x) ? nothing : x/1e3 for x in w.x]
-        end
-        echo_indices=findall(time -> any(r[3]+1e-9 < time < r[5]-1e-9 for r in regions),t)
-        acquisition_indices=findall(time -> any(r[4]+1e-9 < time < r[5]-1e-9 for r in regions),t)
-        @assert length(echo_indices)==4*26
-        @assert length(acquisition_indices)==4*20
-        echo_t=t[echo_indices]
-        echo_xy=[values[echo_indices] for values in xy]
-        echo_z=[values[echo_indices] for values in z]
-        acquisition_t=t[acquisition_indices]
-        push!(cases,(;flip,t,xy,z,regions,wave,echo_t,echo_xy,echo_z,acquisition_t))
+    cases = map([40, 70, 110]) do flip
+        seq = LectureCMRA.CMRA(3, 6, 20, 3.2, flip, 50e-3, 180, 1.0; sample_recovery=ones(Bool, 4))
+        mag = simulate(LectureCMRA.cardiac_phantom(0), seq, LectureCMRA.sys; verbose=false,
+            sim_params=Dict{String,Any}("return_type"=>"mat", "sim_method"=>BlochDict(save_Mz=true),
+                "Δt_rf"=>LectureCMRA.Trf, "gpu"=>false, "Nthreads"=>1))
+        groups = [(j - 1) * LectureCMRA.Niso .+ (1:LectureCMRA.Niso) for j in 1:3]
+        xy = [vec(abs.(sum(mag[:, ii, 1, 1]; dims=2) ./ length(ii))) for ii in groups]
+        t = get_adc_sampling_times(seq)
+        t2 = dur(LectureCMRA.T2prep(0.050; sample=true))
+        fat = dur(LectureCMRA.FatSat(180, LectureCMRA.fat_freq; sample=true))
+        regions = [[hb, hb + t2, hb + t2 + fat, hb + t2 + fat + 6LectureCMRA.TR, hb + t2 + fat + 26LectureCMRA.TR] for hb in 0:3]
+        wave = [w for w in plot_seq(seq; slider=false, show_rf_frame=false).data if w.name == "|B1|_AM"]
+        for w in wave; w.x = [v isa Number ? v / 1e3 : nothing for v in w.x]; end
+        echo_idx = findall(time -> any(r[3] + 1e-9 < time < r[5] - 1e-9 for r in regions), t)
+        (; flip, t, xy, regions, wave, echo_t=t[echo_idx], echo_xy=[v[echo_idx] for v in xy])
     end
-    (;cases,names=["Myocardium","Blood","Fat"])
+    (; cases, names=["Myocardium", "Blood", "Fat"])
 end
 
 function lecture_cmra_contrast()
-    angles=collect(20:10:180)
-    heart_rates=collect(55:10:85)
-    signals_by_rate=zeros(length(angles),length(heart_rates),2)
-    jobs=collect(Iterators.product(eachindex(angles),eachindex(heart_rates)))
+    angles, heart_rates = collect(20:10:180), collect(55:10:85)
+    sig_hr = zeros(length(angles), length(heart_rates), 2)
+    jobs = collect(Iterators.product(eachindex(angles), eachindex(heart_rates)))
     Threads.@threads for job in eachindex(jobs)
-        a,h=jobs[job]
-        seq=LectureCMRA.CMRA(3,6,20,3.2,angles[a],50e-3,180,60/heart_rates[h])
-        obj=LectureCMRA.cardiac_phantom(0)
-        mag=simulate(obj,seq,LectureCMRA.sys;verbose=false,sim_params=Dict{String,Any}(
-            "return_type"=>"mat","sim_method"=>BlochDict(),"Δt_rf"=>LectureCMRA.Trf,"gpu"=>false,"Nthreads"=>1))
-        for (j,spins) in enumerate([LectureCMRA.Niso .+ (1:LectureCMRA.Niso),1:LectureCMRA.Niso])
-            # The source stores the native output in ComplexF64 before averaging.
-            echoes=ComplexF64.(mag[end-19:end,spins,1,1])
-            signals_by_rate[a,h,j]=sum(abs.(sum(echoes;dims=2)./LectureCMRA.Niso))/20
+        a, h = jobs[job]
+        seq = LectureCMRA.CMRA(3, 6, 20, 3.2, angles[a], 50e-3, 180, 60 / heart_rates[h])
+        mag = simulate(LectureCMRA.cardiac_phantom(0), seq, LectureCMRA.sys; verbose=false,
+            sim_params=Dict{String,Any}("return_type"=>"mat", "sim_method"=>BlochDict(),
+                "Δt_rf"=>LectureCMRA.Trf, "gpu"=>false, "Nthreads"=>1))
+        for (j, spins) in enumerate((LectureCMRA.Niso .+ (1:LectureCMRA.Niso), 1:LectureCMRA.Niso))
+            echoes = ComplexF64.(mag[end-19:end, spins, 1, 1])
+            sig_hr[a, h, j] = sum(abs.(sum(echoes; dims=2) ./ LectureCMRA.Niso)) / 20
         end
     end
-    signals=[vec(sum(signals_by_rate[a,:,:];dims=1)./length(heart_rates)) for a in eachindex(angles)]
-    signal_std=[[sqrt(sum((signals_by_rate[a,:,j].-signals[a][j]).^2)/(length(heart_rates)-1)) for j in 1:2] for a in eachindex(angles)]
-    contrast_by_rate=abs.(signals_by_rate[:,:,1].-signals_by_rate[:,:,2])
-    contrast=vec(sum(contrast_by_rate;dims=2)./length(heart_rates))
-    contrast_std=[sqrt(sum((contrast_by_rate[a,:].-contrast[a]).^2)/(length(heart_rates)-1)) for a in eachindex(angles)]
-    (;angles,signals,signal_std,contrast,contrast_std,heart_rates,names=["Blood","Myocardium"])
+    signals = [vec(sum(sig_hr[a, :, :]; dims=1) ./ length(heart_rates)) for a in eachindex(angles)]
+    signal_std = [[sqrt(sum((sig_hr[a, :, j] .- signals[a][j]) .^ 2) / (length(heart_rates) - 1)) for j in 1:2] for a in eachindex(angles)]
+    c_hr = abs.(sig_hr[:, :, 1] .- sig_hr[:, :, 2])
+    contrast = vec(sum(c_hr; dims=2) ./ length(heart_rates))
+    contrast_std = [sqrt(sum((c_hr[a, :] .- contrast[a]) .^ 2) / (length(heart_rates) - 1)) for a in eachindex(angles)]
+    (; angles, signals, signal_std, contrast, contrast_std, names=["Blood", "Myocardium"])
 end
 
-function lecture_extended()
-    brain=lecture_brain_maps()
-    voxel=lecture_voxel_cases()
-    catalysis=lecture_catalysis()
-    profile=lecture_profile()
-    cmra=lecture_cmra()
-    cmra_contrast=lecture_cmra_contrast()
-    cartesian=lecture_cartesian_images()
-    radial=lecture_radial_images()
-    peak=max(radial.kspace.max_magnitude,maximum(data.kScale for data in values(cartesian)))
-    log_min,log_max=log10(peak)-5,log10(peak)
-    logbyte(value)=round(UInt8,255clamp((log10(max(value,peak*1e-5))-log_min)/5,0,1))
-    cartesian=Dict(name=>begin
-        cases=map(data.cases) do c
-            encoded=base64encode(UInt8[logbyte(v) for row in c.kspace for v in row])
-            merge(Base.structdiff(c,(kspace=nothing,envelope=nothing)),
-                (;image=[round.(Int,row) for row in c.image],signal=round.(c.signal;digits=8),kspaceDisplayEncoded=encoded))
+function pack_kspace_data(cartesian, radial)
+    peak = max(radial.kspace.max_magnitude, maximum(d.kScale for d in values(cartesian)))
+    log_min, log_max = log10(peak) - 5, log10(peak)
+    logbyte(v) = round(UInt8, 255 * clamp((log10(max(v, peak * 1e-5)) - log_min) / 5, 0, 1))
+    cart_packed = Dict(name => begin
+        cases = map(d.cases) do c
+            enc = base64encode(UInt8[logbyte(v) for row in c.kspace for v in row])
+            (; c.tr, c.dummy, image=[round.(Int, r) for r in c.image],
+                signal=round.(c.signal; digits=8), c.acquiredStart, kspaceDisplayEncoded=enc)
         end
-        merge(data,(;cases,kspaceLogRange=[log_min,log_max]))
-    end for (name,data) in cartesian)
-    radial_cases=map(radial.cases) do c
-        encoded=base64encode(logbyte.(c.kspace_magnitude))
-        merge(Base.structdiff(c,(kspace_magnitude=nothing,)),
-            (;image=[round.(Int,row) for row in c.image],signal=round.(c.signal;digits=8),kspaceDisplayEncoded=encoded))
+        merge(d, (; cases, kspaceLogRange=[log_min, log_max]))
+    end for (name, d) in cartesian)
+    rad_cases = map(radial.cases) do c
+        (; c.tr, c.dummy, image=[round.(Int, r) for r in c.image],
+            signal=round.(c.signal; digits=8), c.acquiredStart,
+            kspaceDisplayEncoded=base64encode(logbyte.(c.kspace_magnitude)))
     end
-    radial=merge(radial,(;cases=radial_cases,kspaceLogRange=[log_min,log_max]))
-    (;brain,voxel,catalysis,profile,cartesian,radial,cmra,cmra_contrast)
+    cart_packed, merge(radial, (; cases=rad_cases, kspaceLogRange=[log_min, log_max]))
 end
 
-function lecture_demo()
-    seq = five_shots()
-    rule = MaxStepSizeRule(1,20e-6)
-    moment_rule = KomaMRI.KomaMRIBase.MomentSamplingRule(rule)
-    time = discretize(seq; sampling_rule=moment_rule).t[2:end]
-    k, adc = get_kspace(seq; sampling_rule=rule)
-    @assert length(time) == size(k,1)
-    wave = plot_seq(seq; slider=false, show_rf_frame=false)
-    voxel_seq = excitation_train()
-    voxel_wave = plot_seq(voxel_seq; slider=false, show_rf_frame=false)
-    voxel = (; wave=voxel_wave.data, duration=1e3dur(voxel_seq), flip_deg=10)
-    (; duration=1e3dur(seq), time=1e3 .* time, k=rows(k[:,1:2]), adc=rows(adc[:,1:2]),
-        wave=wave.data, brain=cartesian_images(), voxel,
-        rf_center=rf_center_demo(), rf_phase=rf_phase_demo(),
-        slr_minphase=slr_minphase_demo(),
-        refocus_sinc=refocusing_demo(:sinc), refocus_slr=refocusing_demo(:slr), extended=lecture_extended())
-end
-~~~
+# Compute all datasets once
+brain_maps = lecture_brain_maps()
+voxel_cases = lecture_voxel_cases(brain_maps)
+catalysis_data = lecture_catalysis()
+profile_data = lecture_profile()
+cmra_data = lecture_cmra()
+cmra_contrast_data = lecture_cmra_contrast()
+cart_packed, rad_packed = pack_kspace_data(lecture_cartesian_images(), lecture_radial_images())
+voxel_seq = excitation_train()
+
+lecture6_data = (;
+    voxel=(; wave=plot_seq(voxel_seq; slider=false, show_rf_frame=false).data, duration=1e3 * dur(voxel_seq), flip_deg=10),
+    rf_center=rf_excitation_demo(; slr=false, phi_deg=0),
+    rf_phase=rf_excitation_demo(; slr=false, phi_deg=60),
+    slr_minphase=rf_excitation_demo(; slr=true, phi_deg=0),
+    refocus_sinc=refocusing_demo(:sinc),
+    refocus_slr=refocusing_demo(:slr),
+    brain=brain_maps, voxel_cases, cartesian=cart_packed, radial=rad_packed, cmra=cmra_data,
+)
+```
 
 # Pulse sequence design workflow {#pulse-sequence-workflow}
 
@@ -1452,14 +697,49 @@ end
 ::: {}
 $$\boldsymbol{k}(t)=\frac{\gamma}{2\pi}\int_0^t\boldsymbol{G}(\tau)\,\mathrm d\tau$$
 
-<div id="encoding-trajectory"></div>
+```{julia}
+enc_seq = five_shots()
+enc_rule = MaxStepSizeRule(1, 20e-6)
+enc_t = 1e3 .* discretize(enc_seq; sampling_rule=KomaMRI.KomaMRIBase.MomentSamplingRule(enc_rule)).t[2:end]
+enc_k, enc_adc = get_kspace(enc_seq; sampling_rule=enc_rule)
+enc_centers = only(t for t in plot_seq(enc_seq; slider=false, show_rf_frame=false).data if t.name == "RF_center").x
+px, py = Any[], Any[]
+for i in axes(enc_k, 1)
+    if i > 1 && any(t -> t isa Number && enc_t[i-1] <= t < enc_t[i], enc_centers)
+        push!(px, nothing); push!(py, nothing)
+    end
+    push!(px, enc_k[i, 1]); push!(py, enc_k[i, 2])
+end
+enc_pal = ["#636EFA", "#EF553B", "#00CC96", "#AB63FA", "#19B8D3"]
+adc_traces = [scatter(mode="lines", x=enc_adc[(i-1)*96+1:i*96, 1], y=enc_adc[(i-1)*96+1:i*96, 2],
+    line=attr(color=enc_pal[i], width=2.5), hoverinfo="skip") for i in 1:5]
+bios_plot(GenericTrace[
+    scatter(mode="lines", x=px, y=py, line=attr(color="#c6ccd1", width=1.5), hoverinfo="skip"),
+    adc_traces...,
+]; height=284, font_size=16, showlegend=false, margin=attr(l=65, r=30, t=14, b=55),
+    xaxis=bios_axis(range=[-420, 420], dtick=200, constrain="domain", title=attr(standoff=12, text="kₓ (1/m)")),
+    yaxis=bios_axis(range=[-420, 420], dtick=200, constrain="domain", scaleanchor="x", title=attr(standoff=12, text="kᵧ (1/m)")))
+```
 
 :::
 
 ::: {.reconstruction-panel}
 $$S(t)=\int_V m(\boldsymbol{x})\,\mathrm e^{-\mathrm i2\pi\boldsymbol{k}(t)\cdot\boldsymbol{x}}\,\mathrm d\boldsymbol{x}$$
 
-<div id="encoding-reconstruction"></div>
+```{julia}
+enc_brain = cartesian_images()
+bw = [[0, "#000"], [1, "#fff"]]
+bios_plot([
+    bios_heatmap(enc_brain.k; x=enc_brain.kaxis, y=enc_brain.kaxis, colorscale=bw, zmin=0, zmax=3.001,
+        showscale=false, hovertemplate="kₓ=%{x:.1f}<br>kᵧ=%{y:.1f}<extra>1/m</extra>"),
+    bios_heatmap(enc_brain.image; xaxis="x2", yaxis="y2", x=enc_brain.x, y=enc_brain.x, colorscale=bw, zmin=0, zmax=1,
+        showscale=false, hovertemplate="x=%{x:.1f}<br>y=%{y:.1f}<br>Magnitude: %{z:.2f}<extra></extra>"),
+]; height=284, font_size=16, showlegend=false, margin=attr(l=12, r=12, t=14, b=35),
+    xaxis=attr(visible=false, constrain="domain", domain=[0, 0.43]),
+    yaxis=attr(visible=false, constrain="domain", scaleanchor="x", scaleratio=1),
+    xaxis2=attr(visible=false, constrain="domain", domain=[0.57, 1], anchor="y2"),
+    yaxis2=attr(visible=false, constrain="domain", anchor="x2", scaleanchor="x2", scaleratio=1))
+```
 
 [$\xrightarrow{\mathcal F^{-1}}$]{.inverse-ft}
 :::
@@ -1509,8 +789,7 @@ Bernstein, King & Zhou, *Handbook of MRI Pulse Sequences* (2004), Ch. 2–3 (iso
 
 # A 180° pulse reverses gradient dephasing {#spin-echo-moment}
 
-~~~{julia}
-#| output: asis
+```{julia}
 spin_echo_seq = spin_echo_sequence()
 sequence_plot = plot_seq(spin_echo_seq; slider=false)
 only(trace for trace in sequence_plot.data if trace.name == "RF_center").visible = true
@@ -1520,21 +799,27 @@ spin_echo_plot = [sequence_plot; moment_plot]
 for trace in spin_echo_plot.data
     trace.legend = trace.yaxis == "y2" ? "legend2" : "legend"
 end
+for ax in (spin_echo_plot.layout.xaxis1, spin_echo_plot.layout.xaxis2,
+           spin_echo_plot.layout.yaxis1, spin_echo_plot.layout.yaxis2)
+    ax.showgrid = true; ax.gridcolor = "#e8ebed"
+    ax.zeroline = true; ax.zerolinecolor = BIOS_COLORS.gray
+    ax.showline = true; ax.linecolor = BIOS_COLORS.gray
+    ax.mirror = true; ax.ticks = "outside"
+end
 spin_echo_plot.layout.xaxis1.matches = "x2"
 spin_echo_plot.layout.xaxis1.showticklabels = false
 spin_echo_plot.layout.height = 590
-spin_echo_plot.layout.margin = attr(l=60,r=30,t=75,b=50)
-spin_echo_plot.layout.legend = attr(orientation="h",x=0,xanchor="left",
-    y=last(spin_echo_plot.layout.yaxis1.domain)+0.10,yanchor="bottom",yref="paper",
-    font=attr(size=16))
-spin_echo_plot.layout.legend2 = attr(orientation="h",x=0,xanchor="left",
-    y=last(spin_echo_plot.layout.yaxis2.domain)+0.075,yanchor="bottom",yref="paper",
-    font=attr(size=16))
-KomaMRI.KomaMRIPlots.pluto_plot(spin_echo_plot)
-spin_echo_html = sprint(io -> PlotlyBase.to_html(io, spin_echo_plot;
-    full_html=false, include_mathjax=missing))
-println("~~~{=html}\n<div id=\"spin-echo-moment-plot\">", spin_echo_html, "</div>\n~~~")
-~~~
+spin_echo_plot.layout.font = attr(size=16, color=BIOS_COLORS.ink)
+spin_echo_plot.layout.margin = attr(l=65, r=30, t=75, b=55)
+spin_echo_plot.layout.paper_bgcolor = "rgba(0,0,0,0)"
+spin_echo_plot.layout.plot_bgcolor = "rgba(0,0,0,0)"
+spin_echo_plot.layout.legend = attr(orientation="h", x=0, xanchor="left",
+    y=last(spin_echo_plot.layout.yaxis1.domain) + 0.10, yanchor="bottom", yref="paper", font=attr(size=16))
+spin_echo_plot.layout.legend2 = attr(orientation="h", x=0, xanchor="left",
+    y=last(spin_echo_plot.layout.yaxis2.domain) + 0.075, yanchor="bottom", yref="paper", font=attr(size=16))
+spin_echo_plot.config = bios_config()
+spin_echo_plot
+```
 
 # Single-voxel simulations: Sometimes a whole image is overkill {#voxel-uses .lesson-slide}
 
@@ -1558,7 +843,6 @@ println("~~~{=html}\n<div id=\"spin-echo-moment-plot\">", spin_echo_html, "</div
 ::: {.notes}
 The histories are native KomaMRI simulation callback states for every tissue class and each flip angle from 3° through 40°. Magnetization is normalized to M₀ = 1. The 100-pulse train uses the actual 1 ms RF waveform and 5 ms TR. Clicking the brain selects the tissue history; the browser displays cached native states without solving the Bloch equations.
 :::
-
 
 # K-space weighting: Cartesian linear {#sequence-image-effects .lesson-slide}
 
@@ -1586,7 +870,26 @@ The Activity 5 native radial bSSFP sequence with the same all-spins-on-resonance
 
 # bSSFP steady-state slice profile {#steady-profile .lesson-slide}
 
-<div id="steady-profile-plot" class="lesson-plot"></div>
+```{julia}
+norm_profs = [p ./ maximum(p) for p in profile_data.profiles]
+prof_steps = [attr(label=string(n), method="restyle", args=[Dict("y" => [norm_profs[k]]), [1]])
+    for (k, n) in enumerate(profile_data.counts)]
+bios_plot([
+    scatter(mode="lines", x=profile_data.z, y=norm_profs[1], name="First excitation",
+        line=attr(color=LECTURE6_COLORS[1], width=3)),
+    scatter(mode="lines", x=profile_data.z, y=norm_profs[1], name="Selected repetition",
+        xaxis="x2", yaxis="y2", line=attr(color=LECTURE6_COLORS[1], width=3)),
+]; height=540, showlegend=false, margin=attr(l=75, r=30, t=35, b=125),
+    xaxis=bios_axis(domain=[0, 0.43], range=[-9, 9], title=attr(standoff=12, text="Slice position (mm)")),
+    yaxis=bios_axis(range=[0, 1.05], title=attr(standoff=12, text="Normalized |Mₓᵧ|")),
+    xaxis2=bios_axis(domain=[0.57, 1], anchor="y2", range=[-9, 9], title=attr(standoff=12, text="Slice position (mm)")),
+    yaxis2=bios_axis(anchor="x2", range=[0, 1.05], matches="y"),
+    annotations=[
+        attr(xref="x domain", yref="paper", x=0.5, y=1.1, xanchor="center", showarrow=false, text="First excitation"),
+        attr(xref="x2 domain", yref="paper", x=0.5, y=1.1, xanchor="center", showarrow=false, text="Selected repetition"),
+    ],
+    sliders=[bios_slider(prof_steps, "RF pulses: "; y=-0.25)])
+```
 
 ::: {.slide-note}
 [Lu et al. (ISMRM 2016), Fig. 5](https://cds.ismrm.org/protected/16MProceedings/PDFfiles/3201.html) · [Staehle et al. (MRM 2008)](https://doi.org/10.1002/mrm.21557)
@@ -1602,10 +905,51 @@ Lu, Speier & Chang, ISMRM 2016, abstract 3201, Figure 5 shows pronounced bSSFP s
 Staehle et al., MRM 59:1197–1202 (2008), DOI 10.1002/mrm.21557, documents measured and simulated bSSFP slice-profile changes and off-resonance-dependent broadening. The present example keeps off resonance at zero to isolate the effect of repeated excitation and relaxation.
 :::
 
-
 # bSSFP catalysis {#catalysis .lesson-slide}
 
-<div id="catalysis-plot" class="lesson-plot"></div>
+```{julia}
+cat_traces = GenericTrace[]
+cat_domains = ([0.43, 0.60], [0.63, 0.80], [0.83, 1.0])
+for (i, c) in enumerate(catalysis_data.cases)
+    sx, sy = Any[], Any[]
+    for (p, a) in zip(c.rf_x, c.rf_angles)
+        push!(sx, p, p, nothing); push!(sy, 0, a, nothing)
+    end
+    suf = i == 1 ? "" : string(i)
+    push!(cat_traces, scatter(mode="lines", x=sx, y=sy, name=c.name, xaxis="x$suf", yaxis="y$suf",
+        line=attr(color=LECTURE6_COLORS[i], width=3), showlegend=false))
+end
+for (i, c) in enumerate(catalysis_data.cases)
+    push!(cat_traces, scatter(mode="lines", x=c.shot, y=c.signal, name=c.name, xaxis="x4", yaxis="y4",
+        line=attr(color=LECTURE6_COLORS[i], width=3)))
+end
+for (i, c) in enumerate(catalysis_data.cases)
+    push!(cat_traces, bios_heatmap(c.image; x=catalysis_data.x, y=catalysis_data.y,
+        colorscale=[[0, "black"], [1, "white"]], zmin=0, zmax=c.window_max,
+        showscale=false, hoverinfo="skip", xaxis="x$(i+4)", yaxis="y$(i+4)"))
+end
+cat_axes = Dict{Symbol,Any}(
+    :xaxis4 => bios_axis(domain=[0, 0.30], anchor="y4", range=[0, 160], nticks=4,
+        title=attr(text="RF pulse number", standoff=10, font=attr(size=19)), tickfont=attr(size=16)),
+    :yaxis4 => bios_axis(domain=[0, 1], range=[0, 0.7], anchor="x4",
+        title=attr(text="Echo magnitude", standoff=12, font=attr(size=19)), tickfont=attr(size=16)),
+)
+for (i, dom) in enumerate(cat_domains)
+    suf = i == 1 ? "" : string(i)
+    cat_axes[Symbol("xaxis$suf")] = bios_axis(domain=dom, anchor="y$suf", range=[0, 28], tickfont=attr(size=15))
+    cat_axes[Symbol("yaxis$suf")] = bios_axis(; domain=[0.68, 1], anchor="x$suf", range=[-45, 45],
+        showticklabels=(i == 1), tickfont=attr(size=15),
+        (i == 1 ? (; title=attr(text="Flip angle (°)", standoff=12, font=attr(size=19))) : NamedTuple())...)
+    ia = string(i + 4)
+    cat_axes[Symbol("xaxis$ia")] = attr(domain=dom, anchor="y$ia", visible=false, constrain="domain")
+    cat_axes[Symbol("yaxis$ia")] = attr(domain=[0, 0.52], anchor="x$ia", visible=false, scaleanchor="x$ia", scaleratio=1, constrain="domain")
+end
+bios_plot(cat_traces; height=600, margin=attr(l=85, r=25, t=45, b=15),
+    legend=attr(orientation="v", x=0.29, xanchor="right", y=0.99, yanchor="top", font=attr(size=15)),
+    annotations=[attr(xref=(i == 1 ? "x" : "x$i") * " domain", yref="paper", x=0.5, xanchor="center",
+        y=1.07, text=c.name, showarrow=false, font=attr(size=19)) for (i, c) in enumerate(catalysis_data.cases)],
+    cat_axes...)
+```
 
 ::: {.notes}
 Native KomaMRI Cartesian linear bSSFP images with the same 40° excitation, TR = 5 ms, TE = 2.5 ms, RF pulse, on-resonance brain phantom, sampling and reconstruction. Compare no preparation, an opposite-phase α/2 pulse whose center precedes the first readout RF center by TR/2, and a 14-pulse linear flip-angle ramp. Each image is displayed independently from zero (black) to its own 95th magnitude percentile (white). Echo envelopes use a unit-density GM voxel with the same RF/timing. RF stems show the actual signed flip angles, and the image columns align with the preparation columns above.
@@ -1613,9 +957,7 @@ Native KomaMRI Cartesian linear bSSFP images with the same 40° excitation, TR =
 
 # Cardiac bSSFP MRA signal dynamics {#cardiac-bssfp .lesson-slide}
 
-~~~{=html}
 <div id="cardiac-bssfp-plot" class="lesson-plot"></div>
-~~~
 
 ::: {.slide-note}
 [KomaMRI low-field CMRA example](https://github.com/JuliaHealth/KomaMRI.jl/blob/master/examples/4.reproducible_notebooks/pluto-02-low-field-cmra-optimization.jl)
@@ -1623,7 +965,47 @@ Native KomaMRI Cartesian linear bSSFP images with the same 40° excitation, TR =
 
 # Cardiac bSSFP MRA design {#cmra-design .lesson-slide}
 
-<div id="cmra-design-plot" class="lesson-plot"></div>
+```{julia}
+da = cmra_contrast_data.angles
+dcols = ["red", "blue"]
+blood_peak = maximum(s[1] for s in cmra_contrast_data.signals)
+dsnr = [[s[j] / blood_peak for s in cmra_contrast_data.signals] for j in 1:2]
+derr = [[s[j] / blood_peak for s in cmra_contrast_data.signal_std] for j in 1:2]
+dcon = cmra_contrast_data.contrast
+init_idx = findfirst(==(110), da)
+sel0 = da[init_idx]
+dmarker(vals, idx, col; open=false, kwargs...) = scatter(mode="markers", x=[da[idx]], y=[vals[idx]],
+    showlegend=false, hovertemplate="%{x}°<br>%{y:.4f}<extra></extra>",
+    marker=open ? attr(color=col, size=15, symbol="circle-open", line=attr(width=3)) : attr(color=col, size=9); kwargs...)
+design_steps = [attr(label=string(a), method="update", args=Any[
+    Dict("x" => [[a], [a], [a]], "y" => [[dsnr[1][k]], [dsnr[2][k]], [dcon[k]]]),
+    Dict("shapes[0].x0" => a, "shapes[0].x1" => a, "shapes[1].x0" => a, "shapes[1].x1" => a),
+    [4, 5, 8]]) for (k, a) in enumerate(da)]
+
+bios_plot([
+    scatter(mode="lines", x=da, y=dsnr[1], name="Blood", legendgroup="Blood", line=attr(color=dcols[1], width=3),
+        error_y=attr(type="data", array=derr[1], visible=true, thickness=1, width=3)),
+    scatter(mode="lines", x=da, y=dsnr[2], name="Myocardium", legendgroup="Myocardium", line=attr(color=dcols[2], width=3),
+        error_y=attr(type="data", array=derr[2], visible=true, thickness=1, width=3)),
+    dmarker(dsnr[1], argmax(dsnr[1]), dcols[1]; legendgroup="Blood"),
+    dmarker(dsnr[2], argmax(dsnr[2]), dcols[2]; legendgroup="Myocardium"),
+    dmarker(dsnr[1], init_idx, dcols[1]; open=true, legendgroup="Blood"),
+    dmarker(dsnr[2], init_idx, dcols[2]; open=true, legendgroup="Myocardium"),
+    scatter(mode="lines", x=da, y=dcon, name="|Blood − Myocardium|", legendgroup="contrast",
+        xaxis="x2", yaxis="y2", line=attr(color=LECTURE6_COLORS[3], width=3),
+        error_y=attr(type="data", array=cmra_contrast_data.contrast_std, visible=true, thickness=1, width=3)),
+    dmarker(dcon, argmax(dcon), LECTURE6_COLORS[3]; xaxis="x2", yaxis="y2", legendgroup="contrast"),
+    dmarker(dcon, init_idx, LECTURE6_COLORS[3]; open=true, xaxis="x2", yaxis="y2", legendgroup="contrast"),
+]; height=540, margin=attr(l=90, r=30, t=45, b=125),
+    legend=attr(orientation="h", x=0.5, xanchor="center", y=1.12),
+    xaxis=bios_axis(domain=[0, 0.44], range=[20, 180], dtick=40, title=attr(text="Flip angle (°)", standoff=12)),
+    yaxis=bios_axis(rangemode="tozero", title=attr(text="Relative SNR", standoff=12)),
+    xaxis2=bios_axis(domain=[0.59, 1], anchor="y2", range=[20, 180], dtick=40, title=attr(text="Flip angle (°)", standoff=12)),
+    yaxis2=bios_axis(anchor="x2", rangemode="tozero", title=attr(text="|Blood − Myocardium|", standoff=12)),
+    shapes=[attr(type="line", xref=xr, yref="paper", x0=sel0, x1=sel0, y0=0, y1=1,
+        line=attr(color=BIOS_COLORS.gray, width=1.5, dash="dot")) for xr in ("x", "x2")],
+    sliders=[bios_slider(design_steps, "Flip angle: "; suffix="°", active=init_idx - 1, y=-0.25)])
+```
 
 ::: {.notes}
 The curves reproduce the flip-angle optimization in the KomaMRI low-field CMRA tutorial: 50 ms T₂ preparation, fat saturation, six ramp pulses, four heartbeats, and twenty acquired echoes per heartbeat. Heart rates are 55, 65, 75 and 85 bpm, matching the documented protocol. For each tissue, the signal is the mean magnitude of the coherent isochromat average over the twenty acquired echoes of the final heartbeat. Readout flip angle is sampled from 20° to 180° in 10° steps. The mean signals and mean absolute blood–myocardium signal difference are taken across the four heart rates; native Plotly error bars show the unbiased standard deviation across heart rates.
@@ -1674,9 +1056,7 @@ The Nobel Prize recognized high-resolution NMR methodology; it was not awarded s
 $\alpha_E=\cos^{-1}(e^{-TR/T_1})$ = <span id="ernst-result"></span>
 :::
 
-~~~{=html}
 <div id="ernst-angle-plot" class="lesson-plot"></div>
-~~~
 
 ::: {.notes}
 Ideal spoiled GRE: no residual transverse magnetization before the next excitation. Signal shown at TE = 0.
@@ -1684,9 +1064,48 @@ Ideal spoiled GRE: no residual transverse magnetization before the next excitati
 
 # Maximum signal does not necessarily maximize tissue contrast {#tissue-contrast .lesson-slide}
 
-~~~{=html}
-<div id="tissue-contrast-plot" class="lesson-plot"></div>
-~~~
+```{julia}
+gre_sig(rho, t1, t2s, tr, te, deg) = (a = deg2rad(deg); e = exp(-tr / t1); rho * sin(a) * (1 - e) / (1 - e * cos(a)) * exp(-te / t2s))
+a_gre = collect(0.0:0.5:120.0)
+s_wm = [gre_sig(0.77, 832.0, 45.0, 10.0, 5.0, a) for a in a_gre]
+s_gm = [gre_sig(0.86, 1330.0, 50.0, 10.0, 5.0, a) for a in a_gre]
+d_gre = abs.(s_wm .- s_gm)
+a_cmra = Float64.(cmra_contrast_data.angles)
+s_bl = [s[1] for s in cmra_contrast_data.signals]
+s_my = [s[2] for s in cmra_contrast_data.signals]
+d_cmra = abs.(s_bl .- s_my)
+
+function tc_args(a, s1, s2, diff, n1, n2)
+    m1, m2, mc = argmax(s1), argmax(s2), argmax(diff)
+    [Dict("x" => [a, a, [a[m1]], [a[m2]], a, [a[mc]]],
+          "y" => [s1, s2, [s1[m1]], [s2[m2]], diff, [diff[mc]]],
+          "name" => [n1, n2, "", "", "|Signal difference|", ""])]
+end
+m1, m2, mc = argmax(s_wm), argmax(s_gm), argmax(d_gre)
+
+bios_plot([
+    scatter(mode="lines", x=a_gre, y=s_wm, name="WM", line=attr(color=LECTURE6_COLORS[1], width=3)),
+    scatter(mode="lines", x=a_gre, y=s_gm, name="GM", line=attr(color=LECTURE6_COLORS[2], width=3)),
+    scatter(mode="markers", x=[a_gre[m1]], y=[s_wm[m1]], showlegend=false, marker=attr(color=LECTURE6_COLORS[1], size=12)),
+    scatter(mode="markers", x=[a_gre[m2]], y=[s_gm[m2]], showlegend=false, marker=attr(color=LECTURE6_COLORS[2], size=12)),
+    scatter(mode="lines", x=a_gre, y=d_gre, name="|Signal difference|", xaxis="x2", yaxis="y2",
+        line=attr(color=LECTURE6_COLORS[3], width=3)),
+    scatter(mode="markers", x=[a_gre[mc]], y=[d_gre[mc]], showlegend=false, xaxis="x2", yaxis="y2",
+        marker=attr(color=LECTURE6_COLORS[3], size=12)),
+]; height=540, margin=attr(l=95, r=30, t=35, b=150),
+    legend=attr(orientation="h", x=0.5, xanchor="center", y=1.12),
+    xaxis=bios_axis(domain=[0, 0.45], title=attr(standoff=12, text="Flip angle (°)")),
+    yaxis=bios_axis(title=attr(standoff=12, text="Signal")),
+    xaxis2=bios_axis(domain=[0.59, 1], anchor="y2", title=attr(standoff=12, text="Flip angle (°)")),
+    yaxis2=bios_axis(anchor="x2", title=attr(standoff=12, text="Signal difference")),
+    updatemenus=[attr(type="dropdown", direction="up", x=0.28, xanchor="left", y=-0.31, yanchor="top", active=0,
+        font=attr(size=20, color=BIOS_COLORS.ink), bordercolor=BIOS_COLORS.blue, buttons=[
+            attr(label="Spoiled GRE: WM / GM", method="restyle", args=tc_args(a_gre, s_wm, s_gm, d_gre, "WM", "GM")),
+            attr(label="Cardiac bSSFP: blood / myocardium", method="restyle", args=tc_args(a_cmra, s_bl, s_my, d_cmra, "Blood", "Myocardium")),
+        ])],
+    annotations=[attr(xref="paper", yref="paper", x=0.26, xanchor="right", y=-0.365, yanchor="middle",
+        text="Sequence", showarrow=false, font=attr(size=20))])
+```
 
 ::: {.notes}
 Contrast = absolute signal difference · GRE: analytical model, TE 5 ms · CMRA: KomaMRI, 50 ms T₂ preparation and last-heartbeat acquisition average
@@ -1694,9 +1113,15 @@ Contrast = absolute signal difference · GRE: analytical model, TE 5 ms · CMRA:
 
 # TE and TR change image contrast {#timing-contrast .lesson-slide}
 
-~~~{=html}
+::: {#timing-eq-se .lesson-equation}
+$S = \rho\left(1 - e^{-\mathrm{TR}/T_1}\right)e^{-\mathrm{TE}/T_2}$
+:::
+
+::: {#timing-eq-gre .lesson-equation style="display: none;"}
+$S = \rho\,\dfrac{\sin\alpha\left(1 - e^{-\mathrm{TR}/T_1}\right)}{1 - \cos\alpha\,e^{-\mathrm{TR}/T_1}}\,e^{-\mathrm{TE}/T_2^*}$
+:::
+
 <div id="timing-contrast-plot" class="lesson-plot"></div>
-~~~
 
 ::: {.notes}
 Analytical tissue-weighted brain phantom · spin echo: T₂ decay · spoiled GRE: T₂* decay · fixed display scale within each model
@@ -1712,9 +1137,9 @@ Analytical tissue-weighted brain phantom · spin echo: T₂ decay · spoiled GRE
 - If you have an updated `.seq`, send it to [Charles McGrath](mailto:cmmcg@stanford.edu).
 :::
 ::: {.column width="62%"}
-~~~{=html}
-<iframe class="activity-frame" data-external="1" data-src="https://cncastillo.github.io/bios-214/lab/6/" title="Activity 6: Acquire and reconstruct radial data"></iframe>
-~~~
+```{=html}
+<iframe class="activity-frame" data-external="1" data-src="../../lab/6/activity6.html" title="Activity 6: Acquire and reconstruct radial data"></iframe>
+```
 :::
 :::
 
@@ -1722,831 +1147,340 @@ Analytical tissue-weighted brain phantom · spin echo: T₂ decay · spoiled GRE
 
 ![](figures/questions-droplet.png){fig-alt="Blue water-drop character with spiral eyes." height=180}
 
-~~~{julia}
-asset = PlotlyBase.JSON.json(read(KomaMRI.KomaMRIPlots.TIME_PLOTLY.local_path, String))
-loader = KomaMRI.KomaMRIPlots.plotly_loader(asset)
-data = PlotlyBase.JSON.json(lecture_demo())
-Base.HTML("<script>" * loader * "</script>" *
-    "<script id=\"lecture6-data\" type=\"application/json\">" * data * "</script>")
-~~~
+```{julia}
+embed_json("lecture6-data", lecture6_data)
+```
 
-~~~{=html}
+```{=html}
 <script>
-window.addEventListener('load', async () => {
-  const Plotly = await window.komaPlotly;
+BIOS214.onReady(Plotly => {
   const D = JSON.parse(document.getElementById('lecture6-data').textContent);
-  const E = D.extended;
-  const ink = '#343a40', cursorColor = '#db4654';
-  const palette = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#19B8D3'];
-  const config = {displayModeBar: false, responsive: true};
-  const axis = {
-    automargin: true, showgrid: true, gridcolor: '#e8ebed', zeroline: true, zerolinecolor: '#89939c',
-    showline: true, linecolor: '#89939c', mirror: true, ticks: 'outside'
-  };
-  const layout = {
-    font: {size: 16, color: ink},
-    paper_bgcolor: 'transparent', plot_bgcolor: 'transparent'
-  };
-  const rfTrace = D.voxel.wave.find(trace => trace.name === '|B1|_AM');
-  const rfCenters = D.wave.find(trace => trace.name === 'RF_center').x;
-  const pathX = [], pathY = [];
-  D.k.forEach(([kx, ky], i) => {
-    if (i && rfCenters.some(t => t >= D.time[i-1] && t < D.time[i])) {
-      pathX.push(null);
-      pathY.push(null);
-    }
-    pathX.push(kx);
-    pathY.push(ky);
-  });
+  const {C, config, axis, baseLayout, slider, onSlide} = BIOS214;
+  const colors = ['#2a7fb8', '#d77630', '#31966b'];
+  const spinColors = ['#2166ac', '#3b88c3', '#67a9cf', '#9ccae1', '#868e96', '#f4a582', '#e07b54', '#cc4c39', '#a50f15'];
+  const lessonLayout = baseLayout({margin: {l: 75, r: 30, t: 35, b: 125}, legend: {orientation: 'h', x: 0.5, xanchor: 'center', y: 1.12}});
+  const line = (x, y, name, color, extra = {}) => ({x, y, name, type: 'scatter', mode: 'lines', line: {color, width: 3}, ...extra});
+  const heatmap = (z, extra = {}) => ({z, type: 'heatmap', colorscale: [[0, 'black'], [1, 'white']], showscale: false, hoverinfo: 'skip', ...extra});
+  const gre = (t, tr, te, deg) => { const a = deg * Math.PI / 180, e = Math.exp(-tr / t.t1); return t.rho * Math.sin(a) * (1 - e) / (1 - e * Math.cos(a)) * Math.exp(-te / t.t2s); };
 
-  const trajectory = document.getElementById('encoding-trajectory');
-  const adcLines = palette.map((color, i) => {
-    const line = D.adc.slice(i*96, (i+1)*96);
-    return {
-      x: line.map(k => k[0]), y: line.map(k => k[1]), mode: 'lines',
-      line: {color, width: 2.5}, hoverinfo: 'skip'
-    };
-  });
-  await Plotly.newPlot(trajectory, [
-    {x: pathX, y: pathY, mode: 'lines', line: {color: '#c6ccd1', width: 1.5}, hoverinfo: 'skip'},
-    ...adcLines
-  ], {
-    ...layout, showlegend: false,
-    xaxis: {...axis, range: [-420, 420], dtick: 200, constrain: 'domain', title: {standoff: 12, text: 'kₓ (1/m)'}},
-    yaxis: {...axis, range: [-420, 420], dtick: 200, constrain: 'domain', scaleanchor: 'x',
-      title: {standoff: 12, text: 'kᵧ (1/m)'}},
-    margin: {l: 65, r: 30, t: 14, b: 55}
-  }, config);
-
-  const brain = D.brain;
-  const grayscale = {
-    type: 'heatmap', colorscale: [[0, '#000'], [1, '#fff']], showscale: false, zmin: 0
-  };
-  const imageAxis = {visible: false, constrain: 'domain'};
-  const reconstruction = document.getElementById('encoding-reconstruction');
-  await Plotly.newPlot(reconstruction, [
-    {...grayscale, x: brain.kaxis, y: brain.kaxis, z: brain.k, zmax: 3.001,
-      hovertemplate: 'kₓ=%{x:.1f}<br>kᵧ=%{y:.1f}<extra>1/m</extra>'},
-    {...grayscale, xaxis: 'x2', yaxis: 'y2', x: brain.x, y: brain.x, z: brain.image, zmax: 1,
-      hovertemplate: 'x=%{x:.1f}<br>y=%{y:.1f}<br>Magnitude: %{z:.2f}<extra></extra>'}
-  ], {
-    ...layout,
-    xaxis: {...imageAxis, domain: [0, .43]},
-    yaxis: {...imageAxis, scaleanchor: 'x', scaleratio: 1},
-    xaxis2: {...imageAxis, domain: [.57, 1], anchor: 'y2'},
-    yaxis2: {...imageAxis, anchor: 'x2', scaleanchor: 'x2', scaleratio: 1},
-    margin: {l: 12, r: 12, t: 14, b: 35}
-  }, config);
-
-  const timeAxis = {...axis, range: [0, D.voxel.duration], dtick: 100};
-  const voxel=document.getElementById('voxel-simulation');
-  let voxelFlip=10;
-  const voxelRow=Math.floor(E.brain.y.length/2);
-  const voxelCol=E.brain.labels[voxelRow].findIndex(label=>E.brain.tissues[label-1]?.t1===1330);
-  let voxelLabel=E.brain.labels[voxelRow][voxelCol],voxelX=E.brain.x[voxelCol],voxelY=E.brain.y[voxelRow];
-  function updateVoxel() {
-    const scale=voxelFlip/D.voxel.flip_deg,nativeCase=E.voxel.cases[voxelFlip-3];
-    const xy=nativeCase.xy[voxelLabel-1],z=nativeCase.z[voxelLabel-1];
-    return Plotly.react(voxel,[
-      {type:'heatmap',x:E.brain.x,y:E.brain.y,z:E.brain.labels.map(row=>row.map(label=>label?E.brain.tissues[label-1].rho:0)),colorscale:[[0,'black'],[1,'white']],zmin:0,zmax:1,showscale:false,hoverinfo:'none'},
-      {type:'scatter',x:[voxelX],y:[voxelY],mode:'markers',marker:{color:cursorColor,size:10,symbol:'square-open',line:{width:3}},showlegend:false,hoverinfo:'skip'},
-      {...rfTrace,name:'B₁',xaxis:'x2',yaxis:'y2',visible:true,showlegend:true,y:rfTrace.y.map(v=>v===null?null:v*scale),line:{...rfTrace.line,color:palette[3]}},
-      {type:'scatter',x:E.voxel.time,y:xy,name:'|M<sub>xy</sub>|',xaxis:'x3',yaxis:'y3',mode:'lines',line:{color:'#2a7fb8',width:3}},
-      {type:'scatter',x:E.voxel.time,y:z,name:'M<sub>z</sub>',xaxis:'x3',yaxis:'y3',mode:'lines',line:{color:'#d77630',width:3}}
-    ],{...layout,font:{size:20,color:ink},margin:{l:45,r:30,t:35,b:115},
-      xaxis:{domain:[0,.29],visible:false},yaxis:{visible:false,scaleanchor:'x',scaleratio:1},
-      xaxis2:{...timeAxis,domain:[.42,1],anchor:'y2',matches:'x3',showticklabels:false},
-      yaxis2:{...axis,domain:[.57,1],anchor:'x2',title: {standoff: 12, text:'B₁ (µT)'},range:[1.15*Math.min(...rfTrace.y)*Math.max(1,scale),1.15*Math.max(...rfTrace.y)*Math.max(1,scale)]},
-      xaxis3:{...timeAxis,domain:[.42,1],anchor:'y3',title: {standoff: 12, text:'Time (ms)'}},
-      yaxis3:{...axis,domain:[0,.43],anchor:'x3',title: {standoff: 12, text:'Magnetization'},range:[-1.05,1.05]},
-      legend:{orientation:'h',x:.72,xanchor:'center',y:1.12},
-      sliders:[{...nativeSlider(Array.from({length:38},(_,i)=>({label:String(i+3),method:'skip',args:['flip',i+3]})),'Flip angle: ','°',voxelFlip-3),x:.44,len:.52,y:-.22}]
-    },config);
-  }
-  await Plotly.newPlot(voxel,[],{},config);
-  await updateVoxel();
-  voxel.on('plotly_sliderchange',e=>{voxelFlip=e.step.args[1];updateVoxel();});
-  voxel.on('plotly_click',e=>{
-    const p=e.points[0];if(p.curveNumber!==0)return;
-    const col=E.brain.x.indexOf(p.x),row=E.brain.y.indexOf(p.y),label=E.brain.labels[row][col];
-    if(label){voxelLabel=label;voxelX=p.x;voxelY=p.y;updateVoxel();}
-  });
-
-  // Interactive 2x2 RF center figure (KomaMRI-simulated magnetization, native Plotly sliders)
-  const RC = D.rf_center;
-  const rfPlot = document.getElementById('rf-center-plot');
-  const spinColors = [
-    '#2166ac', '#3b88c3', '#67a9cf', '#9ccae1',
-    '#868e96',
-    '#f4a582', '#e07b54', '#cc4c39', '#a50f15'
-  ];
-  const nSpins = RC.z_mm.length;
-  const nFrames = RC.t_ms.length;
+  // Unified 2x2 RF viewer for excitation (rf-center, rf-phase, slr-minphase) & refocusing (sinc, SLR)
   const circleAngles = Array.from({length: 91}, (_, i) => 2 * Math.PI * i / 90);
-  const unitCircleX = circleAngles.map(Math.cos);
-  const unitCircleY = circleAngles.map(Math.sin);
-
-  function arrowCoords(mx, my, headLen = 0.11, headAngle = 0.44) {
+  const unitX = circleAngles.map(Math.cos), unitY = circleAngles.map(Math.sin);
+  const init0 = D.rf_center.cases[D.rf_center.flip_degs.indexOf(30)];
+  const gzColor = init0.wave_actual.Gz.line?.color || '#00CC96';
+  const rfColor = init0.wave_actual['|B1|_AM'].line?.color || '#AB63FA';
+  const arrow2d = (mx, my, headLen = 0.11, headAngle = 0.44) => {
     const r = Math.hypot(mx, my);
     if (r < 1e-4) return {x: [0, 0], y: [0, 0]};
-    const len = Math.min(headLen, 0.35 * r);
-    const ang = Math.atan2(my, mx);
+    const len = Math.min(headLen, 0.35 * r), ang = Math.atan2(my, mx);
     return {
       x: [0, mx, null, mx - len * Math.cos(ang - headAngle), mx, mx - len * Math.cos(ang + headAngle)],
       y: [0, my, null, my - len * Math.sin(ang - headAngle), my, my - len * Math.sin(ang + headAngle)]
     };
-  }
+  };
 
-  const initCase0 = RC.cases[RC.flip_degs.indexOf(30)];
-  const gzColor = initCase0.wave_actual.Gz.line?.color || palette[2];
-  const rfColor = initCase0.wave_actual['|B1|_AM'].line?.color || palette[3];
+  function mountRFViewer(id, DATA, {hasFlip = true, phiDeg = 0, maxB1 = null, pad = 0.1, dtick = 0.25} = {}) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const nSpins = DATA.z_mm.length, perMag = nSpins + 3;
+    let frame = 0, caseIdx = hasFlip ? DATA.flip_degs.indexOf(30) : 0;
+    const curCase = () => hasFlip ? DATA.cases[caseIdx] : DATA;
+    const b1Peak = maxB1 ?? Math.max(...DATA.cases.map(c => c.peak_uT));
+    const b1Range = [-(hasFlip ? 1.26 : 1.24) * b1Peak, (hasFlip ? 1.26 : 1.24) * b1Peak];
+    const gzPeak = hasFlip ? Math.max(DATA.gz_mTm, ...DATA.cases.map(c => Math.abs(c.gz_rew_mTm))) : DATA.gz_mTm;
+    const gzRange = [-(phiDeg ? 1.52 : hasFlip ? 1.32 : 1.45) * gzPeak, (phiDeg ? 1.52 : hasFlip ? 1.32 : 1.45) * gzPeak];
 
-  function rfShapes(tc, tCur) {
-    return [
-      {type: 'line', xref: 'x', yref: 'y domain', x0: tc, x1: tc, y0: 0, y1: 1,
-        line: {color: '#6c757d', width: 1.8, dash: 'dash'}},
-      {type: 'line', xref: 'x', yref: 'y domain', x0: tCur, x1: tCur, y0: 0, y1: 1,
-        line: {color: cursorColor, width: 2.5}},
-      {type: 'line', xref: 'x2', yref: 'y2 domain', x0: tCur, x1: tCur, y0: 0, y1: 1,
-        line: {color: cursorColor, width: 2.5}}
+    const areaCoords = cur => hasFlip
+      ? {x: [cur.tc_ms, cur.tc_ms, DATA.rf_dur_ms, DATA.rf_dur_ms, DATA.rf_dur_ms, DATA.duration_ms, DATA.duration_ms],
+         y: [0, DATA.gz_mTm, DATA.gz_mTm, 0, cur.gz_rew_mTm, cur.gz_rew_mTm, 0]}
+      : {x: [0, 0, DATA.duration_ms, DATA.duration_ms], y: [0, DATA.gz_mTm, DATA.gz_mTm, 0]};
+    const rfShapes = (tc, tCur) => [
+      {type: 'line', xref: 'x', yref: 'y domain', x0: tc, x1: tc, y0: 0, y1: 1, line: {color: '#6c757d', width: 1.8, dash: 'dash'}},
+      {type: 'line', xref: 'x', yref: 'y domain', x0: tCur, x1: tCur, y0: 0, y1: 1, line: {color: C.red, width: 2.5}},
+      {type: 'line', xref: 'x2', yref: 'y2 domain', x0: tCur, x1: tCur, y0: 0, y1: 1, line: {color: C.red, width: 2.5}}
     ];
-  }
-
-  function magTraces(spinState, amp, xa, ya) {
-    const traces = [
-      {x: unitCircleX, y: unitCircleY, xaxis: xa, yaxis: ya, mode: 'lines',
-        line: {color: '#d8dde2', width: 1.3}, hoverinfo: 'skip'},
-      {x: unitCircleX.map(v => amp * v), y: unitCircleY.map(v => amp * v), xaxis: xa, yaxis: ya,
-        mode: 'lines', line: {color: '#adb5bd', width: 1.2, dash: 'dot'}, hoverinfo: 'skip'}
-    ];
-    let sumX = 0, sumY = 0;
-    for (let j = 0; j < nSpins; j++) {
-      const [mx, my] = spinState[j];
-      sumX += mx; sumY += my;
-      const a = arrowCoords(mx, my);
-      traces.push({x: a.x, y: a.y, xaxis: xa, yaxis: ya, mode: 'lines',
-        line: {color: spinColors[j], width: 2.6},
-        hovertemplate: `z = ${RC.z_mm[j].toFixed(1)} mm<extra></extra>`});
-    }
-    const net = arrowCoords(sumX / nSpins, sumY / nSpins, 0.14, 0.45);
-    traces.push({x: net.x, y: net.y, xaxis: xa, yaxis: ya, mode: 'lines',
-      line: {color: '#111111', width: 4.5}, hovertemplate: 'Mean M<sub>xy</sub><extra></extra>'});
-    return traces;
-  }
-
-  const flipSliderSteps = RC.flip_degs.map((deg, i) => ({
-    label: `${deg}°`, method: 'skip', args: ['flip', i]
-  }));
-  const timeSliderSteps = RC.t_ms.map((t, i) => ({
-    label: t.toFixed(2), method: 'skip', args: ['time', i]
-  }));
-  const seqXAxis = {...axis, range: [-0.1, RC.duration_ms + 0.1], tick0: 0, dtick: 0.25,
-    zeroline: false, tickfont: {size: 13}};
-  const b1Axis = {...axis, side: 'left',
-    title: {standoff: 12, text: 'B₁ (µT)', font: {color: rfColor, size: 14}}, tickfont: {size: 13}};
-  const gzAxis = {...axis, side: 'right', showgrid: false, zeroline: false,
-    title: {standoff: 12, text: 'G<sub>z</sub> (mT/m)', font: {color: gzColor, size: 14}}, tickfont: {size: 13}};
-  const magXAxis = {...axis, range: [-1.18, 1.18], dtick: 0.5, constrain: 'domain', tickfont: {size: 13}};
-  const magYAxis = {...axis, range: [-1.18, 1.18], dtick: 0.5, constrain: 'domain',
-    title: {standoff: 12, text: 'M<sub>y</sub>'}, tickfont: {size: 13}};
-
-  async function mountExcitationPlot(el, DATA, {pad, dtick}) {
-    let frame = 0;
-    let caseIdx = DATA.flip_degs.indexOf(30);
-    const cur0 = DATA.cases[caseIdx];
-    const dMaxB1 = Math.max(...DATA.cases.map(c => c.peak_uT));
-    const dB1Range = [-1.26 * dMaxB1, 1.26 * dMaxB1];
-    const dMaxGz = Math.max(DATA.gz_mTm, ...DATA.cases.map(c => Math.abs(c.gz_rew_mTm)));
-    const dGzRange = [-1.32 * dMaxGz, 1.32 * dMaxGz];
-
-    function areaCoords(cur) {
-      const tc = cur.tc_ms;
-      return {
-        x: [tc, tc, DATA.rf_dur_ms, DATA.rf_dur_ms, DATA.rf_dur_ms, DATA.duration_ms, DATA.duration_ms],
-        y: [0, DATA.gz_mTm, DATA.gz_mTm, 0, cur.gz_rew_mTm, cur.gz_rew_mTm, 0]
-      };
-    }
-
-    function anns(cur) {
-      const tc = cur.tc_ms;
-      const label = `<b>t<sub>c</sub> = ${tc.toFixed(2)} ms</b>`;
-      const tip = Math.max(cur.peak_uT, 0.25 * dMaxB1);
-      const textBase = {y: 0.99, showarrow: false, xanchor: 'right', xshift: -8, yanchor: 'top',
-        font: {size: 14, color: ink}, text: label};
-      return [
-        {...textBase, xref: 'x', yref: 'y domain', x: tc},
-        {...textBase, xref: 'x2', yref: 'y2 domain', x: tc},
-        {xref: 'x2', yref: 'y6', axref: 'x2', ayref: 'y6',
-          x: tc, y: tip, ax: tc, ay: 0, text: '',
-          showarrow: true, arrowhead: 2, arrowsize: 1.1, arrowwidth: 3, arrowcolor: rfColor},
+    const magTraces = (state, amp, xa, ya) => {
+      const trs = [
+        {x: unitX, y: unitY, xaxis: xa, yaxis: ya, mode: 'lines', line: {color: '#d8dde2', width: 1.3}, hoverinfo: 'skip'},
+        {x: unitX.map(v => amp * v), y: unitY.map(v => amp * v), xaxis: xa, yaxis: ya, mode: 'lines', line: {color: '#adb5bd', width: 1.2, dash: 'dot'}, hoverinfo: 'skip'}
       ];
+      let sx = 0, sy = 0;
+      for (let j = 0; j < nSpins; j++) {
+        const [mx, my] = state[j], a = arrow2d(mx, my);
+        sx += mx; sy += my;
+        trs.push({x: a.x, y: a.y, xaxis: xa, yaxis: ya, mode: 'lines', line: {color: spinColors[j], width: 2.6},
+          hovertemplate: `z = ${DATA.z_mm[j].toFixed(1)} mm<extra></extra>`});
+      }
+      const net = arrow2d(sx / nSpins, sy / nSpins, 0.14, 0.45);
+      trs.push({x: net.x, y: net.y, xaxis: xa, yaxis: ya, mode: 'lines', line: {color: '#111', width: 4.5}, hovertemplate: 'Mean M<sub>xy</sub><extra></extra>'});
+      return trs;
+    };
+
+    const phiExtras = [];
+    const phiAnns = [];
+    if (phiDeg) {
+      const ph = phiDeg * Math.PI / 180, steps = Math.max(12, Math.round(phiDeg / 4)), r = 0.36;
+      const gx = [0, -Math.sin(ph)], gy = [0, Math.cos(ph)], ax = [], ay = [];
+      for (let i = 0; i <= steps; i++) { const th = Math.PI / 2 + ph * i / steps; ax.push(r * Math.cos(th)); ay.push(r * Math.sin(th)); }
+      const endTh = Math.PI / 2 + ph, ex = r * Math.cos(endTh), ey = r * Math.sin(endTh), tang = endTh + Math.PI / 2;
+      ax.push(null, ex - 0.08 * Math.cos(tang - 0.48), ex, ex - 0.08 * Math.cos(tang + 0.48));
+      ay.push(null, ey - 0.08 * Math.sin(tang - 0.48), ey, ey - 0.08 * Math.sin(tang + 0.48));
+      for (const [xa, ya] of [['x3', 'y3'], ['x4', 'y4']]) {
+        phiExtras.push(
+          {x: gx, y: gy, xaxis: xa, yaxis: ya, mode: 'lines', line: {color: 'rgba(171,99,250,0.45)', width: 1.8, dash: 'dash'}, hoverinfo: 'skip'},
+          {x: ax, y: ay, xaxis: xa, yaxis: ya, mode: 'lines', line: {color: rfColor, width: 2.4}, hoverinfo: 'skip'});
+        const mid = Math.PI / 2 + ph / 2;
+        phiAnns.push({x: 0.58 * Math.cos(mid), y: 0.58 * Math.sin(mid), xref: xa, yref: ya, text: '<b>φ</b>',
+          showarrow: false, xanchor: 'center', yanchor: 'middle', font: {size: 15, color: rfColor}});
+      }
     }
+    const anns = cur => {
+      const tc = cur.tc_ms, tip = Math.max(cur.peak_uT, (hasFlip ? 0.25 : 0.35) * b1Peak);
+      const tcLbl = {y: 0.99, showarrow: false, xanchor: 'right', xshift: -8, yanchor: 'top', font: {size: 14, color: C.ink}, text: `<b>t<sub>c</sub> = ${tc.toFixed(2)} ms</b>`};
+      const out = [{...tcLbl, xref: 'x', yref: 'y domain', x: tc}, {...tcLbl, xref: 'x2', yref: 'y2 domain', x: tc},
+        {xref: 'x2', yref: 'y6', axref: 'x2', ayref: 'y6', x: tc, y: tip, ax: tc, ay: 0, text: '', showarrow: true, arrowhead: 2, arrowsize: 1.1, arrowwidth: 3, arrowcolor: rfColor},
+        ...phiAnns];
+      if (phiDeg) {
+        const phLbl = {y: 0.99, showarrow: false, xanchor: 'left', xshift: 8, yanchor: 'top', font: {size: 14, color: rfColor}, text: `<b>φ = ${phiDeg}°</b>`};
+        out.push({...phLbl, xref: 'x', yref: 'y domain', x: tc}, {...phLbl, xref: 'x2', yref: 'y2 domain', x: tc});
+      }
+      return out;
+    };
 
-    const initArea = areaCoords(cur0);
+    const c0 = curCase(), a0 = areaCoords(c0), amp0 = hasFlip ? c0.amp : 1.0;
     const traces = [
-      {x: initArea.x, y: initArea.y, xaxis: 'x', yaxis: 'y', mode: 'lines', fill: 'tozeroy',
-        fillcolor: 'rgba(0,204,150,0.22)', line: {width: 0}, hoverinfo: 'skip'},
-      {...cur0.wave_actual.Gz, xaxis: 'x', yaxis: 'y', mode: 'lines',
-        line: {...cur0.wave_actual.Gz.line, color: gzColor, width: 2.2}, hoverinfo: 'skip'},
-      {...cur0.wave_actual['|B1|_AM'], xaxis: 'x', yaxis: 'y5', mode: 'lines',
-        line: {...cur0.wave_actual['|B1|_AM'].line, color: rfColor, width: 2.8}, hoverinfo: 'skip'},
-      {x: initArea.x, y: initArea.y, xaxis: 'x2', yaxis: 'y2', mode: 'lines', fill: 'tozeroy',
-        fillcolor: 'rgba(0,204,150,0.22)', line: {width: 0}, hoverinfo: 'skip'},
-      {...cur0.wave_equiv.Gz, xaxis: 'x2', yaxis: 'y2', mode: 'lines',
-        line: {...cur0.wave_equiv.Gz.line, color: gzColor, width: 2.2}, hoverinfo: 'skip'},
-      {x: [0, DATA.duration_ms], y: [0, 0], xaxis: 'x2', yaxis: 'y6', mode: 'lines',
-        line: {color: 'rgba(0,0,0,0)', width: 0}, hoverinfo: 'skip'},
-      ...magTraces(cur0.hist_actual[frame], cur0.amp, 'x3', 'y3'),
-      ...magTraces(cur0.hist_equiv[frame], cur0.amp, 'x4', 'y4')
+      {x: a0.x, y: a0.y, xaxis: 'x', yaxis: 'y', mode: 'lines', fill: 'tozeroy', fillcolor: 'rgba(0,204,150,0.22)', line: {width: 0}, hoverinfo: 'skip'},
+      {...c0.wave_actual.Gz, xaxis: 'x', yaxis: 'y', mode: 'lines', line: {...c0.wave_actual.Gz.line, color: gzColor, width: 2.2}, hoverinfo: 'skip'},
+      {...c0.wave_actual['|B1|_AM'], xaxis: 'x', yaxis: 'y5', mode: 'lines', line: {...c0.wave_actual['|B1|_AM'].line, color: rfColor, width: 2.8}, hoverinfo: 'skip'},
+      {x: a0.x, y: a0.y, xaxis: 'x2', yaxis: 'y2', mode: 'lines', fill: 'tozeroy', fillcolor: 'rgba(0,204,150,0.22)', line: {width: 0}, hoverinfo: 'skip'},
+      {...c0.wave_equiv.Gz, xaxis: 'x2', yaxis: 'y2', mode: 'lines', line: {...c0.wave_equiv.Gz.line, color: gzColor, width: 2.2}, hoverinfo: 'skip'},
+      {x: [0, DATA.duration_ms], y: [0, 0], xaxis: 'x2', yaxis: 'y6', mode: 'lines', line: {color: 'rgba(0,0,0,0)', width: 0}, hoverinfo: 'skip'},
+      ...magTraces(c0.hist_actual[frame], amp0, 'x3', 'y3'),
+      ...magTraces(c0.hist_equiv[frame], amp0, 'x4', 'y4'),
+      ...phiExtras
     ];
+    const seqX = {...axis, automargin: false, range: [-pad, DATA.duration_ms + pad], tick0: 0, dtick, zeroline: false, tickfont: {size: 13}};
+    const b1Ax = {...axis, automargin: false, side: 'left', range: b1Range, title: {standoff: 12, text: 'B₁ (µT)', font: {color: rfColor, size: 14}}, tickfont: {size: 13}};
+    const gzAx = {...axis, automargin: false, side: 'right', range: gzRange, showgrid: false, zeroline: false, title: {standoff: 12, text: 'G<sub>z</sub> (mT/m)', font: {color: gzColor, size: 14}}, tickfont: {size: 13}};
+    const magX = {...axis, automargin: false, range: [-1.18, 1.18], dtick: 0.5, constrain: 'domain', tickfont: {size: 13}};
+    const magY = {...axis, automargin: false, range: [-1.18, 1.18], dtick: 0.5, constrain: 'domain', title: {standoff: 12, text: 'M<sub>y</sub>'}, tickfont: {size: 13}};
+    const tSteps = DATA.t_ms.map((t, i) => ({label: t.toFixed(2), method: 'skip', args: ['time', i]}));
+    const sliders = hasFlip
+      ? [slider(tSteps, 'Time: ', ' ms', frame, {x: 0.05, len: 0.4, y: -0.25}),
+         slider(DATA.flip_degs.map((deg, i) => ({label: `${deg}°`, method: 'skip', args: ['flip', i]})), 'Flip angle: ', '', caseIdx, {x: 0.55, len: 0.4, y: -0.25})]
+      : [slider(tSteps, 'Time: ', ' ms', frame, {y: -0.25})];
 
-    const dTimeSteps = DATA.t_ms.map((t, i) => ({
-      label: t.toFixed(2), method: 'skip', args: ['time', i]
-    }));
-    const dFlipSteps = DATA.flip_degs.map((deg, i) => ({
-      label: `${deg}°`, method: 'skip', args: ['flip', i]
-    }));
-    const dSeqXAxis = {...axis, range: [-pad, DATA.duration_ms + pad], tick0: 0, dtick,
-      zeroline: false, tickfont: {size: 13}};
-    const dB1Axis = {...b1Axis, range: dB1Range};
-    const dGzAxis = {...gzAxis, range: dGzRange};
+    Plotly.newPlot(el, traces, baseLayout({
+      font: {size: 16, color: C.ink}, showlegend: false, margin: {l: 64, r: 24, t: 14, b: 125},
+      xaxis: {...seqX, domain: [0, 0.57], anchor: 'y', matches: 'x2', showticklabels: false},
+      yaxis: {...gzAx, domain: [0.52, 1.0], anchor: 'x'}, yaxis5: {...b1Ax, overlaying: 'y', anchor: 'x'},
+      xaxis3: {...magX, domain: [0.74, 1.0], anchor: 'y3', showticklabels: false},
+      yaxis3: {...magY, domain: [0.52, 1.0], anchor: 'x3', scaleanchor: 'x3', scaleratio: 1},
+      xaxis2: {...seqX, domain: [0, 0.57], anchor: 'y2', title: {standoff: 12, text: 'Time (ms)'}},
+      yaxis2: {...gzAx, domain: [0.0, 0.48], anchor: 'x2'}, yaxis6: {...b1Ax, overlaying: 'y2', anchor: 'x2'},
+      xaxis4: {...magX, domain: [0.74, 1.0], anchor: 'y4', title: {standoff: 12, text: 'M<sub>x</sub>'}},
+      yaxis4: {...magY, domain: [0.0, 0.48], anchor: 'x4', scaleanchor: 'x4', scaleratio: 1},
+      shapes: rfShapes(c0.tc_ms, DATA.t_ms[frame]), annotations: anns(c0), sliders
+    }), config);
 
-    await Plotly.newPlot(el, traces, {
-      ...layout, showlegend: false,
-      xaxis: {...dSeqXAxis, domain: [0, 0.57], anchor: 'y', matches: 'x2', showticklabels: false},
-      yaxis: {...dGzAxis, domain: [0.52, 1.0], anchor: 'x'},
-      yaxis5: {...dB1Axis, overlaying: 'y', anchor: 'x'},
-      xaxis3: {...magXAxis, domain: [0.74, 1.0], anchor: 'y3', showticklabels: false},
-      yaxis3: {...magYAxis, domain: [0.52, 1.0], anchor: 'x3', scaleanchor: 'x3', scaleratio: 1},
-      xaxis2: {...dSeqXAxis, domain: [0, 0.57], anchor: 'y2', title: {standoff: 12, text: 'Time (ms)'}},
-      yaxis2: {...dGzAxis, domain: [0.0, 0.48], anchor: 'x2'},
-      yaxis6: {...dB1Axis, overlaying: 'y2', anchor: 'x2'},
-      xaxis4: {...magXAxis, domain: [0.74, 1.0], anchor: 'y4', title: {standoff: 12, text: 'M<sub>x</sub>'}},
-      yaxis4: {...magYAxis, domain: [0.0, 0.48], anchor: 'x4', scaleanchor: 'x4', scaleratio: 1},
-      shapes: rfShapes(cur0.tc_ms, DATA.t_ms[frame]),
-      annotations: anns(cur0),
-      sliders: [
-        {...nativeSlider(dTimeSteps, 'Time: ', ' ms', frame), x: 0.05, len: 0.4, y: -0.25},
-        {...nativeSlider(dFlipSteps, 'Flip angle: ', '', caseIdx), x: 0.55, len: 0.4, y: -0.25}
-      ],
-      margin: {l: 58, r: 24, t: 8, b: 125}
-    }, config);
-
-    el.on('plotly_sliderchange', e => {
-      const [kind, idx] = e.step.args;
-      const updateWave = kind === 'flip';
-      if (updateWave) caseIdx = idx;
-      else frame = idx;
-      const cur = DATA.cases[caseIdx];
-      const xs = [], ys = [], idxs = [];
+    let pending = false, pendingWave = false;
+    const applyUpdate = () => {
+      pending = false;
+      const updateWave = pendingWave; pendingWave = false;
+      const cur = curCase(), xs = [], ys = [], idxs = [], tCur = DATA.t_ms[frame];
       if (updateWave) {
-        const area = areaCoords(cur);
-        xs.push(area.x, cur.wave_actual.Gz.x, cur.wave_actual['|B1|_AM'].x, area.x, cur.wave_equiv.Gz.x);
-        ys.push(area.y, cur.wave_actual.Gz.y, cur.wave_actual['|B1|_AM'].y, area.y, cur.wave_equiv.Gz.y);
+        const a = areaCoords(cur);
+        xs.push(a.x, cur.wave_actual.Gz.x, cur.wave_actual['|B1|_AM'].x, a.x, cur.wave_equiv.Gz.x);
+        ys.push(a.y, cur.wave_actual.Gz.y, cur.wave_actual['|B1|_AM'].y, a.y, cur.wave_equiv.Gz.y);
         idxs.push(0, 1, 2, 3, 4);
       }
-      const pushMag = (baseIdx, spinState) => {
-        xs.push(unitCircleX.map(v => cur.amp * v));
-        ys.push(unitCircleY.map(v => cur.amp * v));
-        idxs.push(baseIdx + 1);
-        let sumX = 0, sumY = 0;
+      const pushMag = (baseIdx, state) => {
+        if (hasFlip && updateWave) { xs.push(unitX.map(v => cur.amp * v)); ys.push(unitY.map(v => cur.amp * v)); idxs.push(baseIdx + 1); }
+        let sx = 0, sy = 0;
         for (let j = 0; j < nSpins; j++) {
-          const [mx, my] = spinState[j];
-          sumX += mx; sumY += my;
-          const a = arrowCoords(mx, my);
-          xs.push(a.x); ys.push(a.y); idxs.push(baseIdx + 2 + j);
+          const [mx, my] = state[j], a = arrow2d(mx, my);
+          sx += mx; sy += my; xs.push(a.x); ys.push(a.y); idxs.push(baseIdx + 2 + j);
         }
-        const net = arrowCoords(sumX / nSpins, sumY / nSpins, 0.14, 0.45);
+        const net = arrow2d(sx / nSpins, sy / nSpins, 0.14, 0.45);
         xs.push(net.x); ys.push(net.y); idxs.push(baseIdx + 2 + nSpins);
       };
-      const perMag = nSpins + 3;
-      pushMag(6, cur.hist_actual[frame]);
-      pushMag(6 + perMag, cur.hist_equiv[frame]);
-      Plotly.restyle(el, {x: xs, y: ys}, idxs);
-      Plotly.relayout(el, {
-        shapes: rfShapes(cur.tc_ms, DATA.t_ms[frame]),
-        annotations: anns(cur)
-      });
-    });
-  }
-
-  await mountExcitationPlot(rfPlot, RC, {pad: 0.1, dtick: 0.25});
-  const minPhasePlot = document.getElementById('slr-minphase-plot');
-  await mountExcitationPlot(minPhasePlot, D.slr_minphase, {pad: 0.1, dtick: 0.25});
-
-  // Slides 6–7: 180° refocusing pulses (Sinc vs. SLR, TBW = 8, T = 10 ms, time slider only)
-  const refMaxB1 = Math.max(D.refocus_sinc.peak_uT, D.refocus_slr.peak_uT);
-  async function mountRefocusPlot(el, RF180) {
-    let refFrame = 0;
-    const refB1Range = [-1.24 * refMaxB1, 1.24 * refMaxB1];
-    const refGzRange = [-1.45 * RF180.gz_mTm, 1.45 * RF180.gz_mTm];
-    function refocusAnnotations() {
-      const tc = RF180.tc_ms;
-      const label = `<b>t<sub>c</sub> = ${tc.toFixed(2)} ms</b>`;
-      const textBase = {y: 0.99, showarrow: false, xanchor: 'right', xshift: -8, yanchor: 'top',
-        font: {size: 14, color: ink}, text: label};
-      return [
-        {...textBase, xref: 'x', yref: 'y domain', x: tc},
-        {...textBase, xref: 'x2', yref: 'y2 domain', x: tc},
-        {xref: 'x2', yref: 'y6', axref: 'x2', ayref: 'y6',
-          x: tc, y: Math.max(RF180.peak_uT, 0.35 * refMaxB1), ax: tc, ay: 0, text: '',
-          showarrow: true, arrowhead: 2, arrowsize: 1.1, arrowwidth: 3, arrowcolor: rfColor},
-      ];
-    }
-
-    const refAreaX = [0, 0, RF180.duration_ms, RF180.duration_ms];
-    const refAreaY = [0, RF180.gz_mTm, RF180.gz_mTm, 0];
-    const refocusTraces = [
-      {x: refAreaX, y: refAreaY, xaxis: 'x', yaxis: 'y', mode: 'lines', fill: 'tozeroy',
-        fillcolor: 'rgba(0,204,150,0.22)', line: {width: 0}, hoverinfo: 'skip'},
-      {...RF180.wave_actual.Gz, xaxis: 'x', yaxis: 'y', mode: 'lines',
-        line: {...RF180.wave_actual.Gz.line, color: gzColor, width: 2.2}, hoverinfo: 'skip'},
-      {...RF180.wave_actual['|B1|_AM'], xaxis: 'x', yaxis: 'y5', mode: 'lines',
-        line: {...RF180.wave_actual['|B1|_AM'].line, color: rfColor, width: 2.8}, hoverinfo: 'skip'},
-      {x: refAreaX, y: refAreaY, xaxis: 'x2', yaxis: 'y2', mode: 'lines', fill: 'tozeroy',
-        fillcolor: 'rgba(0,204,150,0.22)', line: {width: 0}, hoverinfo: 'skip'},
-      {...RF180.wave_equiv.Gz, xaxis: 'x2', yaxis: 'y2', mode: 'lines',
-        line: {...RF180.wave_equiv.Gz.line, color: gzColor, width: 2.2}, hoverinfo: 'skip'},
-      {x: [0, RF180.duration_ms], y: [0, 0], xaxis: 'x2', yaxis: 'y6', mode: 'lines',
-        line: {color: 'rgba(0,0,0,0)', width: 0}, hoverinfo: 'skip'},
-      ...magTraces(RF180.hist_actual[refFrame], 1.0, 'x3', 'y3'),
-      ...magTraces(RF180.hist_equiv[refFrame], 1.0, 'x4', 'y4')
-    ];
-    const refTimeSteps = RF180.t_ms.map((t, i) => ({
-      label: t.toFixed(2), method: 'skip', args: [i]
-    }));
-    const refSeqXAxis = {...axis, range: [-0.8, RF180.duration_ms + 0.8], tick0: 0, dtick: 2.5,
-      zeroline: false, tickfont: {size: 13}};
-    const refB1Axis = {...b1Axis, range: refB1Range};
-    const refGzAxis = {...gzAxis, range: refGzRange};
-
-    await Plotly.newPlot(el, refocusTraces, {
-      ...layout, showlegend: false,
-      xaxis: {...refSeqXAxis, domain: [0, 0.57], anchor: 'y', matches: 'x2', showticklabels: false},
-      yaxis: {...refGzAxis, domain: [0.52, 1.0], anchor: 'x'},
-      yaxis5: {...refB1Axis, overlaying: 'y', anchor: 'x'},
-      xaxis3: {...magXAxis, domain: [0.74, 1.0], anchor: 'y3', showticklabels: false},
-      yaxis3: {...magYAxis, domain: [0.52, 1.0], anchor: 'x3', scaleanchor: 'x3', scaleratio: 1},
-      xaxis2: {...refSeqXAxis, domain: [0, 0.57], anchor: 'y2', title: {standoff: 12, text: 'Time (ms)'}},
-      yaxis2: {...refGzAxis, domain: [0.0, 0.48], anchor: 'x2'},
-      yaxis6: {...refB1Axis, overlaying: 'y2', anchor: 'x2'},
-      xaxis4: {...magXAxis, domain: [0.74, 1.0], anchor: 'y4', title: {standoff: 12, text: 'M<sub>x</sub>'}},
-      yaxis4: {...magYAxis, domain: [0.0, 0.48], anchor: 'x4', scaleanchor: 'x4', scaleratio: 1},
-      shapes: rfShapes(RF180.tc_ms, RF180.t_ms[refFrame]),
-      annotations: refocusAnnotations(),
-      sliders: [
-        {...nativeSlider(refTimeSteps, 'Time: ', ' ms', refFrame), y: -0.25}
-      ],
-      margin: {l: 58, r: 24, t: 8, b: 125}
-    }, config);
-
-    el.on('plotly_sliderchange', e => {
-      refFrame = e.step.args[0];
-      const xs = [], ys = [], idxs = [];
-      const pushMag = (baseIdx, spinState) => {
-        let sumX = 0, sumY = 0;
-        for (let j = 0; j < nSpins; j++) {
-          const [mx, my] = spinState[j];
-          sumX += mx; sumY += my;
-          const a = arrowCoords(mx, my);
-          xs.push(a.x); ys.push(a.y); idxs.push(baseIdx + 2 + j);
-        }
-        const net = arrowCoords(sumX / nSpins, sumY / nSpins, 0.14, 0.45);
-        xs.push(net.x); ys.push(net.y); idxs.push(baseIdx + 2 + nSpins);
-      };
-      const perMag = nSpins + 3;
-      pushMag(6, RF180.hist_actual[refFrame]);
-      pushMag(6 + perMag, RF180.hist_equiv[refFrame]);
-      Plotly.restyle(el, {x: xs, y: ys}, idxs);
-      Plotly.relayout(el, {
-        shapes: rfShapes(RF180.tc_ms, RF180.t_ms[refFrame]),
-        annotations: refocusAnnotations()
-      });
-    });
-    return el;
-  }
-
-  const refocusPlot = await mountRefocusPlot(document.getElementById('refocusing-plot'), D.refocus_sinc);
-  const slrPlot = await mountRefocusPlot(document.getElementById('slr-refocusing-plot'), D.refocus_slr);
-
-  // Slide 7: Excitation with fixed RF phase φ (α slider 10°–90°, φ arc from +M_y axis)
-  const RP = D.rf_phase;
-  const phasePlot = document.getElementById('rf-phase-plot');
-  let phFrame = 0;
-  let phCaseIdx = RP.flip_degs.indexOf(30);
-  const phMaxB1 = Math.max(...RP.cases.map(c => c.peak_uT));
-  const phB1Range = [-1.26 * phMaxB1, 1.26 * phMaxB1];
-  const phGzRange = [-1.52 * RP.gz_mTm, 1.52 * RP.gz_mTm];
-
-  function phaseAreaCoords(cur) {
-    const tc = cur.tc_ms;
-    return {
-      x: [tc, tc, RP.rf_dur_ms, RP.rf_dur_ms, RP.rf_dur_ms, RP.duration_ms, RP.duration_ms],
-      y: [0, RP.gz_mTm, RP.gz_mTm, 0, cur.gz_rew_mTm, cur.gz_rew_mTm, 0]
-    };
-  }
-  function phaseGuideCoords(phiDeg) {
-    const ph = phiDeg * Math.PI / 180;
-    return {x: [0, -Math.sin(ph)], y: [0, Math.cos(ph)]};
-  }
-  function phaseArcCoords(phiDeg, r = 0.36) {
-    const ph = phiDeg * Math.PI / 180;
-    const steps = Math.max(12, Math.round(phiDeg / 4));
-    const xs = [], ys = [];
-    for (let i = 0; i <= steps; i++) {
-      const th = Math.PI / 2 + ph * (i / steps);
-      xs.push(r * Math.cos(th));
-      ys.push(r * Math.sin(th));
-    }
-    const endTh = Math.PI / 2 + ph;
-    const ex = r * Math.cos(endTh), ey = r * Math.sin(endTh);
-    const tang = endTh + Math.PI / 2;
-    const len = 0.08, ha = 0.48;
-    xs.push(null, ex - len * Math.cos(tang - ha), ex, ex - len * Math.cos(tang + ha));
-    ys.push(null, ey - len * Math.sin(tang - ha), ey, ey - len * Math.sin(tang + ha));
-    return {x: xs, y: ys};
-  }
-
-  const phMidTh = Math.PI / 2 + (RP.phi_deg * Math.PI / 180) / 2;
-  const phLblBase = {x: 0.58 * Math.cos(phMidTh), y: 0.58 * Math.sin(phMidTh),
-    text: '<b>φ</b>', showarrow: false, xanchor: 'center', yanchor: 'middle',
-    font: {size: 15, color: rfColor}};
-  const phStaticAnns = [
-    {...phLblBase, xref: 'x3', yref: 'y3'},
-    {...phLblBase, xref: 'x4', yref: 'y4'}
-  ];
-
-  function phaseAnnotations(cur) {
-    const tc = cur.tc_ms;
-    const tip = Math.max(cur.peak_uT, 0.25 * phMaxB1);
-    const tcBase = {y: 0.99, showarrow: false, xanchor: 'right', xshift: -8, yanchor: 'top',
-      font: {size: 14, color: ink}, text: `<b>t<sub>c</sub> = ${tc.toFixed(2)} ms</b>`};
-    const phiBase = {y: 0.99, showarrow: false, xanchor: 'left', xshift: 8, yanchor: 'top',
-      font: {size: 14, color: rfColor}, text: `<b>φ = ${RP.phi_deg}°</b>`};
-    return [
-      {...tcBase, xref: 'x', yref: 'y domain', x: tc},
-      {...tcBase, xref: 'x2', yref: 'y2 domain', x: tc},
-      {...phiBase, xref: 'x', yref: 'y domain', x: tc},
-      {...phiBase, xref: 'x2', yref: 'y2 domain', x: tc},
-      {xref: 'x2', yref: 'y6', axref: 'x2', ayref: 'y6',
-        x: tc, y: tip, ax: tc, ay: 0, text: '',
-        showarrow: true, arrowhead: 2, arrowsize: 1.1, arrowwidth: 3, arrowcolor: rfColor},
-      ...phStaticAnns
-    ];
-  }
-
-  const phInitCase = RP.cases[phCaseIdx];
-  const phInitArea = phaseAreaCoords(phInitCase);
-  const phGuide0 = phaseGuideCoords(RP.phi_deg);
-  const phArc0 = phaseArcCoords(RP.phi_deg);
-  const perMag = nSpins + 3;
-  const phaseTraces = [
-    {x: phInitArea.x, y: phInitArea.y, xaxis: 'x', yaxis: 'y', mode: 'lines', fill: 'tozeroy',
-      fillcolor: 'rgba(0,204,150,0.22)', line: {width: 0}, hoverinfo: 'skip'},
-    {...phInitCase.wave_actual.Gz, xaxis: 'x', yaxis: 'y', mode: 'lines',
-      line: {...phInitCase.wave_actual.Gz.line, color: gzColor, width: 2.2}, hoverinfo: 'skip'},
-    {...phInitCase.wave_actual['|B1|_AM'], xaxis: 'x', yaxis: 'y5', mode: 'lines',
-      line: {...phInitCase.wave_actual['|B1|_AM'].line, color: rfColor, width: 2.8}, hoverinfo: 'skip'},
-    {x: phInitArea.x, y: phInitArea.y, xaxis: 'x2', yaxis: 'y2', mode: 'lines', fill: 'tozeroy',
-      fillcolor: 'rgba(0,204,150,0.22)', line: {width: 0}, hoverinfo: 'skip'},
-    {...phInitCase.wave_equiv.Gz, xaxis: 'x2', yaxis: 'y2', mode: 'lines',
-      line: {...phInitCase.wave_equiv.Gz.line, color: gzColor, width: 2.2}, hoverinfo: 'skip'},
-    {x: [0, RP.duration_ms], y: [0, 0], xaxis: 'x2', yaxis: 'y6', mode: 'lines',
-      line: {color: 'rgba(0,0,0,0)', width: 0}, hoverinfo: 'skip'},
-    ...magTraces(phInitCase.hist_actual[phFrame], phInitCase.amp, 'x3', 'y3'),
-    ...magTraces(phInitCase.hist_equiv[phFrame], phInitCase.amp, 'x4', 'y4'),
-    // Phase φ guide & arc overlays starting from +M_y axis
-    {x: phGuide0.x, y: phGuide0.y, xaxis: 'x3', yaxis: 'y3', mode: 'lines',
-      line: {color: 'rgba(171,99,250,0.45)', width: 1.8, dash: 'dash'}, hoverinfo: 'skip'},
-    {x: phArc0.x, y: phArc0.y, xaxis: 'x3', yaxis: 'y3', mode: 'lines',
-      line: {color: rfColor, width: 2.4}, hoverinfo: 'skip'},
-    {x: phGuide0.x, y: phGuide0.y, xaxis: 'x4', yaxis: 'y4', mode: 'lines',
-      line: {color: 'rgba(171,99,250,0.45)', width: 1.8, dash: 'dash'}, hoverinfo: 'skip'},
-    {x: phArc0.x, y: phArc0.y, xaxis: 'x4', yaxis: 'y4', mode: 'lines',
-      line: {color: rfColor, width: 2.4}, hoverinfo: 'skip'}
-  ];
-  const phB1Axis = {...b1Axis, range: phB1Range};
-  const phGzAxis = {...gzAxis, range: phGzRange};
-
-  await Plotly.newPlot(phasePlot, phaseTraces, {
-    ...layout, showlegend: false,
-    xaxis: {...seqXAxis, domain: [0, 0.57], anchor: 'y', matches: 'x2', showticklabels: false},
-    yaxis: {...phGzAxis, domain: [0.52, 1.0], anchor: 'x'},
-    yaxis5: {...phB1Axis, overlaying: 'y', anchor: 'x'},
-    xaxis3: {...magXAxis, domain: [0.74, 1.0], anchor: 'y3', showticklabels: false},
-    yaxis3: {...magYAxis, domain: [0.52, 1.0], anchor: 'x3', scaleanchor: 'x3', scaleratio: 1},
-    xaxis2: {...seqXAxis, domain: [0, 0.57], anchor: 'y2', title: {standoff: 12, text: 'Time (ms)'}},
-    yaxis2: {...phGzAxis, domain: [0.0, 0.48], anchor: 'x2'},
-    yaxis6: {...phB1Axis, overlaying: 'y2', anchor: 'x2'},
-    xaxis4: {...magXAxis, domain: [0.74, 1.0], anchor: 'y4', title: {standoff: 12, text: 'M<sub>x</sub>'}},
-    yaxis4: {...magYAxis, domain: [0.0, 0.48], anchor: 'x4', scaleanchor: 'x4', scaleratio: 1},
-    shapes: rfShapes(phInitCase.tc_ms, RP.t_ms[phFrame]),
-    annotations: phaseAnnotations(phInitCase),
-    sliders: [
-      {...nativeSlider(timeSliderSteps, 'Time: ', ' ms', phFrame), x: 0.05, len: 0.4, y: -0.25},
-      {...nativeSlider(flipSliderSteps, 'Flip angle: ', '', phCaseIdx), x: 0.55, len: 0.4, y: -0.25}
-    ],
-    margin: {l: 58, r: 24, t: 8, b: 125}
-  }, config);
-
-  phasePlot.on('plotly_sliderchange', e => {
-    const [kind, idx] = e.step.args;
-    const updateWave = kind === 'flip';
-    if (updateWave) phCaseIdx = idx;
-    else phFrame = idx;
-    const cur = RP.cases[phCaseIdx];
-    const xs = [], ys = [], idxs = [];
-    if (updateWave) {
-      const area = phaseAreaCoords(cur);
-      xs.push(area.x, cur.wave_actual.Gz.x, cur.wave_actual['|B1|_AM'].x, area.x, cur.wave_equiv.Gz.x);
-      ys.push(area.y, cur.wave_actual.Gz.y, cur.wave_actual['|B1|_AM'].y, area.y, cur.wave_equiv.Gz.y);
-      idxs.push(0, 1, 2, 3, 4);
-    }
-    const pushMag = (baseIdx, spinState) => {
-      xs.push(unitCircleX.map(v => cur.amp * v));
-      ys.push(unitCircleY.map(v => cur.amp * v));
-      idxs.push(baseIdx + 1);
-      let sumX = 0, sumY = 0;
-      for (let j = 0; j < nSpins; j++) {
-        const [mx, my] = spinState[j];
-        sumX += mx; sumY += my;
-        const a = arrowCoords(mx, my);
-        xs.push(a.x); ys.push(a.y); idxs.push(baseIdx + 2 + j);
-      }
-      const net = arrowCoords(sumX / nSpins, sumY / nSpins, 0.14, 0.45);
-      xs.push(net.x); ys.push(net.y); idxs.push(baseIdx + 2 + nSpins);
-    };
-    pushMag(6, cur.hist_actual[phFrame]);
-    pushMag(6 + perMag, cur.hist_equiv[phFrame]);
-    Plotly.restyle(phasePlot, {x: xs, y: ys}, idxs);
-    Plotly.relayout(phasePlot, {
-      shapes: rfShapes(cur.tc_ms, RP.t_ms[phFrame]),
-      annotations: phaseAnnotations(cur)
-    });
-  });
-
-  const lessonLayout = {...layout, font:{size:20,color:ink}, margin:{l:75,r:30,t:35,b:125},
-    legend:{orientation:'h',x:.5,xanchor:'center',y:1.12}};
-  const colors = ['#2a7fb8','#d77630','#31966b'];
-  const line = (x,y,name,color,extra={}) => ({x,y,name,type:'scatter',mode:'lines',line:{color,width:3},...extra});
-  const heatmap = (z,extra={}) => ({z,type:'heatmap',colorscale:[[0,'black'],[1,'white']],showscale:false,hoverinfo:'skip',...extra});
-  const brainImage = values => E.brain.labels.map(row=>row.map(label=>label ? values[label-1] : 0));
-  function nativeSlider(steps,prefix,suffix='',active=0) {
-    return {steps,active,x:.05,len:.9,y:-.25,pad:{t:10},
-      ticklen:0,minorticklen:0,font:{color:'rgba(0,0,0,0)'},
-      currentvalue:{prefix,suffix,offset:0,font:{size:20,color:'#343a40'}},
-      bordercolor:'#2a7fb8',activebgcolor:'#2a7fb8',transition:{duration:0}};
-  }
-  const gre = (tissue,tr,te,deg) => {
-    const a=deg*Math.PI/180,e=Math.exp(-tr/tissue.t1);
-    return tissue.rho*Math.sin(a)*(1-e)/(1-e*Math.cos(a))*Math.exp(-te/tissue.t2s);
-  };
-  async function mountAcquisitionExample(id,data,radial=false) {
-    const plot=document.getElementById(id);
-    let trIndex=0,dummyIndex=0;
-    function draw() {
-      const tr=data.trs[trIndex],dummy=data.dummy[dummyIndex];
-      const c=data.cases.find(c=>c.tr===tr&&c.dummy===dummy);
-      if(!c.kspaceDisplay) {
-        const bytes=Uint8Array.from(atob(c.kspaceDisplayEncoded),ch=>ch.charCodeAt(0));
-        c.kspaceDisplay=radial ? bytes : Array.from({length:data.ky.length},(_,row)=>
-          Array.from(bytes.subarray(row*data.kx.length,(row+1)*data.kx.length)));
-      }
-      const pulses=c.signal.map((_,i)=>i+1),start=c.acquiredStart-1;
-      const acquired={...line(pulses.slice(start),c.signal.slice(start),'Acquired echoes',colors[0]),showlegend:true};
-      const prep={...line(pulses.slice(0,start+1),c.signal.slice(0,start+1),'Dummy shots', '#adb5bd'),showlegend:true};
-      const kspace=radial ? {
-        type:'scattergl',mode:'markers',x:data.kspace.kx,y:data.kspace.ky,xaxis:'x2',yaxis:'y2',showlegend:false,
-        marker:{size:2,color:c.kspaceDisplay,colorscale:[[0,'black'],[1,'white']],cmin:0,cmax:255,showscale:false},hoverinfo:'skip'
-      } : heatmap(c.kspaceDisplay,{x:data.kx,y:data.ky,zmin:0,zmax:255,xaxis:'x2',yaxis:'y2'});
-      return Plotly.react(plot,[prep,acquired,kspace,
-        heatmap(c.image,{x:data.x,y:data.y,zmin:0,zmax:data.scale,xaxis:'x3',yaxis:'y3'})],{
-        ...lessonLayout,margin:{l:85,r:20,t:40,b:130},
-        legend:{orientation:'h',x:.14,xanchor:'center',y:1.12,font:{size:16}},
-        xaxis:{...axis,domain:[0,.27],range:[0,Math.max(...data.dummy)+(data.lines||data.spokes)],title:{standoff:12,text:'RF pulse number'},nticks:5,tickfont:{size:16}},
-        yaxis:{...axis,range:[0,.6],title:{standoff:12,text:'Echo magnitude'},tickfont:{size:16}},
-        xaxis2:{...axis,domain:[.39,.65],anchor:'y2',range:[-255,255],title:{standoff:12,text:'kₓ (1/m)'},nticks:3,tickfont:{size:16},constrain:'domain'},
-        yaxis2:{...axis,anchor:'x2',range:[-255,255],scaleanchor:'x2',scaleratio:1,title:{standoff:12,text:'kᵧ (1/m)'},nticks:3,tickfont:{size:16},constrain:'domain'},
-        xaxis3:{domain:[.74,1],anchor:'y3',visible:false},
-        yaxis3:{anchor:'x3',visible:false,scaleanchor:'x3',scaleratio:1},
-        shapes:[{type:'rect',xref:'x2 domain',yref:'y2 domain',x0:0,x1:1,y0:0,y1:1,fillcolor:'black',line:{width:0},layer:'below'}],
-        sliders:[
-          {...nativeSlider(data.trs.map((v,i)=>({label:String(v),method:'skip',args:['tr',i]})),'TR: ',' ms',trIndex),x:.05,len:.4,y:-.25},
-          {...nativeSlider(data.dummy.map((v,i)=>({label:String(v),method:'skip',args:['dummy',i]})),'Dummy shots: ','',dummyIndex),x:.55,len:.4,y:-.25}]
-      },config);
-    }
-    await draw();
-    plot.on('plotly_sliderchange',e=>{const [key,i]=e.step.args;if(key==='tr')trIndex=i;else dummyIndex=i;draw();});
-  }
-  await mountAcquisitionExample('cartesian-linear-plot',E.cartesian.linear);
-  await mountAcquisitionExample('cartesian-center-out-plot',E.cartesian.center_out);
-  await mountAcquisitionExample('radial-brain-plot',E.radial,true);
-
-  const profilePlot=document.getElementById('steady-profile-plot');
-  const profileCounts=E.profile.counts;let profileIndex=0;
-  const normalizedProfile=values=>{const peak=Math.max(...values);return values.map(v=>v/peak);};
-  function drawProfile() {
-    return Plotly.react(profilePlot,[
-      line(E.profile.z,normalizedProfile(E.profile.profiles[0]),'First excitation',colors[0]),
-      line(E.profile.z,normalizedProfile(E.profile.profiles[profileIndex]),'Selected repetition',colors[0],{xaxis:'x2',yaxis:'y2'})
-    ],{...lessonLayout,showlegend:false,
-      xaxis:{...axis,domain:[0,.43],range:[-9,9],title:{standoff:12,text:'Slice position (mm)'}},
-      yaxis:{...axis,range:[0,1.05],title:{standoff:12,text:'Normalized |Mₓᵧ|'}},
-      xaxis2:{...axis,domain:[.57,1],anchor:'y2',range:[-9,9],title:{standoff:12,text:'Slice position (mm)'}},
-      yaxis2:{...axis,anchor:'x2',range:[0,1.05],matches:'y'},
-      annotations:[{xref:'x domain',yref:'paper',x:.5,y:1.1,xanchor:'center',showarrow:false,text:'First excitation'},
-        {xref:'x2 domain',yref:'paper',x:.5,y:1.1,xanchor:'center',showarrow:false,text:'Selected repetition'}],
-      sliders:[{...nativeSlider(profileCounts.map((n,i)=>({label:String(n),method:'skip',args:['n',i]})),'RF pulses: ','',profileIndex),y:-.25}]
-    },config);
-  }
-  await drawProfile();
-  profilePlot.on('plotly_sliderchange',e=>{profileIndex=e.step.args[1];drawProfile();});
-
-  const catalysisPlot=document.getElementById('catalysis-plot');
-  const catalysisTraces=[];
-  const catalysisDomains=[[.43,.60],[.63,.80],[.83,1]];
-  E.catalysis.cases.forEach((c,i)=>{
-    const x=[],y=[];
-    c.rf_x.forEach((pulse,j)=>{x.push(pulse,pulse,null);y.push(0,c.rf_angles[j],null);});
-    catalysisTraces.push(line(x,y,c.name,colors[i],{xaxis:i?'x'+(i+1):'x',yaxis:i?'y'+(i+1):'y',showlegend:false}));
-  });
-  E.catalysis.cases.forEach((c,i)=>catalysisTraces.push(line(c.shot||c.signal.map((_,j)=>j+1),c.signal,c.name,colors[i],{xaxis:'x4',yaxis:'y4'})));
-  E.catalysis.cases.forEach((c,i)=>catalysisTraces.push(heatmap(c.image,{x:E.catalysis.x,y:E.catalysis.y,zmin:0,zmax:c.window_max,xaxis:'x'+(i+5),yaxis:'y'+(i+5)})));
-  const catalysisAxes={};
-  catalysisDomains.forEach((domain,i)=>{
-    const n=i+1,suffix=i?String(n):'';
-    catalysisAxes['xaxis'+suffix]={...axis,domain,anchor:'y'+suffix,range:[0,28],tickfont:{size:15}};
-    catalysisAxes['yaxis'+suffix]={...axis,domain:[.68,1],anchor:'x'+suffix,range:[-45,45],showticklabels:i===0,tickfont:{size:15},...(i===0?{title:{text:'Flip angle (°)',standoff:12,font:{size:19}}}:{})};
-    const imageAxis=String(i+5);
-    catalysisAxes['xaxis'+imageAxis]={domain,anchor:'y'+imageAxis,visible:false,constrain:'domain'};
-    catalysisAxes['yaxis'+imageAxis]={domain:[0,.52],anchor:'x'+imageAxis,visible:false,scaleanchor:'x'+imageAxis,scaleratio:1,constrain:'domain'};
-  });
-  await Plotly.newPlot(catalysisPlot,catalysisTraces,{
-    ...lessonLayout,...catalysisAxes,margin:{l:85,r:25,t:45,b:15},
-    legend:{orientation:'v',x:.29,xanchor:'right',y:.99,yanchor:'top',font:{size:15}},
-    xaxis4:{...axis,domain:[0,.30],anchor:'y4',range:[0,160],nticks:4,title:{text:'RF pulse number',standoff:10,font:{size:19}},tickfont:{size:16}},
-    yaxis4:{...axis,domain:[0,1],range:[0,.7],anchor:'x4',title:{text:'Echo magnitude',standoff:12,font:{size:19}},tickfont:{size:16}},
-    annotations:E.catalysis.cases.map((c,i)=>({xref:(i?'x'+(i+1):'x')+' domain',yref:'paper',x:.5,xanchor:'center',y:1.07,text:c.name,showarrow:false,font:{size:19}}))
-  },config);
-
-  const timingPlot=document.getElementById('timing-contrast-plot');
-  const brainTissues=[{rho:.77,t1:832,t2:80,t2s:45},{rho:.86,t1:1330,t2:110,t2s:50},{rho:1,t1:4000,t2:1500,t2s:200}];
-  const timingTRs=Array.from({length:50},(_,i)=>(i+1)*100),timingTEs=Array.from({length:30},(_,i)=>(i+1)*5);
-  let timingTR=700,timingTE=15,timingMode='se';
-  function drawTiming() {
-    timingTE=Math.min(timingTE,timingTR-10);
-    const signal=(t,echo)=>timingMode==='se' ? t.rho*(1-Math.exp(-timingTR/t.t1))*Math.exp(-echo/t.t2) : gre(t,timingTR,echo,20);
-    const echoes=Array.from({length:161},(_,i)=>i);
-    return Plotly.react(timingPlot,[heatmap(brainImage(E.brain.tissues.map(t=>signal(t,timingTE))),{x:E.brain.x,y:E.brain.y,zmin:0,zmax:timingMode==='se'?1:.2}),
-      ...brainTissues.map((t,i)=>line(echoes,echoes.map(echo=>signal(t,echo)),['WM','GM','CSF'][i],colors[i],{xaxis:'x2',yaxis:'y2'}))],
-      {...lessonLayout,legend:{orientation:'h',x:.795,xanchor:'center',y:1.12},xaxis:{domain:[0,.46],visible:false},yaxis:{visible:false,scaleanchor:'x',scaleratio:1},
-        xaxis2:{...axis,domain:[.59,1],anchor:'y2',title: {standoff: 12, text:'TE (ms)'}},
-        yaxis2:{...axis,anchor:'x2',title: {standoff: 12, text:'Signal'},range:[0,timingMode==='se'?1:.2]},
-        shapes:[{type:'line',xref:'x2',yref:'paper',x0:timingTE,x1:timingTE,y0:0,y1:1,line:{color:cursorColor,dash:'dot'}}],
-        sliders:[
-          {...nativeSlider(timingTRs.map(v=>({label:String(v),method:'skip',args:['tr',v]})),'TR: ',' ms',timingTRs.indexOf(timingTR)),x:.32,len:.27,y:-.2},
-          {...nativeSlider(timingTEs.map(v=>({label:String(v),method:'skip',args:['te',v]})),'TE: ',' ms',timingTEs.indexOf(timingTE)),x:.68,len:.27,y:-.2}],
-        updatemenus:[{type:'dropdown',direction:'up',x:0,xanchor:'left',y:-.21,yanchor:'top',active:timingMode==='se'?0:1,
-          font:{size:20,color:ink},bordercolor:'#2a7fb8',
-          buttons:[{label:'Spin echo (90°)',method:'skip',args:['se']},{label:'Spoiled GRE (20°)',method:'skip',args:['gre']}]}]
-      },config);
-  }
-  await drawTiming();
-  timingPlot.on('plotly_sliderchange',e=>{const [key,value]=e.step.args;if(key==='tr')timingTR=value;else timingTE=value;drawTiming();});
-  timingPlot.on('plotly_buttonclicked',e=>{timingMode=e.button.args[0];drawTiming();});
-
-  const cmraPlot=document.getElementById('cardiac-bssfp-plot');
-  const cmraColors=['blue','red','green'];
-  let cmraFlip=2,cmraBeat=3;
-  function drawCMRA() {
-    const c=E.cmra.cases[cmraFlip],r=c.regions[cmraBeat];
-    const names=E.cmra.names,range=[Math.max(0,r[0]-.1),r[0]+.8];
-    const curve=(y,i,row)=>({x:c.t,y,name:names[i],legendgroup:names[i],type:'scatter',mode:'lines',
-      line:{color:cmraColors[i],width:2.5},xaxis:'x2',yaxis:'y2',showlegend:row===2,
-      hovertemplate:'%{x:.4f} s<br>%{y:.4f}<extra>'+names[i]+'</extra>'});
-    const echoes=(y,i,row)=>({x:c.echo_t,y,name:names[i],legendgroup:names[i],type:'scatter',mode:'markers',
-      marker:{color:cmraColors[i],size:5},xaxis:'x2',yaxis:'y2',showlegend:false,
-      hovertemplate:'Echo: %{x:.4f} s<br>%{y:.4f}<extra>'+names[i]+'</extra>'});
-    const steps=(key,values)=>values.map((value,index)=>({label:String(value),method:'skip',args:[key,index]}));
-    return Plotly.react(cmraPlot,[
-      ...c.wave.map(w=>({...w,mode:'lines',line:{color:'#ab63fa',width:2},showlegend:false,
-        hovertemplate:'%{x:.4f} s<br>%{y:.2f} µT<extra>|B₁|</extra>'})),
-      ...c.xy.map((y,i)=>curve(y,i,2)),
-      ...c.echo_xy.map((y,i)=>echoes(y,i,2))
-    ],{...lessonLayout,height:540,margin:{l:75,r:30,t:35,b:110},
-      legend:{orientation:'h',x:.5,xanchor:'center',y:.745,yanchor:'middle',font:{size:20}},
-      xaxis:{...axis,range,matches:'x2',showticklabels:false},
-      yaxis:{...axis,domain:[.82,1],title: {standoff: 12, text:'|B₁| (µT)'}},
-      xaxis2:{...axis,anchor:'y2',range,title: {standoff: 12, text:'Time (s)'}},
-      yaxis2:{...axis,anchor:'x2',domain:[0,.66],title: {standoff: 12, text:'M<sub>xy</sub>'},range:[0,.4]},
-      sliders:[
-        {...nativeSlider(steps('cmraFlip',E.cmra.cases.map(c=>c.flip)),'Flip angle: ','°',cmraFlip),x:.05,len:.4,y:-.22},
-        {...nativeSlider(steps('cmraBeat',[1,2,3,4]),'Heartbeat: ','',cmraBeat),x:.55,len:.4,y:-.22}
-      ]},config);
-  }
-  await drawCMRA();
-  cmraPlot.on('plotly_sliderchange',event=>{
-    const [key,index]=event.step.args;
-    if(key==='cmraFlip')cmraFlip=index;
-    if(key==='cmraBeat')cmraBeat=index;
-    drawCMRA();
-  });
-
-  const cmraDesign=document.getElementById('cmra-design-plot');
-  const designData=E.cmra_contrast,designAngles=designData.angles;
-  const designColors=['red','blue'],designBloodPeak=Math.max(...designData.signals.map(s=>s[0]));
-  const designSNR=[0,1].map(j=>designData.signals.map(s=>s[j]/designBloodPeak));
-  const designContrast=designData.contrast;
-  const designPeak=values=>values.indexOf(Math.max(...values));
-  let designIndex=designAngles.indexOf(110);
-  function drawCMRADesign() {
-    const selected=designAngles[designIndex];
-    const marker=(values,index,color,extra={})=>({x:[designAngles[index]],y:[values[index]],
-      type:'scatter',mode:'markers',showlegend:false,
-      marker:{color,size:9},hovertemplate:'%{x}°<br>%{y:.4f}<extra></extra>',...extra});
-    return Plotly.react(cmraDesign,[
-      ...designData.names.map((name,j)=>line(designAngles,designSNR[j],name,designColors[j],{legendgroup:name,
-        error_y:{type:'data',array:designData.signal_std.map(s=>s[j]/designBloodPeak),visible:true,thickness:1,width:3}})),
-      ...designSNR.map((values,j)=>marker(values,designPeak(values),designColors[j],{legendgroup:designData.names[j]})),
-      ...designSNR.map((values,j)=>marker(values,designIndex,designColors[j],
-        {legendgroup:designData.names[j],marker:{color:designColors[j],size:15,symbol:'circle-open',line:{width:3}}})),
-      line(designAngles,designContrast,'|Blood − Myocardium|',colors[2],{xaxis:'x2',yaxis:'y2',legendgroup:'contrast',
-        error_y:{type:'data',array:designData.contrast_std,visible:true,thickness:1,width:3}}),
-      marker(designContrast,designPeak(designContrast),colors[2],{xaxis:'x2',yaxis:'y2',legendgroup:'contrast'}),
-      marker(designContrast,designIndex,colors[2],{xaxis:'x2',yaxis:'y2',legendgroup:'contrast',
-        marker:{color:colors[2],size:15,symbol:'circle-open',line:{width:3}}})
-    ],{...lessonLayout,height:540,margin:{l:90,r:30,t:45,b:125},
-      xaxis:{...axis,domain:[0,.44],range:[20,180],dtick:40,title:{text:'Flip angle (°)',standoff:12}},
-      yaxis:{...axis,rangemode:'tozero',title:{text:'Relative SNR',standoff:12}},
-      xaxis2:{...axis,domain:[.59,1],anchor:'y2',range:[20,180],dtick:40,title:{text:'Flip angle (°)',standoff:12}},
-      yaxis2:{...axis,anchor:'x2',rangemode:'tozero',title:{text:'|Blood − Myocardium|',standoff:12}},
-      shapes:['x','x2'].map(xref=>({type:'line',xref,yref:'paper',x0:selected,x1:selected,y0:0,y1:1,
-        line:{color:'#89939c',width:1.5,dash:'dot'}})),
-      sliders:[{...nativeSlider(designAngles.map((value,index)=>({label:String(value),method:'skip',args:[index]})),
-        'Flip angle: ','°',designIndex),y:-.25}]
-    },config);
-  }
-  await drawCMRADesign();
-  cmraDesign.on('plotly_sliderchange',event=>{designIndex=event.step.args[0];drawCMRADesign();});
-
-  const ernstPlot=document.getElementById('ernst-angle-plot');
-  const ernstT1s=Array.from({length:113},(_,i)=>200+i*25),ernstTRs=Array.from({length:99},(_,i)=>i+2);
-  let ernstT1=1300,ernstTR=10;
-  function drawErnst() {
-    const tissue={rho:1,t1:ernstT1,t2s:1e12},a=Array.from({length:181},(_,i)=>i/2),s=a.map(a=>gre(tissue,ernstTR,0,a));
-    const angle=Math.acos(Math.exp(-ernstTR/ernstT1))*180/Math.PI;
-    document.getElementById('ernst-result').textContent=angle.toFixed(1)+'°';
-    return Plotly.react(ernstPlot,[line(a,s,'Steady-state signal',colors[0]),
-      {x:[angle],y:[gre(tissue,ernstTR,0,angle)],mode:'markers',name:'Ernst angle',marker:{color:cursorColor,size:13}}],
-      {...lessonLayout,xaxis:{...axis,title: {standoff: 12, text:'Flip angle (°)'},range:[0,90]},yaxis:{...axis,title: {standoff: 12, text:'Signal'}},
-        shapes:[{type:'line',x0:angle,x1:angle,y0:0,y1:Math.max(...s),line:{color:cursorColor,dash:'dot'}}],
-        sliders:[
-          {...nativeSlider(ernstT1s.map(v=>({label:String(v),method:'skip',args:['t1',v]})),'T₁: ',' ms',ernstT1s.indexOf(ernstT1)),x:.05,len:.4,y:-.2},
-          {...nativeSlider(ernstTRs.map(v=>({label:String(v),method:'skip',args:['tr',v]})),'TR: ',' ms',ernstTRs.indexOf(ernstTR)),x:.55,len:.4,y:-.2}]
-      },config);
-  }
-  await drawErnst();
-  ernstPlot.on('plotly_sliderchange',e=>{const [key,value]=e.step.args;if(key==='t1')ernstT1=value;else ernstTR=value;drawErnst();});
-
-  const tissueContrast=document.getElementById('tissue-contrast-plot');
-  let tissueMode='gre';
-  function drawTissueContrast() {
-    const a=tissueMode==='cmra'?E.cmra_contrast.angles:Array.from({length:241},(_,i)=>i/2);
-    const signals=tissueMode==='cmra'?E.cmra_contrast.signals:a.map(deg=>brainTissues.slice(0,2).map(t=>gre(t,10,5,deg)));
-    const names=tissueMode==='cmra'?E.cmra_contrast.names:['WM','GM'],difference=signals.map(s=>Math.abs(s[0]-s[1]));
-    const maxIndex=values=>values.indexOf(Math.max(...values));
-    const maxima=[0,1].map(j=>maxIndex(signals.map(s=>s[j]))),contrastIndex=maxIndex(difference);
-    return Plotly.react(tissueContrast,[
-      ...names.map((name,j)=>line(a,signals.map(s=>s[j]),name,colors[j])),
-      ...names.map((name,j)=>({x:[a[maxima[j]]],y:[signals[maxima[j]][j]],mode:'markers',showlegend:false,marker:{color:colors[j],size:12}})),
-      line(a,difference,'|Signal difference|',colors[2],{xaxis:'x2',yaxis:'y2'}),
-      {x:[a[contrastIndex]],y:[difference[contrastIndex]],mode:'markers',showlegend:false,xaxis:'x2',yaxis:'y2',marker:{color:colors[2],size:12}}],
-      {...lessonLayout,margin:{l:95,r:30,t:35,b:150},xaxis:{...axis,domain:[0,.45],title: {standoff: 12, text:'Flip angle (°)'}},yaxis:{...axis,title: {standoff: 12, text:'Signal'}},
-        xaxis2:{...axis,domain:[.59,1],anchor:'y2',title: {standoff: 12, text:'Flip angle (°)'}},yaxis2:{...axis,anchor:'x2',title: {standoff: 12, text:'Signal difference'}},
-        updatemenus:[{type:'dropdown',direction:'up',x:.28,xanchor:'left',y:-.31,yanchor:'top',active:tissueMode==='gre'?0:1,font:{size:20,color:ink},bordercolor:'#2a7fb8',
-          buttons:[{label:'Spoiled GRE: WM / GM',method:'skip',args:['gre']},{label:'Cardiac bSSFP: blood / myocardium',method:'skip',args:['cmra']}]}],
-        annotations:[{xref:'paper',yref:'paper',x:.26,xanchor:'right',y:-.365,yanchor:'middle',text:'Sequence',showarrow:false,font:{size:20}}]
-      },config);
-  }
-  await drawTissueContrast();
-  tissueContrast.on('plotly_buttonclicked',e=>{tissueMode=e.button.args[0];drawTissueContrast();});
-
-  function resizeCurrentPlots() {
-    requestAnimationFrame(() => {
-      Reveal.getCurrentSlide().querySelectorAll('.js-plotly-plot').forEach(plot => {
-        const spacing={};
-        Object.keys(plot.layout).filter(key=>/^[xy]axis\d*$/.test(key)).forEach(key=>{
-          spacing[key+'.automargin']=true;
-          spacing[key+'.title.standoff']=12;
+      pushMag(6, cur.hist_actual[frame]); pushMag(6 + perMag, cur.hist_equiv[frame]);
+      const lay = {'shapes[1].x0': tCur, 'shapes[1].x1': tCur, 'shapes[2].x0': tCur, 'shapes[2].x1': tCur};
+      if (updateWave) {
+        const tc = cur.tc_ms, tip = Math.max(cur.peak_uT, (hasFlip ? 0.25 : 0.35) * b1Peak);
+        const lbl = `<b>t<sub>c</sub> = ${tc.toFixed(2)} ms</b>`;
+        Object.assign(lay, {
+          'shapes[0].x0': tc, 'shapes[0].x1': tc,
+          'annotations[0].x': tc, 'annotations[0].text': lbl,
+          'annotations[1].x': tc, 'annotations[1].text': lbl,
+          'annotations[2].x': tc, 'annotations[2].ax': tc, 'annotations[2].y': tip
         });
-        Plotly.relayout(plot, {...spacing,autosize: false, width: plot.clientWidth, height: plot.clientHeight});
-      });
+        if (phiDeg) Object.assign(lay, {'annotations[5].x': tc, 'annotations[6].x': tc});
+      }
+      Plotly.update(el, {x: xs, y: ys}, lay, idxs);
+    };
+    el.on('plotly_sliderchange', e => {
+      const [kind, idx] = e.step.args;
+      if (kind === 'flip') { caseIdx = idx; pendingWave = true; } else frame = idx;
+      if (!pending) { pending = true; requestAnimationFrame(applyUpdate); }
     });
   }
-  Reveal.on('slidechanged', resizeCurrentPlots);
-  Reveal.on('slidetransitionend', resizeCurrentPlots);
-  window.addEventListener('resize', resizeCurrentPlots);
-  resizeCurrentPlots();
+
+  const refMaxB1 = Math.max(D.refocus_sinc.peak_uT, D.refocus_slr.peak_uT);
+  onSlide('rf-center', () => mountRFViewer('rf-center-plot', D.rf_center));
+  onSlide('rf-phase', () => mountRFViewer('rf-phase-plot', D.rf_phase, {phiDeg: D.rf_phase.phi_deg}));
+  onSlide('slr-minphase', () => mountRFViewer('slr-minphase-plot', D.slr_minphase));
+  onSlide('refocusing-pulse', () => mountRFViewer('refocusing-plot', D.refocus_sinc, {hasFlip: false, maxB1: refMaxB1, pad: 0.8, dtick: 2.5}));
+  onSlide('slr-refocusing', () => mountRFViewer('slr-refocusing-plot', D.refocus_slr, {hasFlip: false, maxB1: refMaxB1, pad: 0.8, dtick: 2.5}));
+
+  onSlide('single-voxel', async () => {
+    const el = document.getElementById('voxel-simulation');
+    const rfTrace = D.voxel.wave.find(t => t.name === '|B1|_AM');
+    const timeAxis = {...axis, range: [0, D.voxel.duration], dtick: 100};
+    let flip = 10;
+    const r0 = Math.floor(D.brain.y.length / 2), c0 = D.brain.labels[r0].findIndex(l => D.brain.tissues[l - 1]?.t1 === 1330);
+    let label = D.brain.labels[r0][c0], vx = D.brain.x[c0], vy = D.brain.y[r0];
+    const draw = () => {
+      const sc = flip / D.voxel.flip_deg, nc = D.voxel_cases.cases[flip - 3];
+      const rfVals = rfTrace.y.filter(Number.isFinite);
+      return Plotly.react(el, [
+        heatmap(D.brain.labels.map(row => row.map(l => l ? D.brain.tissues[l - 1].rho : 0)), {x: D.brain.x, y: D.brain.y, zmin: 0, zmax: 1, hoverinfo: 'none'}),
+        {type: 'scatter', x: [vx], y: [vy], mode: 'markers', marker: {color: C.red, size: 10, symbol: 'square-open', line: {width: 3}}, showlegend: false, hoverinfo: 'skip'},
+        {...rfTrace, name: 'B₁', xaxis: 'x2', yaxis: 'y2', visible: true, showlegend: true, y: rfTrace.y.map(v => v === null ? null : v * sc), line: {...rfTrace.line, color: '#AB63FA'}},
+        line(D.voxel_cases.time, nc.xy[label - 1], '|M<sub>xy</sub>|', colors[0], {xaxis: 'x3', yaxis: 'y3'}),
+        line(D.voxel_cases.time, nc.z[label - 1], 'M<sub>z</sub>', colors[1], {xaxis: 'x3', yaxis: 'y3'})
+      ], baseLayout({margin: {l: 45, r: 30, t: 35, b: 115}, legend: {orientation: 'h', x: 0.72, xanchor: 'center', y: 1.12},
+        xaxis: {domain: [0, 0.29], visible: false}, yaxis: {visible: false, scaleanchor: 'x', scaleratio: 1},
+        xaxis2: {...timeAxis, domain: [0.42, 1], anchor: 'y2', matches: 'x3', showticklabels: false},
+        yaxis2: {...axis, domain: [0.57, 1], anchor: 'x2', title: {standoff: 12, text: 'B₁ (µT)'}, range: [1.15 * Math.min(...rfVals) * Math.max(1, sc), 1.15 * Math.max(...rfVals) * Math.max(1, sc)]},
+        xaxis3: {...timeAxis, domain: [0.42, 1], anchor: 'y3', title: {standoff: 12, text: 'Time (ms)'}},
+        yaxis3: {...axis, domain: [0, 0.43], anchor: 'x3', title: {standoff: 12, text: 'Magnetization'}, range: [-1.05, 1.05]},
+        sliders: [slider(Array.from({length: 38}, (_, i) => ({label: String(i + 3), method: 'skip', args: ['flip', i + 3]})), 'Flip angle: ', '°', flip - 3, {x: 0.44, len: 0.52, y: -0.22})]
+      }), config);
+    };
+    await draw();
+    el.on('plotly_sliderchange', e => { flip = e.step.args[1]; draw(); });
+    el.on('plotly_click', e => {
+      const p = e.points[0]; if (p.curveNumber !== 0) return;
+      const col = D.brain.x.indexOf(p.x), row = D.brain.y.indexOf(p.y), l = D.brain.labels[row][col];
+      if (l) { label = l; vx = p.x; vy = p.y; draw(); }
+    });
+  });
+
+  function mountAcquisition(id, data, radial = false) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let trIdx = 0, dIdx = 0;
+    const draw = () => {
+      const c = data.cases.find(x => x.tr === data.trs[trIdx] && x.dummy === data.dummy[dIdx]);
+      if (!c.kspaceDisplay) {
+        const bytes = Uint8Array.from(atob(c.kspaceDisplayEncoded), ch => ch.charCodeAt(0));
+        c.kspaceDisplay = radial ? bytes : Array.from({length: data.ky.length}, (_, r) => Array.from(bytes.subarray(r * data.kx.length, (r + 1) * data.kx.length)));
+      }
+      const pulses = c.signal.map((_, i) => i + 1), start = c.acquiredStart - 1;
+      const ks = radial
+        ? {type: 'scattergl', mode: 'markers', x: data.kspace.kx, y: data.kspace.ky, xaxis: 'x2', yaxis: 'y2', showlegend: false,
+           marker: {size: 2, color: c.kspaceDisplay, colorscale: [[0, 'black'], [1, 'white']], cmin: 0, cmax: 255, showscale: false}, hoverinfo: 'skip'}
+        : heatmap(c.kspaceDisplay, {x: data.kx, y: data.ky, zmin: 0, zmax: 255, xaxis: 'x2', yaxis: 'y2'});
+      return Plotly.react(el, [
+        line(pulses.slice(0, start + 1), c.signal.slice(0, start + 1), 'Dummy shots', '#adb5bd', {showlegend: true}),
+        line(pulses.slice(start), c.signal.slice(start), 'Acquired echoes', colors[0], {showlegend: true}),
+        ks, heatmap(c.image, {x: data.x, y: data.y, zmin: 0, zmax: data.scale, xaxis: 'x3', yaxis: 'y3'})
+      ], {...lessonLayout, margin: {l: 85, r: 20, t: 40, b: 130}, legend: {orientation: 'h', x: 0.14, xanchor: 'center', y: 1.12, font: {size: 16}},
+        xaxis: {...axis, domain: [0, 0.27], range: [0, Math.max(...data.dummy) + (data.lines || data.spokes)], title: {standoff: 12, text: 'RF pulse number'}, nticks: 5, tickfont: {size: 16}},
+        yaxis: {...axis, range: [0, 0.6], title: {standoff: 12, text: 'Echo magnitude'}, tickfont: {size: 16}},
+        xaxis2: {...axis, domain: [0.39, 0.65], anchor: 'y2', range: [-255, 255], title: {standoff: 12, text: 'kₓ (1/m)'}, nticks: 3, tickfont: {size: 16}, constrain: 'domain'},
+        yaxis2: {...axis, anchor: 'x2', range: [-255, 255], scaleanchor: 'x2', scaleratio: 1, title: {standoff: 12, text: 'kᵧ (1/m)'}, nticks: 3, tickfont: {size: 16}, constrain: 'domain'},
+        xaxis3: {domain: [0.74, 1], anchor: 'y3', visible: false}, yaxis3: {anchor: 'x3', visible: false, scaleanchor: 'x3', scaleratio: 1},
+        shapes: [{type: 'rect', xref: 'x2 domain', yref: 'y2 domain', x0: 0, x1: 1, y0: 0, y1: 1, fillcolor: 'black', line: {width: 0}, layer: 'below'}],
+        sliders: [
+          slider(data.trs.map((v, i) => ({label: String(v), method: 'skip', args: ['tr', i]})), 'TR: ', ' ms', trIdx, {x: 0.05, len: 0.4, y: -0.25}),
+          slider(data.dummy.map((v, i) => ({label: String(v), method: 'skip', args: ['dummy', i]})), 'Dummy shots: ', '', dIdx, {x: 0.55, len: 0.4, y: -0.25})
+        ]}, config);
+    };
+    draw();
+    el.on('plotly_sliderchange', e => { if (e.step.args[0] === 'tr') trIdx = e.step.args[1]; else dIdx = e.step.args[1]; draw(); });
+  }
+  onSlide('sequence-image-effects', () => mountAcquisition('cartesian-linear-plot', D.cartesian.linear));
+  onSlide('cartesian-center-out', () => mountAcquisition('cartesian-center-out-plot', D.cartesian.center_out));
+  onSlide('radial-image-effects', () => mountAcquisition('radial-brain-plot', D.radial, true));
+
+  onSlide('cardiac-bssfp', () => {
+    const el = document.getElementById('cardiac-bssfp-plot'), cmraColors = ['blue', 'red', 'green'];
+    let flip = 2, beat = 3;
+    const draw = () => {
+      const c = D.cmra.cases[flip], r = c.regions[beat], names = D.cmra.names, range = [r[0] - 0.1, r[0] + 0.8];
+      return Plotly.react(el, [
+        ...c.wave.map(w => ({...w, mode: 'lines', line: {color: '#ab63fa', width: 2}, showlegend: false, hovertemplate: '%{x:.4f} s<br>%{y:.2f} µT<extra>|B₁|</extra>'})),
+        ...c.xy.map((y, i) => ({x: c.t, y, name: names[i], legendgroup: names[i], type: 'scatter', mode: 'lines', line: {color: cmraColors[i], width: 2.5}, xaxis: 'x2', yaxis: 'y2', showlegend: true, hovertemplate: '%{x:.4f} s<br>%{y:.4f}<extra>' + names[i] + '</extra>'})),
+        ...c.echo_xy.map((y, i) => ({x: c.echo_t, y, name: names[i], legendgroup: names[i], type: 'scatter', mode: 'markers', marker: {color: cmraColors[i], size: 5}, xaxis: 'x2', yaxis: 'y2', showlegend: false, hovertemplate: 'Echo: %{x:.4f} s<br>%{y:.4f}<extra>' + names[i] + '</extra>'}))
+      ], {...lessonLayout, height: 540, margin: {l: 75, r: 30, t: 35, b: 110},
+        legend: {orientation: 'h', x: 0.5, xanchor: 'center', y: 0.745, yanchor: 'middle', font: {size: 20}},
+        xaxis: {...axis, range, matches: 'x2', showticklabels: false}, yaxis: {...axis, domain: [0.82, 1], title: {standoff: 12, text: '|B₁| (µT)'}},
+        xaxis2: {...axis, anchor: 'y2', range, title: {standoff: 12, text: 'Time (s)'}}, yaxis2: {...axis, anchor: 'x2', domain: [0, 0.66], title: {standoff: 12, text: 'M<sub>xy</sub>'}, range: [0, 0.4]},
+        sliders: [
+          slider(D.cmra.cases.map((x, i) => ({label: String(x.flip), method: 'skip', args: ['f', i]})), 'Flip angle: ', '°', flip, {x: 0.05, len: 0.4, y: -0.22}),
+          slider([1, 2, 3, 4].map((v, i) => ({label: String(v), method: 'skip', args: ['b', i]})), 'Heartbeat: ', '', beat, {x: 0.55, len: 0.4, y: -0.22})
+        ]}, config);
+    };
+    draw();
+    el.on('plotly_sliderchange', e => { if (e.step.args[0] === 'f') flip = e.step.args[1]; else beat = e.step.args[1]; draw(); });
+  });
+
+  onSlide('ernst-angle', () => {
+    const el = document.getElementById('ernst-angle-plot');
+    const t1s = Array.from({length: 113}, (_, i) => 200 + i * 25), trs = Array.from({length: 99}, (_, i) => i + 2);
+    let t1 = 1300, tr = 10;
+    const draw = () => {
+      const tissue = {rho: 1, t1, t2s: 1e12}, a = Array.from({length: 181}, (_, i) => i / 2), s = a.map(deg => gre(tissue, tr, 0, deg));
+      const ang = Math.acos(Math.exp(-tr / t1)) * 180 / Math.PI;
+      document.getElementById('ernst-result').textContent = ang.toFixed(1) + '°';
+      return Plotly.react(el, [line(a, s, 'Steady-state signal', colors[0]),
+        {x: [ang], y: [gre(tissue, tr, 0, ang)], mode: 'markers', name: 'Ernst angle', marker: {color: C.red, size: 13}}
+      ], {...lessonLayout, xaxis: {...axis, title: {standoff: 12, text: 'Flip angle (°)'}, range: [0, 90]}, yaxis: {...axis, title: {standoff: 12, text: 'Signal'}},
+        shapes: [{type: 'line', x0: ang, x1: ang, y0: 0, y1: Math.max(...s), line: {color: C.red, dash: 'dot'}}],
+        sliders: [
+          slider(t1s.map(v => ({label: String(v), method: 'skip', args: ['t1', v]})), 'T₁: ', ' ms', t1s.indexOf(t1), {x: 0.05, len: 0.4, y: -0.2}),
+          slider(trs.map(v => ({label: String(v), method: 'skip', args: ['tr', v]})), 'TR: ', ' ms', trs.indexOf(tr), {x: 0.55, len: 0.4, y: -0.2})
+        ]}, config);
+    };
+    draw();
+    el.on('plotly_sliderchange', e => { if (e.step.args[0] === 't1') t1 = e.step.args[1]; else tr = e.step.args[1]; draw(); });
+  });
+
+  onSlide('timing-contrast', () => {
+    const el = document.getElementById('timing-contrast-plot');
+    const brainTissues = [{rho: 0.77, t1: 832, t2: 80, t2s: 45}, {rho: 0.86, t1: 1330, t2: 110, t2s: 50}, {rho: 1, t1: 4000, t2: 1500, t2s: 200}];
+    const trs = Array.from({length: 50}, (_, i) => (i + 1) * 100), tes = Array.from({length: 30}, (_, i) => (i + 1) * 5);
+    const echoes = Array.from({length: 161}, (_, i) => i);
+    let tr = 700, te = 15, mode = 'se';
+    const draw = () => {
+      te = Math.min(te, tr - 10);
+      document.getElementById('timing-eq-se').style.display = mode === 'se' ? 'flex' : 'none';
+      document.getElementById('timing-eq-gre').style.display = mode === 'gre' ? 'flex' : 'none';
+      const sig = (t, e) => mode === 'se' ? t.rho * (1 - Math.exp(-tr / t.t1)) * Math.exp(-e / t.t2) : gre(t, tr, e, 20);
+      const vals = D.brain.tissues.map(t => sig(t, te)), zmax = mode === 'se' ? 1 : 0.2;
+      return Plotly.react(el, [
+        heatmap(D.brain.labels.map(row => row.map(l => l ? vals[l - 1] : 0)), {x: D.brain.x, y: D.brain.y, zmin: 0, zmax}),
+        ...brainTissues.map((t, i) => line(echoes, echoes.map(e => sig(t, e)), ['WM', 'GM', 'CSF'][i], colors[i], {xaxis: 'x2', yaxis: 'y2'}))
+      ], {...lessonLayout, legend: {orientation: 'h', x: 0.795, xanchor: 'center', y: 1.12},
+        xaxis: {domain: [0, 0.46], visible: false}, yaxis: {visible: false, scaleanchor: 'x', scaleratio: 1},
+        xaxis2: {...axis, domain: [0.59, 1], anchor: 'y2', title: {standoff: 12, text: 'TE (ms)'}},
+        yaxis2: {...axis, anchor: 'x2', title: {standoff: 12, text: 'Signal'}, range: [0, zmax]},
+        shapes: [{type: 'line', xref: 'x2', yref: 'paper', x0: te, x1: te, y0: 0, y1: 1, line: {color: C.red, dash: 'dot'}}],
+        sliders: [
+          slider(trs.map(v => ({label: String(v), method: 'skip', args: ['tr', v]})), 'TR: ', ' ms', trs.indexOf(tr), {x: 0.32, len: 0.27, y: -0.2}),
+          slider(tes.map(v => ({label: String(v), method: 'skip', args: ['te', v]})), 'TE: ', ' ms', tes.indexOf(te), {x: 0.68, len: 0.27, y: -0.2})
+        ],
+        updatemenus: [{type: 'dropdown', direction: 'up', x: 0, xanchor: 'left', y: -0.21, yanchor: 'top', active: mode === 'se' ? 0 : 1,
+          font: {size: 20, color: C.ink}, bordercolor: C.blue,
+          buttons: [{label: 'Spin echo (90°)', method: 'skip', args: ['se']}, {label: 'Spoiled GRE (20°)', method: 'skip', args: ['gre']}]}]
+      }, config);
+    };
+    draw();
+    el.on('plotly_sliderchange', e => { if (e.step.args[0] === 'tr') tr = e.step.args[1]; else te = e.step.args[1]; draw(); });
+    el.on('plotly_buttonclicked', e => { mode = e.button.args[0]; draw(); });
+  });
 });
 </script>
-~~~
+```

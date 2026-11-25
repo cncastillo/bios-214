@@ -1,0 +1,11 @@
+color:
+  foreground: "#343a40"
+  background: "#ffffff"
+  primary: "#2a7fb8"
+  secondary: "#6c757d"
+typography:
+  headings:
+    color: foreground
+  link:
+    color: primary
+    decoration: none
