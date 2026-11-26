@@ -1,0 +1,5 @@
+[deps]
+Malt = "36869731-bdee-424d-aa32-cab38c994e3b"
+
+[compat]
+Malt = "=1.5.0"

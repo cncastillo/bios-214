@@ -1,0 +1,71 @@
+name: Diagnose issue 14 on Windows
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/issue14-windows.yml
+      - diagnostics/issue14/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      JULIA_PKG_PRECOMPILE_AUTO: '0'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.10.13'
+          arch: x64
+      - name: Record Windows runtime
+        run: julia --startup-file=no -e 'using InteractiveUtils; versioninfo()'
+      - name: Extract the published Activity 2 environment
+        shell: pwsh
+        run: |
+          Copy-Item lab/2/activity2.jl diagnostics/issue14/activity2-source.jl
+          julia --startup-file=no diagnostics/issue14/prepare.jl
+      - name: Install the pinned notebook dependencies and Malt
+        shell: pwsh
+        run: |
+          julia --startup-file=no --project=diagnostics/issue14/environment -e 'using Pkg; Pkg.instantiate()'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          julia --startup-file=no --project=diagnostics/issue14/parent -e 'using Pkg; Pkg.instantiate()'
+      - name: Reconstruct the FFTW reference with one Julia thread
+        shell: pwsh
+        run: |
+          julia --startup-file=no --project=diagnostics/issue14/environment diagnostics/issue14/provider.jl fftw
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          julia --startup-file=no --project=diagnostics/issue14/parent diagnostics/issue14/run.jl plain-1
+      - name: Validate MKL reconstruction with 8 and 20 Julia threads
+        shell: pwsh
+        run: |
+          julia --startup-file=no --project=diagnostics/issue14/environment diagnostics/issue14/provider.jl mkl
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $failed = $false
+          foreach ($case in @('plain-8', 'malt-8', 'plain-20', 'malt-20')) {
+            julia --startup-file=no --project=diagnostics/issue14/parent diagnostics/issue14/run.jl $case
+            if ($LASTEXITCODE -ne 0) { $failed = $true }
+          }
+          if ($failed) { throw 'At least one reconstruction case failed; see the case logs.' }
+      - name: Compare the reconstructed images against FFTW
+        run: >-
+          julia --startup-file=no diagnostics/issue14/compare.jl
+          diagnostics/issue14/plain-1.toml.bin
+          diagnostics/issue14/plain-8.toml.bin diagnostics/issue14/malt-8.toml.bin
+          diagnostics/issue14/plain-20.toml.bin diagnostics/issue14/malt-20.toml.bin
+      - name: Save results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: issue14-windows-results
+          path: |
+            diagnostics/issue14/*.toml
+            diagnostics/issue14/*.bin
+          if-no-files-found: ignore
